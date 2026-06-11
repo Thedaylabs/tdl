@@ -181,7 +181,7 @@
     });
   });
 
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwuFSzyLv9qNKtpYNtCtBiaUacfanaHdQxVKXq6rIxuDUERCraxckG9Ok9eWcXNkHkF/exec';
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgvA5ZB2ROdBTo4f_7N-GXTezd4UhH5kTWlIKInmlVrugTONgzApw5Ee4xL4orb0W_/exec';
 
   function serverPost(payload) {
     fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) }).catch(()=>{});

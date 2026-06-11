@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>월별 매출 보고서</title>
+  <title>?�별 매출 보고??/title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -11,7 +11,7 @@
       background: #f0f2f5; color: #1a1a2e; min-height: 100vh;
     }
 
-    /* ── 로그인 ── */
+    /* ?�?� 로그???�?� */
     #loginScreen {
       display: flex; align-items: center; justify-content: center;
       min-height: 100vh; padding: 24px 16px;
@@ -40,10 +40,10 @@
     .btn-login:hover { background: #4338ca; }
     .login-hint { margin-top: 18px; font-size: 0.78rem; color: #bbb; }
 
-    /* ── 메인 화면 ── */
+    /* ?�?� 메인 ?�면 ?�?� */
     #mainScreen { display: none; }
 
-    /* 상단 헤더 */
+    /* ?�단 ?�더 */
     .top-header {
       background: #fff; border-bottom: 1px solid #e5e7eb;
       padding: 0 24px; max-width: 100%;
@@ -70,7 +70,7 @@
     }
     .btn-logout:hover { background: #ede9fe; }
 
-    /* 탭 */
+    /* ??*/
     .tab-bar {
       background: #fff; border-bottom: 1px solid #e5e7eb;
       position: sticky; top: 60px; z-index: 99;
@@ -87,7 +87,7 @@
     }
     .tab-btn.active { color: #4f46e5; border-bottom-color: #4f46e5; }
 
-    /* 탭 콘텐츠 */
+    /* ??콘텐�?*/
     .tab-content { display: none; padding: 28px 16px 60px; }
     .tab-content.active { display: block; }
 
@@ -132,7 +132,7 @@
     .amount-box.total input { color: #4f46e5; background: #f5f3ff; }
     .amount-box.total label { color: #4f46e5; }
 
-    /* 업로드 */
+    /* ?�로??*/
     .upload-wrap {
       border: 2px dashed #c7c7d4; border-radius: 12px; padding: 18px 16px;
       text-align: center; cursor: pointer; background: #fafafa; position: relative;
@@ -159,7 +159,7 @@
       cursor: pointer; display: flex; align-items: center; justify-content: center;
     }
 
-    /* 특약 */
+    /* ?�약 */
     .special-card {
       background: #fff; border-radius: 16px;
       box-shadow: 0 2px 16px rgba(0,0,0,0.07);
@@ -177,7 +177,7 @@
     .special-total span { font-weight: 700; color: #b45309; font-size: 0.97rem; }
     .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; font-size: 0.84rem; color: #1d4ed8; }
 
-    /* 제출 버튼 */
+    /* ?�출 버튼 */
     .submit-wrap { max-width: 720px; margin: 0 auto; text-align: center; }
     .btn-submit {
       background: #4f46e5; color: #fff; border: none; border-radius: 14px;
@@ -189,9 +189,9 @@
     .btn-submit:hover { background: #4338ca; transform: translateY(-1px); }
     .btn-submit:active { transform: translateY(0); }
     .btn-submit.loading { opacity: 0.7; pointer-events: none; }
-    .btn-submit.loading::after { content: ' ⏳'; }
+    .btn-submit.loading::after { content: ' ??; }
 
-    /* ── 제출 내역 탭 ── */
+    /* ?�?� ?�출 ?�역 ???�?� */
     .history-toolbar {
       max-width: 720px; margin: 0 auto 16px;
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -208,7 +208,7 @@
     .history-empty .empty-ico { font-size: 2.5rem; margin-bottom: 12px; }
     .history-empty p { font-size: 0.9rem; color: #888; }
 
-    /* 카드 리스트 */
+    /* 카드 리스??*/
     .history-list { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
 
     .hi-card {
@@ -241,7 +241,7 @@
     .hi-memo { background: #f8faff; border-radius: 10px; padding: 11px 14px; margin-bottom: 10px; font-size: 0.82rem; color: #555; }
     .hi-memo .lbl { font-weight: 600; color: #374151; margin-bottom: 3px; }
 
-    /* 첨부파일 */
+    /* 첨�??�일 */
     .hi-files { margin-top: 4px; }
     .hi-files .flbl { font-size: 0.78rem; font-weight: 700; color: #374151; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
     .hi-files .fcnt { background: #e0f2fe; color: #0369a1; border-radius: 10px; padding: 1px 7px; font-size: 0.7rem; }
@@ -260,7 +260,7 @@
     .btn-edit-card:hover { background:#d1fae5; }
     .btn-edit-disabled { background:#f5f5f5; color:#ccc; border:1.5px solid #e0e0e0; border-radius:8px; padding:4px 12px; font-size:.72rem; font-family:inherit; cursor:default; }
 
-    /* 수정 모달 */
+    /* ?�정 모달 */
     .edit-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9998; align-items:center; justify-content:center; padding:16px; }
     .edit-overlay.show { display:flex; }
     .edit-modal { background:#fff; border-radius:20px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,.2); }
@@ -278,7 +278,7 @@
     .btn-edit-save { background:#4f46e5; color:#fff; border:none; border-radius:10px; padding:10px 24px; font-size:.9rem; font-weight:700; cursor:pointer; font-family:inherit; }
     .btn-edit-cancel { background:#fff; color:#666; border:1.5px solid #e0e0e0; border-radius:10px; padding:10px 18px; font-size:.9rem; cursor:pointer; font-family:inherit; }
 
-    /* 라이트박스 */
+    /* ?�이?�박??*/
     .lb-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 9999; align-items: center; justify-content: center; padding: 16px; }
     .lb-overlay.show { display: flex; }
     .lb-inner { position: relative; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center; }
@@ -300,159 +300,159 @@
     .modal p { font-size: 0.88rem; color: #666; margin-bottom: 22px; line-height: 1.6; }
     .btn-ok { background: #4f46e5; color: #fff; border: none; border-radius: 10px; padding: 12px 32px; font-size: 0.93rem; font-weight: 600; cursor: pointer; font-family: inherit; }
 
-    /* 유효성 오류 모달 */
+    /* ?�효???�류 모달 */
     .btn-ok-warn { background: #e53e3e; color: #fff; border: none; border-radius: 10px; padding: 12px 32px; font-size: 0.93rem; font-weight: 600; cursor: pointer; font-family: inherit; }
     .error-list { text-align: left; background: #fff5f5; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; }
     .error-list li { font-size: 0.85rem; color: #c53030; margin-bottom: 5px; list-style: none; padding-left: 4px; }
-    .error-list li::before { content: '• '; font-weight: 700; }
+    .error-list li::before { content: '??'; font-weight: 700; }
 
-    /* 입력 오류 강조 */
+    /* ?�력 ?�류 강조 */
     .input-error { border-color: #e53e3e !important; background: #fff5f5 !important; }
     .upload-error { border-color: #e53e3e !important; background: #fff5f5 !important; }
   </style>
 </head>
 <body>
 
-<!-- ══ 로그인 ══════════════════════════════════════════════ -->
+<!-- ?�═ 로그???�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ -->
 <div id="loginScreen">
   <div class="login-card">
-    <div class="login-logo">🏢</div>
-    <h1>매출 보고서</h1>
-    <p>지점 전용 PIN 번호를 입력해 주세요.</p>
+    <div class="login-logo">?��</div>
+    <h1>매출 보고??/h1>
+    <p>지???�용 PIN 번호�??�력??주세??</p>
     <label>PIN 번호</label>
-    <input type="password" id="pinInput" maxlength="4" placeholder="●●●●"
+    <input type="password" id="pinInput" maxlength="4" placeholder="?�●?�●"
            oninput="this.value=this.value.replace(/[^0-9]/g,'')"
            onkeydown="if(event.key==='Enter') doLogin()" />
     <div class="login-error" id="loginError"></div>
-    <button class="btn-login" onclick="doLogin()">로그인</button>
-    <p class="login-hint">PIN 번호는 본사로 문의해 주세요.</p>
+    <button class="btn-login" onclick="doLogin()">로그??/button>
+    <p class="login-hint">PIN 번호??본사�?문의??주세??</p>
   </div>
 </div>
 
-<!-- ══ 메인 화면 ════════════════════════════════════════════ -->
+<!-- ?�═ 메인 ?�면 ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ -->
 <div id="mainScreen">
 
-  <!-- 상단 헤더 -->
+  <!-- ?�단 ?�더 -->
   <div class="top-header">
     <div class="top-header-inner">
-      <span class="top-title">📊 월별 매출 보고서</span>
+      <span class="top-title">?�� ?�별 매출 보고??/span>
       <div class="branch-chip">
-        🏬 <span id="headerBranchName"></span>
-        <button class="btn-logout" onclick="doLogout()">로그아웃</button>
+        ?�� <span id="headerBranchName"></span>
+        <button class="btn-logout" onclick="doLogout()">로그?�웃</button>
       </div>
     </div>
   </div>
 
-  <!-- 탭 바 -->
+  <!-- ??�?-->
   <div class="tab-bar">
     <div class="tab-bar-inner">
-      <button class="tab-btn active" id="tabBtn1" onclick="switchTab(1)">📝 보고서 제출</button>
-      <button class="tab-btn" id="tabBtn2" onclick="switchTab(2)">📋 제출 내역</button>
+      <button class="tab-btn active" id="tabBtn1" onclick="switchTab(1)">?�� 보고???�출</button>
+      <button class="tab-btn" id="tabBtn2" onclick="switchTab(2)">?�� ?�출 ?�역</button>
     </div>
   </div>
 
-  <!-- 탭 1: 보고서 제출 -->
+  <!-- ??1: 보고???�출 -->
   <div class="tab-content active" id="tab1">
 
     <form id="mainForm" novalidate>
 
       <div class="card">
-        <h2>📋 기본 정보 <span class="badge">필수</span></h2>
+        <h2>?�� 기본 ?�보 <span class="badge">?�수</span></h2>
         <div class="form-group">
           <label>보고 기간 <span class="req">*</span></label>
           <input type="month" id="reportMonth" required />
         </div>
         <div class="form-group">
-          <label>지점명</label>
+          <label>지?�명</label>
           <div class="branch-display" id="branchDisplay"></div>
         </div>
         <div class="form-group" style="margin-bottom:0">
-          <label>담당자명 <span class="req">*</span></label>
-          <input type="text" id="managerName" placeholder="이름을 입력하세요" required />
+          <label>?�당?�명 <span class="req">*</span></label>
+          <input type="text" id="managerName" placeholder="?�름???�력?�세?? required />
         </div>
       </div>
 
       <div class="card">
-        <h2>📎 증빙 서류 첨부 <span class="badge">필수</span></h2>
+        <h2>?�� 증빙 ?�류 첨�? <span class="badge">?�수</span></h2>
         <div class="form-group">
-          <label>베가스 CRM 매출 집계 캡쳐본 <span class="req">*</span><span class="hint">전체 매출 집계 화면</span></label>
+          <label>베�???CRM 매출 집계 캡쳐�?<span class="req">*</span><span class="hint">?�체 매출 집계 ?�면</span></label>
           <div class="upload-wrap" id="ua1">
             <input type="file" id="f1" accept="image/*" multiple onchange="addFiles(this,'p1')" />
-            <div class="ico">🖼️</div>
-            <p><strong>클릭 또는 드래그</strong>하여 업로드</p>
-            <p>JPG · PNG · HEIC 가능</p>
+            <div class="ico">?���?/div>
+            <p><strong>?�릭 ?�는 ?�래�?/strong>?�여 ?�로??/p>
+            <p>JPG · PNG · HEIC 가??/p>
           </div>
           <div class="preview-grid" id="p1"></div>
         </div>
         <div class="form-group">
-          <label>내원경로별 캡쳐본 <span class="req">*</span><span class="hint">내원경로별 통계 화면</span></label>
+          <label>?�원경로�?캡쳐�?<span class="req">*</span><span class="hint">?�원경로�??�계 ?�면</span></label>
           <div class="upload-wrap" id="ua2">
             <input type="file" id="f2" accept="image/*" multiple onchange="addFiles(this,'p2')" />
-            <div class="ico">🖼️</div>
-            <p><strong>클릭 또는 드래그</strong>하여 업로드</p>
-            <p>JPG · PNG · HEIC 가능</p>
+            <div class="ico">?���?/div>
+            <p><strong>?�릭 ?�는 ?�래�?/strong>?�여 ?�로??/p>
+            <p>JPG · PNG · HEIC 가??/p>
           </div>
           <div class="preview-grid" id="p2"></div>
         </div>
         <div class="form-group" style="margin-bottom:0">
-          <label>월 매출 집계 자료<span class="hint">엑셀, PDF, 이미지 등 추가 자료</span></label>
+          <label>??매출 집계 ?�료<span class="hint">?��?, PDF, ?��?지 ??추�? ?�료</span></label>
           <div class="upload-wrap" id="ua3">
             <input type="file" id="f3" accept="image/*,.pdf,.xlsx,.xls" multiple onchange="addFiles(this,'p3')" />
-            <div class="ico">📄</div>
-            <p><strong>클릭 또는 드래그</strong>하여 업로드</p>
-            <p>이미지 · PDF · Excel 가능</p>
+            <div class="ico">?��</div>
+            <p><strong>?�릭 ?�는 ?�래�?/strong>?�여 ?�로??/p>
+            <p>?��?지 · PDF · Excel 가??/p>
           </div>
           <div class="preview-grid" id="p3"></div>
         </div>
       </div>
 
       <div class="card">
-        <h2>💰 매출 입력 <span class="badge">필수</span></h2>
-        <p style="font-size:0.8rem;color:#999;margin-bottom:16px;">글로벌점이 아닌 경우 총 매출을 <strong>국내매출</strong>란에 입력해 주세요.</p>
+        <h2>?�� 매출 ?�력 <span class="badge">?�수</span></h2>
+        <p style="font-size:0.8rem;color:#999;margin-bottom:16px;">글로벌?�이 ?�닌 경우 �?매출??<strong>�?��매출</strong>?�???�력??주세??</p>
         <div class="amount-row">
           <div class="amount-box form-group">
-            <label>국내 매출 <span class="req">*</span></label>
+            <label>�?�� 매출 <span class="req">*</span></label>
             <input type="text" id="salesDom" placeholder="0" inputmode="numeric" oninput="fmtAmount(this);calcTotal()" />
-            <div class="unit">원 (₩)</div>
+            <div class="unit">??(??</div>
           </div>
           <div class="amount-box form-group">
-            <label>해외 매출</label>
+            <label>?�외 매출</label>
             <input type="text" id="salesOvs" placeholder="0" inputmode="numeric" oninput="fmtAmount(this);calcTotal()" />
-            <div class="unit">원 (₩)</div>
+            <div class="unit">??(??</div>
           </div>
           <div class="amount-box total form-group">
-            <label>총 매출 (자동 합산)</label>
+            <label>�?매출 (?�동 ?�산)</label>
             <input type="text" id="salesTot" placeholder="0" readonly tabindex="-1" />
-            <div class="unit" style="color:#4f46e5">원 (₩)</div>
+            <div class="unit" style="color:#4f46e5">??(??</div>
           </div>
         </div>
       </div>
 
       <div class="special-card" id="specialCard">
-        <h2>📝 특약사항 <span class="badge badge-opt">지점 해당</span></h2>
+        <h2>?�� ?�약?�항 <span class="badge badge-opt">지???�당</span></h2>
         <div id="specialContent"></div>
       </div>
 
       <div class="card">
-        <h2>💬 추가 메모 <span class="badge badge-opt">선택</span></h2>
+        <h2>?�� 추�? 메모 <span class="badge badge-opt">?�택</span></h2>
         <div class="form-group" style="margin-bottom:0">
-          <textarea id="memo" placeholder="이번 달 특이사항, 전달 사항 등을 자유롭게 입력해 주세요."></textarea>
+          <textarea id="memo" placeholder="?�번 ???�이?�항, ?�달 ?�항 ?�을 ?�유�?�� ?�력??주세??"></textarea>
         </div>
       </div>
 
       <div class="submit-wrap">
-        <button type="submit" class="btn-submit" id="submitBtn">✅ 제출하기</button>
+        <button type="submit" class="btn-submit" id="submitBtn">???�출?�기</button>
       </div>
     </form>
   </div><!-- /tab1 -->
 
-  <!-- 탭 2: 제출 내역 -->
+  <!-- ??2: ?�출 ?�역 -->
   <div class="tab-content" id="tab2">
 
     <div class="history-toolbar">
       <div class="history-filter">
         <select id="historyYear" onchange="renderHistory()">
-          <option value="">전체 연도</option>
+          <option value="">?�체 ?�도</option>
         </select>
       </div>
       <span class="history-count" id="historyCount"></span>
@@ -460,115 +460,114 @@
 
     <div id="historyArea">
       <div class="history-empty">
-        <div class="empty-ico">📭</div>
-        <p>아직 제출한 보고서가 없습니다.</p>
+        <div class="empty-ico">?��</div>
+        <p>?�직 ?�출??보고?��? ?�습?�다.</p>
       </div>
     </div>
 
   </div><!-- /tab2 -->
 
-  <!-- 라이트박스 -->
+  <!-- ?�이?�박??-->
   <div class="lb-overlay" id="lbOverlay" onclick="if(event.target===this)closeLb()">
     <div class="lb-inner">
-      <button class="lb-close" onclick="closeLb()">✕</button>
+      <button class="lb-close" onclick="closeLb()">??/button>
       <img id="lbImg" src="" alt="" />
       <div class="lb-name" id="lbName"></div>
       <div class="lb-nav">
-        <button id="lbPrev" onclick="lbMove(-1)">◀ 이전</button>
+        <button id="lbPrev" onclick="lbMove(-1)">?� ?�전</button>
         <span class="lb-counter" id="lbCounter"></span>
-        <button id="lbNext" onclick="lbMove(1)">다음 ▶</button>
+        <button id="lbNext" onclick="lbMove(1)">?�음 ??/button>
       </div>
     </div>
   </div>
 
 </div><!-- /mainScreen -->
 
-<!-- 수정 모달 -->
+<!-- ?�정 모달 -->
 <div class="edit-overlay" id="editOverlay" onclick="if(event.target===this)closeEditModal()">
   <div class="edit-modal">
     <div class="edit-modal-header">
-      <h3>✏️ 제출 내역 수정</h3>
-      <button class="edit-modal-close" onclick="closeEditModal()">✕</button>
+      <h3>?�️ ?�출 ?�역 ?�정</h3>
+      <button class="edit-modal-close" onclick="closeEditModal()">??/button>
     </div>
     <div class="edit-modal-body">
-      <div class="edit-notice">⏰ 제출 후 2일 이내에만 수정 가능합니다.</div>
+      <div class="edit-notice">???�출 ??2???�내?�만 ?�정 가?�합?�다.</div>
       <input type="hidden" id="editRowId" />
       <div class="edit-field">
-        <label>국내 매출 (원)</label>
+        <label>�?�� 매출 (??</label>
         <input type="number" id="editDom" min="0" step="1" placeholder="0" />
       </div>
       <div class="edit-field">
-        <label>해외 매출 (원)</label>
+        <label>?�외 매출 (??</label>
         <input type="number" id="editOvs" min="0" step="1" placeholder="0" />
       </div>
       <div class="edit-field">
         <label>메모</label>
-        <textarea id="editMemo" placeholder="메모 입력 (선택)"></textarea>
+        <textarea id="editMemo" placeholder="메모 ?�력 (?�택)"></textarea>
       </div>
     </div>
     <div class="edit-modal-footer">
       <button class="btn-edit-cancel" onclick="closeEditModal()">취소</button>
-      <button class="btn-edit-save" onclick="saveEdit()">저장</button>
+      <button class="btn-edit-save" onclick="saveEdit()">?�??/button>
     </div>
   </div>
 </div>
 
-<!-- 완료 모달 -->
+<!-- ?�료 모달 -->
 <div class="overlay" id="doneModal">
   <div class="modal">
-    <div class="ico">🎉</div>
-    <h3>제출 완료!</h3>
-    <p id="doneMsg">보고서가 성공적으로 제출되었습니다.</p>
-    <button class="btn-ok" onclick="closeModal()">제출 내역 확인 →</button>
+    <div class="ico">?��</div>
+    <h3>?�출 ?�료!</h3>
+    <p id="doneMsg">보고?��? ?�공?�으�??�출?�었?�니??</p>
+    <button class="btn-ok" onclick="closeModal()">?�출 ?�역 ?�인 ??/button>
   </div>
 </div>
 
-<!-- 유효성 오류 모달 -->
+<!-- ?�효???�류 모달 -->
 <div class="overlay" id="warnModal">
   <div class="modal">
-    <div class="ico">⚠️</div>
-    <h3>필수 항목을 확인해 주세요</h3>
+    <div class="ico">?�️</div>
+    <h3>?�수 ??��???�인??주세??/h3>
     <ul class="error-list" id="warnList"></ul>
-    <button class="btn-ok-warn" onclick="closeWarn()">확인 후 수정하기</button>
+    <button class="btn-ok-warn" onclick="closeWarn()">?�인 ???�정?�기</button>
   </div>
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwuFSzyLv9qNKtpYNtCtBiaUacfanaHdQxVKXq6rIxuDUERCraxckG9Ok9eWcXNkHkF/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgvA5ZB2ROdBTo4f_7N-GXTezd4UhH5kTWlIKInmlVrugTONgzApw5Ee4xL4orb0W_/exec';
 
-// ── PIN 맵 (관리자 페이지에서 변경 가능, localStorage 우선) ──
+// ?�?� PIN �?(관리자 ?�이지?�서 변�?가?? localStorage ?�선) ?�?�
 const DEFAULT_PIN_MAP = {
-  '0399': '강서발산점', '7791': '건대입구점', '7705': '광주상무점',
-  '2225': '강남점',    '7122': '안양범계점', '5664': '여의도점',
-  '4842': '영등포점',  '9770': '대전둔산점', '7771': '명동점',
-  '8026': '분당점',    '7960': '인천구월점', '1004': '전주점',
-  '7890': '부산서면점','4090': '명동2호점',  '7117': '수원점',
-  '3430': '세라미크 강남점'
+  '0399': '강서발산??, '7791': '건�??�구??, '7705': '광주?�무??,
+  '2225': '강남??,    '7122': '?�양범계??, '5664': '?�의?�점',
+  '4842': '?�등?�점',  '9770': '?�?�둔?�점', '7771': '명동??,
+  '8026': '분당??,    '7960': '?�천구월??, '1004': '?�주??,
+  '7890': '부?�서면점','4090': '명동2?�점',  '7117': '?�원??,
+  '3430': '?�라미크 강남??
 };
 
 function getPinMap() {
   const saved = localStorage.getItem('pin_map');
   if (!saved) return DEFAULT_PIN_MAP;
-  // pin_map은 {지점명: PIN} 형태 → 역방향으로 변환
-  const branchToPin = JSON.parse(saved);
+  // pin_map?� {지?�명: PIN} ?�태 ????��?�으�?변??  const branchToPin = JSON.parse(saved);
   const pinToBranch = {};
   Object.entries(branchToPin).forEach(([branch, pin]) => { pinToBranch[pin] = branch; });
   return pinToBranch;
 }
 const PIN_MAP = new Proxy({}, { get: (_, pin) => getPinMap()[pin] });
 
-// ── 특약 설정 ───────────────────────────────────────────────
+// ?�?� ?�약 ?�정 ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 const BRANCH_SPECIAL = {
-  '강남점':    { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'울쎄라 시술 제외',id:'sp_ulthera'},{label:'리쥬란 시술 제외',id:'sp_rejuran'}] },
-  '명동점':    { type:'info',  note:'명동점은 마케팅 수수료 제외 지점입니다. 별도 금액 입력 불필요합니다.' },
-  '분당점':    { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'화장품 판매 제외',id:'sp_cosmetic'}] },
-  '부산서면점':{ type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'환불건 제외',id:'sp_refund'}] }
+  '강남??:    { type:'input', note:'?�래 ?�약 ??��???�당 금액???�력??주세??', items:[{label:'?�쎄???�술 ?�외',id:'sp_ulthera'},{label:'리�??� ?�술 ?�외',id:'sp_rejuran'}] },
+  '명동??:    { type:'info',  note:'명동?��? 마�????�수�??�외 지?�입?�다. 별도 금액 ?�력 불필?�합?�다.' },
+  '분당??:    { type:'input', note:'?�래 ?�약 ??��???�당 금액???�력??주세??', items:[{label:'?�장???�매 ?�외',id:'sp_cosmetic'}] },
+  '부?�서면점':{ type:'input', note:'?�래 ?�약 ??��???�당 금액???�력??주세??', items:[{label:'?�불�??�외',id:'sp_refund'}] }
 };
 
 let currentBranch = '';
 let historyData   = [];
 
-// ── 탭 전환 ────────────────────────────────────────────────
+// ?�?� ???�환 ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 function switchTab(n) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -577,7 +576,7 @@ function switchTab(n) {
   if(n === 2) loadHistory();
 }
 
-// ── 로그인 공통 처리 ────────────────────────────────────────
+// ?�?� 로그??공통 처리 ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 function showBranchScreen(branch) {
   currentBranch = branch;
   document.getElementById('loginError').textContent = '';
@@ -595,7 +594,7 @@ function doLogin() {
   const pin    = document.getElementById('pinInput').value.trim();
   const branch = PIN_MAP[pin];
   if (!branch) {
-    document.getElementById('loginError').textContent = '❌ PIN 번호가 올바르지 않습니다.';
+    document.getElementById('loginError').textContent = '??PIN 번호가 ?�바르�? ?�습?�다.';
     document.getElementById('pinInput').value = '';
     document.getElementById('pinInput').focus();
     return;
@@ -604,9 +603,9 @@ function doLogin() {
   showBranchScreen(branch);
 }
 
-// ── 로그아웃 ────────────────────────────────────────────────
+// ?�?� 로그?�웃 ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 function doLogout() {
-  if (!confirm('로그아웃 하시겠어요?\n입력하신 내용은 초기화됩니다.')) return;
+  if (!confirm('로그?�웃 ?�시겠어??\n?�력?�신 ?�용?� 초기?�됩?�다.')) return;
   sessionStorage.removeItem('branch_logged_in');
   currentBranch = ''; historyData = [];
   document.getElementById('mainScreen').style.display  = 'none';
@@ -618,34 +617,34 @@ function doLogout() {
   document.getElementById('specialCard').classList.remove('visible');
   document.getElementById('specialContent').innerHTML='';
   document.getElementById('historyArea').innerHTML=`
-    <div class="history-empty"><div class="empty-ico">📭</div><p>아직 제출한 보고서가 없습니다.</p></div>`;
+    <div class="history-empty"><div class="empty-ico">?��</div><p>?�직 ?�출??보고?��? ?�습?�다.</p></div>`;
   switchTab(1);
 }
 
-// ── 새로고침 후 세션 복원 ────────────────────────────────────
+// ?�?� ?�로고침 ???�션 복원 ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 (function restoreSession() {
   const saved = sessionStorage.getItem('branch_logged_in');
   if (saved) showBranchScreen(saved);
 })();
 
-// ── 특약 렌더 ───────────────────────────────────────────────
+// ?�?� ?�약 ?�더 ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 function renderSpecial(branch) {
   const card    = document.getElementById('specialCard');
   const content = document.getElementById('specialContent');
   const config  = BRANCH_SPECIAL[branch];
   if (!config) { card.classList.remove('visible'); content.innerHTML=''; return; }
   card.classList.add('visible');
-  if (config.type==='info') { content.innerHTML=`<div class="info-box">ℹ️ ${config.note}</div>`; return; }
-  let html=`<div class="special-note">📌 ${config.note}</div><div class="special-rows">`;
+  if (config.type==='info') { content.innerHTML=`<div class="info-box">?�️ ${config.note}</div>`; return; }
+  let html=`<div class="special-note">?�� ${config.note}</div><div class="special-rows">`;
   config.items.forEach(item => {
     html+=`<div class="s-row">
       <div class="s-label-cell">${item.label}</div>
-      <input type="number" id="${item.id}" placeholder="금액 입력 (원)" min="0" step="1" oninput="calcSpecialTotal('${branch}')" />
-      <input type="text" id="${item.id}_memo" placeholder="비고 (선택)" />
+      <input type="number" id="${item.id}" placeholder="금액 ?�력 (??" min="0" step="1" oninput="calcSpecialTotal('${branch}')" />
+      <input type="text" id="${item.id}_memo" placeholder="비고 (?�택)" />
     </div>`;
   });
-  html+=`</div><div class="special-total"><div>특약 합계</div>
-    <span id="stotal_${branch.replace(/[^가-힣a-z0-9]/gi,'_')}">0 원</span></div>`;
+  html+=`</div><div class="special-total"><div>?�약 ?�계</div>
+    <span id="stotal_${branch.replace(/[^가-?�a-z0-9]/gi,'_')}">0 ??/span></div>`;
   content.innerHTML=html;
 }
 
@@ -654,11 +653,11 @@ function calcSpecialTotal(branch) {
   if (!config||config.type!=='input') return;
   let total=0;
   config.items.forEach(item=>{ const el=document.getElementById(item.id); if(el) total+=parseFloat(el.value)||0; });
-  const el=document.getElementById('stotal_'+branch.replace(/[^가-힣a-z0-9]/gi,'_'));
-  if(el) el.textContent=total.toLocaleString('ko-KR')+' 원';
+  const el=document.getElementById('stotal_'+branch.replace(/[^가-?�a-z0-9]/gi,'_'));
+  if(el) el.textContent=total.toLocaleString('ko-KR')+' ??;
 }
 
-// ── 숫자 포맷 ───────────────────────────────────────────────
+// ?�?� ?�자 ?�맷 ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 function fmtAmount(input) {
   const raw=input.value.replace(/[^0-9]/g,'');
   input.value=raw?Number(raw).toLocaleString('ko-KR'):'';
@@ -672,7 +671,7 @@ function calcTotal() {
 }
 function numFmt(n) { return Number(n||0).toLocaleString('ko-KR'); }
 
-// ── 파일 업로드 ─────────────────────────────────────────────
+// ?�?� ?�일 ?�로???�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 const fileStore={p1:[],p2:[],p3:[]};
 function addFiles(input,pid) {
   const preview=document.getElementById(pid);
@@ -681,7 +680,7 @@ function addFiles(input,pid) {
     const item=document.createElement('div'); item.className='preview-item'; item.dataset.idx=idx;
     if(file.type.startsWith('image/')){ const reader=new FileReader(); reader.onload=e=>{ const img=document.createElement('img'); img.src=e.target.result; item.appendChild(img); }; reader.readAsDataURL(file); }
     else { item.style.cssText='width:auto;height:auto;border-radius:8px;background:#f1f5f9;padding:8px;font-size:0.76rem;color:#555;'; item.textContent=file.name; }
-    const rm=document.createElement('button'); rm.className='rm'; rm.type='button'; rm.textContent='✕';
+    const rm=document.createElement('button'); rm.className='rm'; rm.type='button'; rm.textContent='??;
     rm.onclick=()=>{ fileStore[pid][idx]=null; item.remove(); };
     item.appendChild(rm); preview.appendChild(item);
   });
@@ -694,7 +693,7 @@ document.querySelectorAll('.upload-wrap').forEach((area,i)=>{
   area.addEventListener('drop',e=>{ e.preventDefault(); area.classList.remove('over'); addFiles({files:e.dataTransfer.files,value:''},pid); });
 });
 
-// ── 특약 수집 ───────────────────────────────────────────────
+// ?�?� ?�약 ?�집 ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 function collectSpecial(branch) {
   const config=BRANCH_SPECIAL[branch];
   if(!config||config.type!=='input') return null;
@@ -706,7 +705,7 @@ function collectSpecial(branch) {
   return result;
 }
 
-// ── 유효성 검사 모달 ────────────────────────────────────────
+// ?�?� ?�효??검??모달 ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 function showWarn(errors) {
   const list = document.getElementById('warnList');
   list.innerHTML = errors.map(e => `<li>${e}</li>`).join('');
@@ -727,7 +726,7 @@ function clearErrors() {
   });
 }
 
-// ── IndexedDB (파일 저장) ────────────────────────────────────
+// ?�?� IndexedDB (?�일 ?�?? ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 const IDB_NAME='sales_files', IDB_STORE='files', IDB_VER=1;
 let idb=null;
 function openIDB(){
@@ -767,7 +766,7 @@ async function getFilesFromIDB(submissionId){
   }catch{ return []; }
 }
 
-// ── 폼 제출 ─────────────────────────────────────────────────
+// ?�?� ???�출 ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 document.getElementById('mainForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   clearErrors();
@@ -779,11 +778,11 @@ document.getElementById('mainForm').addEventListener('submit', async function(e)
   const hasP2    = (fileStore.p2||[]).filter(Boolean).length > 0;
 
   const errors = [];
-  if (!month)    { errors.push('보고 기간을 선택해 주세요.'); document.getElementById('reportMonth').classList.add('input-error'); }
-  if (!manager)  { errors.push('담당자명을 입력해 주세요.'); document.getElementById('managerName').classList.add('input-error'); }
-  if (!hasP1)    { errors.push('베가스 CRM 매출 집계 캡쳐본을 첨부해 주세요.'); document.getElementById('ua1').classList.add('upload-error'); }
-  if (!hasP2)    { errors.push('내원경로별 캡쳐본을 첨부해 주세요.'); document.getElementById('ua2').classList.add('upload-error'); }
-  if (!domestic) { errors.push('국내 매출을 입력해 주세요.'); document.getElementById('salesDom').classList.add('input-error'); }
+  if (!month)    { errors.push('보고 기간???�택??주세??'); document.getElementById('reportMonth').classList.add('input-error'); }
+  if (!manager)  { errors.push('?�당?�명???�력??주세??'); document.getElementById('managerName').classList.add('input-error'); }
+  if (!hasP1)    { errors.push('베�???CRM 매출 집계 캡쳐본을 첨�???주세??'); document.getElementById('ua1').classList.add('upload-error'); }
+  if (!hasP2)    { errors.push('?�원경로�?캡쳐본을 첨�???주세??'); document.getElementById('ua2').classList.add('upload-error'); }
+  if (!domestic) { errors.push('�?�� 매출???�력??주세??'); document.getElementById('salesDom').classList.add('input-error'); }
 
   if (errors.length > 0) { showWarn(errors); return; }
 
@@ -791,7 +790,7 @@ document.getElementById('mainForm').addEventListener('submit', async function(e)
 
   const submissionId = `${currentBranch}_${Date.now()}`;
 
-  // 첨부 파일 수집 (전체 업로드 영역)
+  // 첨�? ?�일 ?�집 (?�체 ?�로???�역)
   const allFiles=[
     ...(fileStore.p1||[]).filter(Boolean),
     ...(fileStore.p2||[]).filter(Boolean),
@@ -799,7 +798,7 @@ document.getElementById('mainForm').addEventListener('submit', async function(e)
   ];
   if(allFiles.length>0){
     try{ await saveFilesToIDB(submissionId, allFiles); }
-    catch(err){ console.warn('파일 저장 실패', err); }
+    catch(err){ console.warn('?�일 ?�???�패', err); }
   }
 
   const payload={
@@ -811,12 +810,11 @@ document.getElementById('mainForm').addEventListener('submit', async function(e)
     fileCount: allFiles.length
   };
 
-  // localStorage 저장
-  const stored = JSON.parse(localStorage.getItem('sales_data')||'[]');
+  // localStorage ?�??  const stored = JSON.parse(localStorage.getItem('sales_data')||'[]');
   stored.push(payload);
   localStorage.setItem('sales_data', JSON.stringify(stored));
 
-  // Apps Script 서버 전송
+  // Apps Script ?�버 ?�송
   if (SCRIPT_URL) {
     fetch(SCRIPT_URL, {
       method: 'POST',
@@ -828,7 +826,7 @@ document.getElementById('mainForm').addEventListener('submit', async function(e)
 
   btn.classList.remove('loading');
   const [y,m]=month.split('-');
-  document.getElementById('doneMsg').innerHTML=`<strong>${currentBranch}</strong> ${y}년 ${m}월 보고서가<br>성공적으로 제출되었습니다.`;
+  document.getElementById('doneMsg').innerHTML=`<strong>${currentBranch}</strong> ${y}??${m}??보고?��?<br>?�공?�으�??�출?�었?�니??`;
   document.getElementById('doneModal').classList.add('show');
 });
 
@@ -837,11 +835,11 @@ function closeModal() {
   switchTab(2);
 }
 
-// ══════════════════════════════════════════════════════════
-// 제출 내역 (localStorage 기반)
-// ══════════════════════════════════════════════════════════
+// ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
+// ?�출 ?�역 (localStorage 기반)
+// ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
 function loadHistory() {
-  // 현재 지점 데이터만 필터
+  // ?�재 지???�이?�만 ?�터
   const all = JSON.parse(localStorage.getItem('sales_data')||'[]');
   historyData = all.filter(r => r.branch === currentBranch);
   populateYearFilter();
@@ -852,8 +850,8 @@ function populateYearFilter() {
   const years=[...new Set(historyData.map(r=>(r.month||'').slice(0,4)))].sort().reverse();
   const sel=document.getElementById('historyYear');
   const cur=sel.value;
-  sel.innerHTML='<option value="">전체 연도</option>';
-  years.forEach(y=>{ const opt=document.createElement('option'); opt.value=y; opt.textContent=y+'년'; if(y===cur) opt.selected=true; sel.appendChild(opt); });
+  sel.innerHTML='<option value="">?�체 ?�도</option>';
+  years.forEach(y=>{ const opt=document.createElement('option'); opt.value=y; opt.textContent=y+'??; if(y===cur) opt.selected=true; sel.appendChild(opt); });
 }
 
 function renderHistory() {
@@ -862,11 +860,11 @@ function renderHistory() {
   filtered.sort((a,b)=>(b.month||'').localeCompare(a.month||''));
 
   const countEl=document.getElementById('historyCount');
-  if(countEl) countEl.textContent=`총 ${filtered.length}건`;
+  if(countEl) countEl.textContent=`�?${filtered.length}�?;
 
   if(filtered.length===0){
     document.getElementById('historyArea').innerHTML=`
-      <div class="history-empty"><div class="empty-ico">📭</div><p>제출한 보고서가 없습니다.</p></div>`;
+      <div class="history-empty"><div class="empty-ico">?��</div><p>?�출??보고?��? ?�습?�다.</p></div>`;
     return;
   }
 
@@ -874,23 +872,23 @@ function renderHistory() {
 
   filtered.forEach(row=>{
     const [y,mo]=(row.month||'').split('-');
-    const mLabel=y&&mo?`${y}년 ${mo}월`:(row.month||'-');
+    const mLabel=y&&mo?`${y}??${mo}??:(row.month||'-');
     const submittedMs = row.submittedAt ? new Date(row.submittedAt).getTime() : 0;
     const canEdit = row.id && submittedMs > 0 && (Date.now() - submittedMs) < 2 * 24 * 60 * 60 * 1000;
 
-    // 특약사항
+    // ?�약?�항
     let specialHtml='';
     if(row.special && Object.keys(row.special).length>0){
       let items='';
       let spTotal=0;
       Object.entries(row.special).forEach(([k,v])=>{
         spTotal+=v.amount||0;
-        items+=`<div class="row"><span>${k}</span><span>${numFmt(v.amount)}원${v.memo?' ('+v.memo+')':''}</span></div>`;
+        items+=`<div class="row"><span>${k}</span><span>${numFmt(v.amount)}??{v.memo?' ('+v.memo+')':''}</span></div>`;
       });
-      specialHtml=`<div class="hi-special"><div class="lbl">📝 특약사항 — 합계 ${numFmt(spTotal)}원</div>${items}</div>`;
+      specialHtml=`<div class="hi-special"><div class="lbl">?�� ?�약?�항 ???�계 ${numFmt(spTotal)}??/div>${items}</div>`;
     }
 
-    const memoHtml=row.memo?`<div class="hi-memo"><div class="lbl">💬 메모</div>${row.memo}</div>`:'';
+    const memoHtml=row.memo?`<div class="hi-memo"><div class="lbl">?�� 메모</div>${row.memo}</div>`:'';
 
     const card=document.createElement('div');
     card.className='hi-card';
@@ -898,38 +896,38 @@ function renderHistory() {
       <div class="hi-card-header">
         <div>
           <div class="hi-month">${mLabel}</div>
-          <div class="hi-manager">담당자 : ${row.manager||'-'}</div>
+          <div class="hi-manager">?�당??: ${row.manager||'-'}</div>
         </div>
-        <div class="hi-total-badge">총 ${numFmt(row.salesTotal)}원</div>
+        <div class="hi-total-badge">�?${numFmt(row.salesTotal)}??/div>
       </div>
       <div class="hi-card-body">
         <div class="hi-amounts">
-          <div class="hi-box"><div class="lbl">국내 매출</div><div class="val">${numFmt(row.salesDomestic)}원</div></div>
-          <div class="hi-box"><div class="lbl">해외 매출</div><div class="val">${numFmt(row.salesOverseas)}원</div></div>
-          <div class="hi-box accent"><div class="lbl">총 매출</div><div class="val">${numFmt(row.salesTotal)}원</div></div>
+          <div class="hi-box"><div class="lbl">�?�� 매출</div><div class="val">${numFmt(row.salesDomestic)}??/div></div>
+          <div class="hi-box"><div class="lbl">?�외 매출</div><div class="val">${numFmt(row.salesOverseas)}??/div></div>
+          <div class="hi-box accent"><div class="lbl">�?매출</div><div class="val">${numFmt(row.salesTotal)}??/div></div>
         </div>
         ${specialHtml}
         ${memoHtml}
         <div class="hi-files">
-          <div class="flbl">📎 첨부 증빙자료 <span class="fcnt">${row.fileCount||0}개</span></div>
+          <div class="flbl">?�� 첨�? 증빙?�료 <span class="fcnt">${row.fileCount||0}�?/span></div>
           <div class="hi-thumbs" id="ht_${row.id||''}">
-            ${row.id?'<span class="hi-file-loading">불러오는 중...</span>':'<span class="hi-file-none">첨부파일 없음</span>'}
+            ${row.id?'<span class="hi-file-loading">불러?�는 �?..</span>':'<span class="hi-file-none">첨�??�일 ?�음</span>'}
           </div>
         </div>
       </div>
       <div class="hi-card-footer">
-        <span>제출일시 : ${formatDate(row.submittedAt)}</span>
-        ${canEdit ? `<button class="btn-edit-card" onclick="openEditModal('${row.id}')">✏️ 수정</button>`
-                  : `<span class="btn-edit-disabled">수정 불가 (2일 경과)</span>`}
+        <span>?�출?�시 : ${formatDate(row.submittedAt)}</span>
+        ${canEdit ? `<button class="btn-edit-card" onclick="openEditModal('${row.id}')">?�️ ?�정</button>`
+                  : `<span class="btn-edit-disabled">?�정 불�? (2??경과)</span>`}
       </div>`;
 
     list.appendChild(card);
 
-    // 파일 비동기 로드
+    // ?�일 비동�?로드
     if(row.id){
       const thumbsEl=card.querySelector(`#ht_${row.id}`);
       getFilesFromIDB(row.id).then(files=>{
-        if(!files||files.length===0){ thumbsEl.innerHTML='<span class="hi-file-none">첨부파일 없음</span>'; return; }
+        if(!files||files.length===0){ thumbsEl.innerHTML='<span class="hi-file-none">첨�??�일 ?�음</span>'; return; }
         const imgFiles=files.filter(f=>f.type&&f.type.startsWith('image/'));
         thumbsEl.innerHTML='';
         files.forEach(f=>{
@@ -940,12 +938,12 @@ function renderHistory() {
             thumb.innerHTML=`<img src="${f.data}" alt="${f.name}"/><div class="fname">${f.name}</div>`;
             thumb.onclick=()=>openLb(imgFiles,idx);
           } else {
-            thumb.innerHTML=`<div class="pdf-icon">📄<span>${f.name.split('.').pop().toUpperCase()}</span></div><div class="fname">${f.name}</div>`;
+            thumb.innerHTML=`<div class="pdf-icon">?��<span>${f.name.split('.').pop().toUpperCase()}</span></div><div class="fname">${f.name}</div>`;
             thumb.onclick=()=>{ const a=document.createElement('a'); a.href=f.data; a.download=f.name; a.click(); };
           }
           thumbsEl.appendChild(thumb);
         });
-      }).catch(()=>{ thumbsEl.innerHTML='<span class="hi-file-none">파일 로드 실패</span>'; });
+      }).catch(()=>{ thumbsEl.innerHTML='<span class="hi-file-none">?�일 로드 ?�패</span>'; });
     }
   });
 
@@ -953,7 +951,7 @@ function renderHistory() {
   document.getElementById('historyArea').appendChild(list);
 }
 
-// ── 라이트박스 ───────────────────────────────────────────────
+// ?�?� ?�이?�박???�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 let lbImages=[], lbIdx=0;
 function openLb(images,startIdx){
   lbImages=images; lbIdx=startIdx; updateLb();
@@ -976,14 +974,14 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape') closeLb();
 });
 
-// ── 수정 기능 ────────────────────────────────────────────────
+// ?�?� ?�정 기능 ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
 function openEditModal(rowId) {
   const all = JSON.parse(localStorage.getItem('sales_data')||'[]');
   const row = all.find(r => r.id === rowId);
   if (!row) return;
   const submittedMs = row.submittedAt ? new Date(row.submittedAt).getTime() : 0;
   if ((Date.now() - submittedMs) >= 2 * 24 * 60 * 60 * 1000) {
-    alert('제출 후 2일이 경과하여 수정할 수 없습니다.');
+    alert('?�출 ??2?�이 경과?�여 ?�정?????�습?�다.');
     return;
   }
   document.getElementById('editRowId').value = rowId;
@@ -1005,11 +1003,11 @@ function saveEdit() {
 
   const all = JSON.parse(localStorage.getItem('sales_data')||'[]');
   const idx = all.findIndex(r => r.id === rowId);
-  if (idx === -1) { alert('데이터를 찾을 수 없습니다.'); return; }
+  if (idx === -1) { alert('?�이?��? 찾을 ???�습?�다.'); return; }
 
   const submittedMs = all[idx].submittedAt ? new Date(all[idx].submittedAt).getTime() : 0;
   if ((Date.now() - submittedMs) >= 2 * 24 * 60 * 60 * 1000) {
-    alert('제출 후 2일이 경과하여 수정할 수 없습니다.');
+    alert('?�출 ??2?�이 경과?�여 ?�정?????�습?�다.');
     closeEditModal(); return;
   }
 
