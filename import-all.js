@@ -181,8 +181,8 @@
     });
   });
 
-  function serverPost(payload) {
-    fetch('/api/sync', { method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) }).catch(()=>{});
+  function post(payload) {
+    return fetch('/api/sync', { method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) });
   }
 
   // localStorage 업데이트
@@ -196,12 +196,14 @@
   Object.entries(mgmtUpdates).forEach(([id, data]) => { newMgmt[id] = data; });
   localStorage.setItem('mgmt_check', JSON.stringify(newMgmt));
 
-  // 서버(구글시트) 동기화
-  serverPost({ action: 'bulk_import', data: salesData });
-  Object.entries(mgmtUpdates).forEach(([id, data]) => {
-    serverPost({ action: 'update_mgmt', id, data });
-  });
-
-  alert('✅ 임포트 완료!\n매출 데이터: ' + salesData.length + '건\n경영팀 확인 데이터: ' + Object.keys(mgmtUpdates).length + '건\n서버 동기화 중...\n\n※ 25.11월 데이터 미포함 (수동 입력 필요)');
-  location.reload();
+  // 서버(구글시트) 동기화 - 전부 완료 후 reload
+  alert('⏳ 서버에 데이터 업로드 중... 잠시 기다려주세요 (30초~1분)');
+  const mgmtEntries = Object.entries(mgmtUpdates);
+  post({ action: 'bulk_import', data: salesData })
+    .then(() => Promise.all(mgmtEntries.map(([id, data]) => post({ action: 'update_mgmt', id, data }))))
+    .then(() => {
+      alert('✅ 완료!\n매출: ' + salesData.length + '건\n경영확인: ' + mgmtEntries.length + '건\n\n※ 25.11월 데이터 미포함');
+      location.reload();
+    })
+    .catch(e => alert('❌ 오류: ' + e.message));
 })();
