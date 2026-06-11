@@ -1247,7 +1247,7 @@ async function toDataURL(url) {
 }
 
 async function previewInvoice(branch, month) {
-  const [s1, s2] = await Promise.all([toDataURL('/stamp_dayblabs.png'), toDataURL('/stamp_dayview.png')]);
+  const [s1, s2] = await Promise.all([toDataURL('stamp_dayblabs.png'), toDataURL('stamp_dayview.png')]);
   const area = document.getElementById('invoicePreviewArea');
   area.innerHTML = buildInvoiceHTML(branch, month, true, s1, s2);
   area.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1255,7 +1255,7 @@ async function previewInvoice(branch, month) {
 
 async function printInvoice(branch, month) {
   if (!branch || !month) { alert('지점과 월을 선택하세요.'); return; }
-  const [s1, s2] = await Promise.all([toDataURL('/stamp_dayblabs.png'), toDataURL('/stamp_dayview.png')]);
+  const [s1, s2] = await Promise.all([toDataURL('stamp_dayblabs.png'), toDataURL('stamp_dayview.png')]);
   const html = buildInvoiceHTML(branch, month, false, s1, s2);
   const w = window.open('', '_blank');
   w.document.write(html);
