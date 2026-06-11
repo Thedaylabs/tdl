@@ -604,6 +604,7 @@ function syncFromServer(callback) {
       const serverRows = data.sales_data || [];
       const serverIds  = new Set(serverRows.map(r => r.id));
       const local      = JSON.parse(localStorage.getItem('sales_data') || '[]');
+      const wasEmpty   = local.length === 0;
       const localNew   = local.filter(r => !serverIds.has(r.id));
       localStorage.setItem('sales_data', JSON.stringify([...serverRows, ...localNew]));
 
@@ -618,6 +619,12 @@ function syncFromServer(callback) {
       }
 
       if (indicator) indicator.textContent = '✅ 동기화 완료';
+
+      // 처음 로그인한 PC는 sync 완료 후 새로고침해서 데이터를 제대로 표시
+      if (wasEmpty && serverRows.length > 0) {
+        setTimeout(() => location.reload(), 800);
+        return;
+      }
       setTimeout(() => { if (indicator) indicator.textContent = ''; }, 3000);
     })
     .catch(() => {
