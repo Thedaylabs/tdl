@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>매출 관리자 페이지</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif; background:#f0f2f5; color:#1a1a2e; min-height:100vh; }
+
+    /* 로그인 */
+    #loginScreen { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px; }
+    .login-card { background:#fff; border-radius:20px; box-shadow:0 4px 32px rgba(0,0,0,.10); padding:44px 36px 36px; width:100%; max-width:400px; text-align:center; }
+    .login-logo { font-size:2.4rem; margin-bottom:10px; }
+    .login-card h1 { font-size:1.3rem; font-weight:700; margin-bottom:6px; }
+    .login-card>p { font-size:.85rem; color:#888; margin-bottom:28px; }
+    .login-card label { display:block; text-align:left; font-size:.83rem; font-weight:600; color:#444; margin-bottom:6px; }
+    .login-card input[type=password] { width:100%; padding:13px 16px; border:1.5px solid #e0e0e0; border-radius:12px; font-size:1.1rem; letter-spacing:6px; text-align:center; background:#fafafa; margin-bottom:8px; font-family:inherit; transition:border-color .2s; }
+    .login-card input[type=password]:focus { outline:none; border-color:#7c3aed; background:#fff; }
+    .login-error { font-size:.82rem; color:#e53e3e; min-height:20px; margin-bottom:14px; }
+    .btn-login { width:100%; background:#7c3aed; color:#fff; border:none; border-radius:12px; padding:14px; font-size:1rem; font-weight:700; cursor:pointer; font-family:inherit; }
+    .btn-login:hover { background:#6d28d9; }
+
+    /* 헤더 */
+    #adminScreen { display:none; }
+    .top-header { background:#fff; border-bottom:1px solid #e5e7eb; padding:0 24px; position:sticky; top:0; z-index:100; box-shadow:0 1px 8px rgba(0,0,0,.06); }
+    .top-header-inner { max-width:1280px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; height:60px; }
+    .top-title { font-size:1rem; font-weight:700; }
+    .admin-chip { display:flex; align-items:center; gap:8px; background:#f3e8ff; color:#7c3aed; border-radius:30px; padding:5px 14px; font-size:.85rem; font-weight:700; }
+    .btn-logout { background:none; border:1.5px solid #d8b4fe; color:#7c3aed; border-radius:20px; padding:3px 12px; font-size:.75rem; cursor:pointer; font-family:inherit; font-weight:600; }
+    .btn-logout:hover { background:#f3e8ff; }
+
+    /* 탭 */
+    .tab-bar { background:#fff; border-bottom:1px solid #e5e7eb; position:sticky; top:60px; z-index:99; }
+    .tab-bar-inner { max-width:1280px; margin:0 auto; display:flex; }
+    .tab-btn { padding:14px 24px; font-size:.9rem; font-weight:600; color:#888; background:none; border:none; cursor:pointer; font-family:inherit; border-bottom:3px solid transparent; transition:color .2s,border-color .2s; white-space:nowrap; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-content { display:none; padding:28px 16px 60px; }
+    .tab-content.active { display:block; }
+
+    /* 공통 툴바 */
+    .toolbar { max-width:1280px; margin:0 auto 18px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .toolbar select, .toolbar input[type=month] { padding:9px 12px; border:1.5px solid #e0e0e0; border-radius:10px; font-size:.87rem; font-family:inherit; background:#fff; color:#1a1a2e; }
+    .toolbar select:focus, .toolbar input:focus { outline:none; border-color:#7c3aed; }
+    .btn-purple { background:#7c3aed; color:#fff; border:none; border-radius:10px; padding:10px 18px; font-size:.87rem; font-weight:600; cursor:pointer; font-family:inherit; }
+    .btn-purple:hover { background:#6d28d9; }
+    .btn-outline { background:#fff; color:#7c3aed; border:1.5px solid #7c3aed; border-radius:10px; padding:9px 16px; font-size:.87rem; font-weight:600; cursor:pointer; font-family:inherit; }
+    .btn-outline:hover { background:#f3e8ff; }
+
+    /* 요약 카드 */
+    .summary-grid { max-width:1280px; margin:0 auto 20px; display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+    @media(max-width:768px){ .summary-grid{ grid-template-columns:repeat(2,1fr); } }
+    .sum-card { background:#fff; border-radius:14px; padding:16px 18px; box-shadow:0 2px 12px rgba(0,0,0,.07); }
+    .sum-card .lbl { font-size:.76rem; color:#888; margin-bottom:5px; }
+    .sum-card .val { font-size:1.05rem; font-weight:700; }
+    .sum-card.c-blue   .val { color:#2563eb; }
+    .sum-card.c-purple .val { color:#7c3aed; }
+    .sum-card.c-green  .val { color:#059669; }
+    .sum-card.c-orange .val { color:#d97706; }
+    .sum-card .sub { font-size:.75rem; color:#aaa; margin-top:3px; }
+
+    /* ── 탭1: 현황 테이블 ── */
+    .table-wrap { max-width:1280px; margin:0 auto; background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); overflow:hidden; }
+    .table-scroll { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; min-width:980px; }
+    thead tr { background:#7c3aed; }
+    thead th { padding:12px 13px; font-size:.78rem; font-weight:700; color:#fff; text-align:right; white-space:nowrap; }
+    thead th.left { text-align:left; }
+    tbody tr { border-bottom:1px solid #f0f2f5; transition:background .15s; }
+    tbody tr:hover { background:#faf5ff; }
+    tbody tr:last-child { border-bottom:none; }
+    td { padding:11px 13px; font-size:.84rem; text-align:right; white-space:nowrap; color:#1a1a2e; }
+    td.left { text-align:left; }
+    td.branch-cell { font-weight:700; color:#7c3aed; }
+    td.brand-cell { font-size:.75rem; color:#888; }
+    td.money { font-weight:600; }
+    td.fee-total { font-weight:700; color:#7c3aed; }
+    td.special-cell { color:#b45309; font-size:.8rem; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:help; }
+    .tfoot-row { background:#f5f3ff; }
+    .tfoot-row td { font-weight:700; color:#7c3aed; font-size:.86rem; border-top:2px solid #d8b4fe; }
+    .tfoot-row td.left { color:#1a1a2e; }
+    .empty-row td { text-align:center; padding:48px; color:#aaa; }
+
+    /* 브랜드 뱃지 */
+    .brand-tag { display:inline-block; font-size:.7rem; padding:1px 7px; border-radius:10px; font-weight:600; }
+    .brand-dayb { background:#fff3e0; color:#e65100; }
+    .brand-cera { background:#e0f7fa; color:#00838f; }
+
+    /* ── PIN 관리 ── */
+    .pin-section-title { font-size:.82rem; font-weight:700; color:#7c3aed; background:#f3e8ff; padding:8px 14px; border-radius:8px; margin:16px 0 10px; }
+    .pin-table { width:100%; border-collapse:collapse; }
+    .pin-table th { background:#f8f5ff; padding:9px 12px; font-size:.78rem; color:#7c3aed; font-weight:700; text-align:left; border-bottom:2px solid #ede9fe; }
+    .pin-table td { padding:9px 10px; border-bottom:1px solid #f0f2f5; font-size:.84rem; vertical-align:middle; }
+    .pin-table tr:last-child td { border-bottom:none; }
+    .pin-table .bname { font-weight:700; }
+    .pin-input-wrap { display:flex; align-items:center; gap:6px; }
+    .pin-input-wrap input { width:90px; padding:7px 10px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:.9rem; letter-spacing:4px; text-align:center; font-family:inherit; background:#fafafa; }
+    .pin-input-wrap input:focus { outline:none; border-color:#7c3aed; }
+    .pin-input-wrap input.type-text { letter-spacing:2px; }
+    .btn-eye { background:none; border:none; cursor:pointer; font-size:1rem; padding:2px 4px; color:#aaa; }
+    .btn-eye:hover { color:#7c3aed; }
+    .pin-badge { display:inline-block; font-size:.7rem; padding:2px 8px; border-radius:8px; font-weight:600; }
+    .pin-badge.dayb { background:#fff3e0; color:#e65100; }
+    .pin-badge.cera { background:#e0f7fa; color:#00838f; }
+
+    /* ── 탭2: 매출 자료 ── */
+    .report-list { max-width:1280px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:16px; }
+    @media(max-width:600px){ .report-list{ grid-template-columns:1fr; } }
+    .report-card { background:#fff; border-radius:16px; box-shadow:0 2px 14px rgba(0,0,0,.07); overflow:hidden; border-top:4px solid #7c3aed; }
+    .report-card.cera { border-top-color:#be185d; }
+    .rc-header { padding:16px 20px 12px; border-bottom:1px solid #f0f2f5; }
+    .rc-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+    .rc-month { font-size:1rem; font-weight:700; }
+    .rc-branch { font-size:.88rem; font-weight:700; color:#7c3aed; }
+    .rc-branch.cera { color:#be185d; }
+    .rc-manager { font-size:.78rem; color:#aaa; }
+    .rc-body { padding:14px 20px; }
+    .rc-amounts { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
+    .rc-box { background:#f8f8ff; border-radius:10px; padding:10px; }
+    .rc-box .lbl { font-size:.72rem; color:#888; margin-bottom:3px; }
+    .rc-box .val { font-size:.9rem; font-weight:700; color:#1a1a2e; }
+    .rc-box.accent .val { color:#7c3aed; }
+    .rc-special { background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px 12px; margin-bottom:10px; font-size:.8rem; }
+    .rc-special .slbl { font-weight:700; color:#92400e; margin-bottom:5px; }
+    .rc-special .srow { display:flex; justify-content:space-between; color:#555; margin-top:3px; }
+    .rc-memo { background:#f8faff; border-radius:8px; padding:10px 12px; font-size:.8rem; color:#555; }
+    .rc-memo .mlbl { font-weight:600; color:#374151; margin-bottom:3px; }
+    .rc-footer { padding:10px 20px; background:#fafafa; font-size:.74rem; color:#bbb; display:flex; justify-content:space-between; }
+    .report-empty { text-align:center; padding:60px 24px; color:#aaa; grid-column:1/-1; }
+    .report-empty .ico { font-size:2.5rem; margin-bottom:12px; }
+
+    /* ── 첨부파일 ── */
+    .rc-files { margin-top:10px; }
+    .rc-files .flbl { font-size:.78rem; font-weight:700; color:#374151; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+    .rc-files .flbl .fcnt { background:#e0f2fe; color:#0369a1; border-radius:10px; padding:1px 8px; font-size:.72rem; }
+    .file-thumbs { display:flex; flex-wrap:wrap; gap:8px; }
+    .file-thumb { position:relative; width:80px; height:80px; border-radius:10px; overflow:hidden; border:1.5px solid #e5e7eb; cursor:pointer; background:#f8fafc; transition:transform .15s,box-shadow .15s; }
+    .file-thumb:hover { transform:scale(1.05); box-shadow:0 4px 16px rgba(0,0,0,.15); }
+    .file-thumb img { width:100%; height:100%; object-fit:cover; }
+    .file-thumb .pdf-icon { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; font-size:1.6rem; }
+    .file-thumb .pdf-icon span { font-size:.65rem; color:#dc2626; font-weight:700; margin-top:2px; }
+    .file-thumb .fname { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,.5); color:#fff; font-size:.6rem; padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .file-loading { font-size:.8rem; color:#aaa; padding:8px 0; }
+    .file-none { font-size:.8rem; color:#ccc; padding:6px 0; }
+
+    /* ── 라이트박스 ── */
+    .lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:9999; align-items:center; justify-content:center; padding:16px; }
+    .lightbox.show { display:flex; }
+    .lightbox-inner { position:relative; max-width:90vw; max-height:90vh; display:flex; flex-direction:column; align-items:center; }
+    .lightbox-inner img { max-width:100%; max-height:82vh; border-radius:10px; object-fit:contain; }
+    .lightbox-close { position:absolute; top:-40px; right:0; background:none; border:none; color:#fff; font-size:1.8rem; cursor:pointer; line-height:1; }
+    .lightbox-name { color:#ccc; font-size:.82rem; margin-top:10px; }
+    .lightbox-nav { display:flex; gap:16px; margin-top:12px; }
+    .lightbox-nav button { background:rgba(255,255,255,.15); color:#fff; border:none; border-radius:8px; padding:8px 20px; font-size:.9rem; cursor:pointer; font-family:inherit; }
+    .lightbox-nav button:hover { background:rgba(255,255,255,.3); }
+    .lightbox-nav button:disabled { opacity:.3; cursor:default; }
+
+    /* ── 탭3: 수수료 설정 ── */
+    .settings-wrap { max-width:900px; margin:0 auto; }
+    .settings-card { background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); padding:28px; margin-bottom:20px; }
+    .settings-card h2 { font-size:1rem; font-weight:700; margin-bottom:6px; }
+    .settings-card p { font-size:.82rem; color:#888; margin-bottom:14px; line-height:1.6; }
+    .vat-notice { display:inline-flex; align-items:center; gap:6px; background:#fef9c3; border:1px solid #fde047; border-radius:8px; padding:7px 14px; font-size:.8rem; color:#854d0e; font-weight:600; margin-bottom:18px; }
+    .fee-section-title { font-size:.82rem; font-weight:700; color:#7c3aed; background:#f3e8ff; padding:8px 14px; border-radius:8px; margin:16px 0 10px; }
+    .table-scroll-wrap { overflow-x:auto; }
+    .fee-table { width:100%; border-collapse:collapse; table-layout:fixed; min-width:580px; }
+    .fee-table th { background:#f8f5ff; padding:9px 12px; font-size:.78rem; color:#7c3aed; font-weight:700; text-align:left; border-bottom:2px solid #ede9fe; white-space:nowrap; }
+    .fee-table td { padding:8px 10px; border-bottom:1px solid #f0f2f5; font-size:.84rem; vertical-align:middle; }
+    .fee-table tr:last-child td { border-bottom:none; }
+    .fee-table .bname { font-weight:700; }
+    .fee-table input[type=number], .fee-table select { padding:6px 8px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:.82rem; font-family:inherit; background:#fafafa; width:100%; }
+    .fee-table input:focus, .fee-table select:focus { outline:none; border-color:#7c3aed; }
+    .fee-note { font-size:.72rem; color:#aaa; }
+    .btn-save { background:#7c3aed; color:#fff; border:none; border-radius:10px; padding:12px 32px; font-size:.93rem; font-weight:700; cursor:pointer; font-family:inherit; }
+    .btn-save:hover { background:#6d28d9; }
+    .save-notice { font-size:.82rem; color:#059669; margin-left:12px; display:none; }
+
+    /* ── PIN 관리 ── */
+    .pin-section-title { font-size:.82rem; font-weight:700; color:#7c3aed; background:#f3e8ff; padding:8px 14px; border-radius:8px; margin:16px 0 10px; }
+    .pin-table { width:100%; border-collapse:collapse; table-layout:fixed; }
+    .pin-table th { background:#f8f5ff; padding:9px 12px; font-size:.78rem; color:#7c3aed; font-weight:700; text-align:left; border-bottom:2px solid #ede9fe; }
+    .pin-table td { padding:9px 10px; border-bottom:1px solid #f0f2f5; font-size:.84rem; vertical-align:middle; }
+    .pin-table tr:last-child td { border-bottom:none; }
+    .pin-table .bname { font-weight:700; }
+    .pin-input-wrap { display:flex; align-items:center; gap:6px; }
+    .pin-input-wrap input { width:90px; padding:7px 10px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:.9rem; letter-spacing:4px; text-align:center; font-family:inherit; background:#fafafa; }
+    .pin-input-wrap input:focus { outline:none; border-color:#7c3aed; }
+    .pin-input-wrap input.type-text { letter-spacing:2px; }
+    .btn-eye { background:none; border:none; cursor:pointer; font-size:1rem; padding:2px 4px; color:#aaa; }
+    .btn-eye:hover { color:#7c3aed; }
+    .pin-badge { display:inline-block; font-size:.7rem; padding:2px 8px; border-radius:8px; font-weight:600; }
+    .pin-badge.dayb { background:#fff3e0; color:#e65100; }
+    .pin-badge.cera { background:#e0f7fa; color:#00838f; }
+    .pin-hint { font-size:.74rem; color:#bbb; }
+
+    /* ── 탭6: 경영팀 확인 ── */
+    .mgmt-table-wrap { max-width:1400px; margin:0 auto; background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); overflow:hidden; }
+    .mgmt-table { width:100%; border-collapse:collapse; min-width:1200px; }
+    .mgmt-table thead tr { background:#059669; }
+    .mgmt-table thead th { padding:11px 10px; font-size:.76rem; font-weight:700; color:#fff; text-align:center; white-space:nowrap; }
+    .mgmt-table thead th.left { text-align:left; }
+    .mgmt-table tbody tr { border-bottom:1px solid #f0f2f5; transition:background .15s; }
+    .mgmt-table tbody tr:hover { background:#f0fdf4; }
+    .mgmt-table td { padding:9px 8px; font-size:.82rem; text-align:center; white-space:nowrap; vertical-align:middle; }
+    .mgmt-table td.left { text-align:left; }
+    .mgmt-table input[type=checkbox] { width:17px; height:17px; cursor:pointer; accent-color:#059669; }
+    .mgmt-table input[type=date] { padding:4px 6px; border:1.5px solid #e0e0e0; border-radius:7px; font-size:.78rem; font-family:inherit; background:#fafafa; }
+    .mgmt-table input[type=date]:focus { outline:none; border-color:#059669; }
+    .mgmt-table input[type=text].note-input { width:100%; padding:5px 8px; border:1.5px solid #e0e0e0; border-radius:7px; font-size:.8rem; font-family:inherit; background:#fafafa; min-width:100px; }
+    .mgmt-table input[type=text].note-input:focus { outline:none; border-color:#059669; }
+    .paid-yes { background:#f0fdf4!important; }
+    .invoice-yes { background:#eff6ff!important; }
+    .mgmt-badge-paid { display:inline-block; background:#d1fae5; color:#065f46; border-radius:6px; padding:1px 8px; font-size:.7rem; font-weight:700; }
+    .mgmt-badge-inv  { display:inline-block; background:#dbeafe; color:#1e40af; border-radius:6px; padding:1px 8px; font-size:.7rem; font-weight:700; }
+
+    /* ── 탭5: 데이터 관리 ── */
+    .data-card { background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); padding:28px; margin-bottom:20px; max-width:900px; margin-left:auto; margin-right:auto; }
+    .data-card h2 { font-size:1rem; font-weight:700; margin-bottom:6px; }
+    .data-card p { font-size:.82rem; color:#888; margin-bottom:16px; }
+    .btn-green  { background:#059669; color:#fff; border:none; border-radius:10px; padding:10px 18px; font-size:.87rem; font-weight:600; cursor:pointer; font-family:inherit; }
+    .btn-blue   { background:#2563eb; color:#fff; border:none; border-radius:10px; padding:10px 18px; font-size:.87rem; font-weight:600; cursor:pointer; font-family:inherit; }
+    .btn-danger { background:#fff; color:#dc2626; border:1.5px solid #fca5a5; border-radius:10px; padding:10px 18px; font-size:.87rem; font-weight:600; cursor:pointer; font-family:inherit; }
+    .btn-danger:hover { background:#fff5f5; }
+    .btn-group { display:flex; gap:10px; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">🔐</div>
+    <h1>관리자 페이지</h1>
+    <p>관리자 PIN 번호를 입력해 주세요.</p>
+    <label>관리자 PIN</label>
+    <input type="password" id="pinInput" maxlength="4" placeholder="●●●●"
+           oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+           onkeydown="if(event.key==='Enter') doLogin()" />
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login" onclick="doLogin()">로그인</button>
+  </div>
+</div>
+
+<!-- 관리자 화면 -->
+<div id="adminScreen">
+
+  <div class="top-header">
+    <div class="top-header-inner">
+      <span class="top-title">🛠️ 매출 관리자 페이지</span>
+      <div class="admin-chip">
+        👑 관리자
+        <button class="btn-logout" onclick="doLogout()">로그아웃</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab-bar-inner">
+      <button class="tab-btn active" id="tabBtn1" onclick="switchTab(1)">📊 전체 현황</button>
+      <button class="tab-btn" id="tabBtn2" onclick="switchTab(2)">📋 매출 자료</button>
+      <button class="tab-btn" id="tabBtn3" onclick="switchTab(3)">⚙️ 수수료 설정</button>
+      <button class="tab-btn" id="tabBtn4" onclick="switchTab(4)">🔑 PIN 관리</button>
+      <button class="tab-btn" id="tabBtn5" onclick="switchTab(5)">🗂️ 데이터 관리</button>
+      <button class="tab-btn" id="tabBtn6" onclick="switchTab(6)">✅ 경영팀 확인</button>
+    </div>
+  </div>
+
+  <!-- ── 탭1: 전체 현황 ── -->
+  <div class="tab-content active" id="tab1">
+    <div class="toolbar">
+      <input type="month" id="t1Month" onchange="renderOverview()" />
+      <select id="t1Branch" onchange="renderOverview()">
+        <option value="">전체 지점</option>
+        <optgroup label="데이뷰의원">
+          <option>강서발산점</option><option>건대입구점</option><option>광주상무점</option>
+          <option>강남점</option><option>안양범계점</option><option>여의도점</option>
+          <option>영등포점</option><option>대전둔산점</option><option>명동점</option>
+          <option>분당점</option><option>인천구월점</option><option>전주점</option>
+          <option>부산서면점</option><option>명동2호점</option><option>수원점</option>
+        </optgroup>
+        <optgroup label="세라미크의원">
+          <option>세라미크 강남점</option>
+        </optgroup>
+      </select>
+      <button class="btn-outline" onclick="exportCSV('overview')">📥 CSV 다운로드</button>
+    </div>
+    <div style="max-width:1280px;margin:0 auto 12px;">
+      <span style="display:inline-flex;align-items:center;gap:6px;background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:6px 14px;font-size:.79rem;color:#854d0e;font-weight:600;">💡 수수료는 모두 부가세(VAT 10%) 포함 금액입니다.</span>
+    </div>
+    <div class="summary-grid" id="summaryGrid"></div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th class="left">보고기간</th>
+              <th class="left">브랜드</th>
+              <th class="left">지점명</th>
+              <th class="left">담당자</th>
+              <th>국내매출</th>
+              <th>해외매출</th>
+              <th>총매출</th>
+              <th>경영수수료</th>
+              <th>마케팅수수료</th>
+              <th>총수수료</th>
+              <th class="left">특약사항</th>
+            </tr>
+          </thead>
+          <tbody id="overviewBody"></tbody>
+          <tfoot id="overviewFoot"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 탭2: 매출 자료 ── -->
+  <div class="tab-content" id="tab2">
+    <div class="toolbar">
+      <input type="month" id="t2Month" onchange="renderReports()" placeholder="월 선택" />
+      <select id="t2Brand" onchange="renderReports()">
+        <option value="">전체 브랜드</option>
+        <option value="데이뷰">데이뷰의원</option>
+        <option value="세라미크">세라미크의원</option>
+      </select>
+      <select id="t2Branch" onchange="renderReports()">
+        <option value="">전체 지점</option>
+        <optgroup label="데이뷰의원">
+          <option>강서발산점</option><option>건대입구점</option><option>광주상무점</option>
+          <option>강남점</option><option>안양범계점</option><option>여의도점</option>
+          <option>영등포점</option><option>대전둔산점</option><option>명동점</option>
+          <option>분당점</option><option>인천구월점</option><option>전주점</option>
+          <option>부산서면점</option><option>명동2호점</option><option>수원점</option>
+        </optgroup>
+        <optgroup label="세라미크의원">
+          <option>세라미크 강남점</option>
+        </optgroup>
+      </select>
+      <select id="t2Sort" onchange="renderReports()">
+        <option value="desc">최신순</option>
+        <option value="asc">오래된순</option>
+        <option value="total">매출 높은순</option>
+      </select>
+    </div>
+    <div class="report-list" id="reportList"></div>
+  </div>
+
+  <!-- ── 탭3: 수수료 설정 ── -->
+  <div class="tab-content" id="tab3">
+    <div class="settings-wrap">
+      <div class="settings-card">
+        <h2>⚙️ 지점별 수수료율 설정</h2>
+        <p>지점별 수수료를 직접 입력합니다. 경영수수료는 고정금액(원) 또는 총매출 비율(%)로, 마케팅 수수료는 총매출 기준 비율(%)로 설정하세요.</p>
+        <div class="vat-notice">💡 모든 수수료는 부가세(VAT 10%) 포함 금액입니다.</div>
+        <div class="fee-section-title">🏥 데이뷰의원</div>
+        <div class="table-scroll-wrap">
+        <table class="fee-table">
+          <thead>
+            <tr>
+              <th style="width:130px">지점명</th>
+              <th style="width:320px">계약서 기준 계산식 (부가세 포함)</th>
+              <th>수동 조정값 입력</th>
+            </tr>
+          </thead>
+          <tbody id="feeBodyDayb"></tbody>
+        </table>
+        </div>
+        <div class="fee-section-title">💆 세라미크의원</div>
+        <div class="table-scroll-wrap">
+        <table class="fee-table">
+          <thead>
+            <tr>
+              <th style="width:130px">지점명</th>
+              <th style="width:320px">계약서 기준 계산식 (부가세 포함)</th>
+              <th>수동 조정값 입력</th>
+            </tr>
+          </thead>
+          <tbody id="feeBodyCera"></tbody>
+        </table>
+        </div>
+        <div style="margin-top:16px;display:flex;align-items:center">
+          <span class="save-notice" id="saveNotice" style="margin-left:0">✅ 저장되었습니다!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 탭4: PIN 관리 ── -->
+  <div class="tab-content" id="tab4">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div class="settings-card">
+        <h2>🔑 지점별 PIN 관리</h2>
+        <p style="margin-bottom:14px;">변경 후 아래 <strong>PIN 저장</strong> 버튼을 누르세요.</p>
+        <div class="pin-section-title">🏥 데이뷰의원</div>
+        <div id="pinBodyDayb" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;"></div>
+        <div class="pin-section-title">💆 세라미크의원</div>
+        <div id="pinBodyCera" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px;"></div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button class="btn-save" onclick="savePins()">💾 PIN 저장</button>
+          <span class="save-notice" id="pinSaveNotice">✅ PIN이 저장되었습니다!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 탭6: 경영팀 확인 ── -->
+  <div class="tab-content" id="tab6">
+    <div class="toolbar">
+      <input type="month" id="t6Month" onchange="renderMgmtCheck()" />
+      <select id="t6Branch" onchange="renderMgmtCheck()">
+        <option value="">전체 지점</option>
+        <optgroup label="데이뷰의원">
+          <option>강서발산점</option><option>건대입구점</option><option>광주상무점</option>
+          <option>강남점</option><option>안양범계점</option><option>여의도점</option>
+          <option>영등포점</option><option>대전둔산점</option><option>명동점</option>
+          <option>분당점</option><option>인천구월점</option><option>전주점</option>
+          <option>부산서면점</option><option>명동2호점</option><option>수원점</option>
+        </optgroup>
+        <optgroup label="세라미크의원">
+          <option>세라미크 강남점</option>
+        </optgroup>
+      </select>
+      <select id="t6Status" onchange="renderMgmtCheck()">
+        <option value="">전체</option>
+        <option value="unpaid">입금 미확인</option>
+        <option value="paid">입금 완료</option>
+        <option value="noinvoice">계산서 미발행</option>
+        <option value="invoice">계산서 발행완료</option>
+      </select>
+    </div>
+    <div class="mgmt-table-wrap">
+      <div class="table-scroll">
+        <table class="mgmt-table">
+          <thead>
+            <tr>
+              <th class="left">보고기간</th>
+              <th class="left">브랜드</th>
+              <th class="left">지점명</th>
+              <th>총매출</th>
+              <th>경영수수료</th>
+              <th class="left">특약사항</th>
+              <th>입금확인</th>
+              <th>입금일자</th>
+              <th>입금금액</th>
+              <th>세금계산서</th>
+              <th>계산서일자</th>
+              <th>비고</th>
+            </tr>
+          </thead>
+          <tbody id="mgmtBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 탭5: 데이터 관리 ── -->
+  <div class="tab-content" id="tab5">
+    <div class="data-card" style="max-width:900px">
+      <h2>📋 저장된 데이터 현황</h2>
+      <p id="dataCount" style="font-size:1rem;font-weight:700;color:#7c3aed;margin-bottom:16px;"></p>
+      <div class="btn-group">
+        <button class="btn-green" onclick="exportCSV('all')">📥 전체 CSV</button>
+        <button class="btn-blue"  onclick="exportJSON()">📦 JSON 백업</button>
+        <button class="btn-outline" onclick="importJSON()">📂 JSON 복원</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(this)" />
+      </div>
+    </div>
+    <div class="data-card" style="max-width:900px">
+      <h2 style="color:#dc2626">⚠️ 데이터 초기화</h2>
+      <p>저장된 모든 제출 데이터가 삭제됩니다. 삭제 전 반드시 백업하세요.</p>
+      <button class="btn-danger" onclick="clearData()">🗑️ 전체 데이터 삭제</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- 라이트박스 -->
+<div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
+  <div class="lightbox-inner">
+    <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+    <img id="lbImg" src="" alt="" />
+    <div class="lightbox-name" id="lbName"></div>
+    <div class="lightbox-nav">
+      <button id="lbPrev" onclick="lbMove(-1)">◀ 이전</button>
+      <span id="lbCounter" style="color:#fff;align-self:center;font-size:.85rem"></span>
+      <button id="lbNext" onclick="lbMove(1)">다음 ▶</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// IndexedDB (첨부파일 조회)
+// ════════════════════════════════════════════════════════
+const IDB_NAME='sales_files', IDB_STORE='files', IDB_VER=1;
+let idb=null;
+function openIDB(){
+  return new Promise((res,rej)=>{
+    if(idb){res(idb);return;}
+    const req=indexedDB.open(IDB_NAME,IDB_VER);
+    req.onupgradeneeded=e=>e.target.result.createObjectStore(IDB_STORE,{keyPath:'id'});
+    req.onsuccess=e=>{idb=e.target.result;res(idb);};
+    req.onerror=e=>rej(e.target.error);
+  });
+}
+async function getFilesFromIDB(submissionId){
+  try{
+    const db=await openIDB();
+    return new Promise((res,rej)=>{
+      const tx=db.transaction(IDB_STORE,'readonly');
+      const req=tx.objectStore(IDB_STORE).get(submissionId);
+      req.onsuccess=()=>res(req.result?.files||[]);
+      req.onerror=e=>rej(e.target.error);
+    });
+  }catch{ return []; }
+}
+
+// ════════════════════════════════════════════════════════
+// 라이트박스
+// ════════════════════════════════════════════════════════
+let lbImages=[], lbIdx=0;
+function openLightbox(images, startIdx){
+  lbImages=images; lbIdx=startIdx;
+  updateLightbox();
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('show'); }
+function lbMove(dir){
+  lbIdx=Math.max(0,Math.min(lbImages.length-1,lbIdx+dir));
+  updateLightbox();
+}
+function updateLightbox(){
+  const f=lbImages[lbIdx];
+  document.getElementById('lbImg').src=f.data;
+  document.getElementById('lbImg').alt=f.name;
+  document.getElementById('lbName').textContent=f.name;
+  document.getElementById('lbCounter').textContent=`${lbIdx+1} / ${lbImages.length}`;
+  document.getElementById('lbPrev').disabled=lbIdx===0;
+  document.getElementById('lbNext').disabled=lbIdx===lbImages.length-1;
+}
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('lightbox').classList.contains('show')) return;
+  if(e.key==='ArrowLeft') lbMove(-1);
+  if(e.key==='ArrowRight') lbMove(1);
+  if(e.key==='Escape') closeLightbox();
+});
+
+// ════════════════════════════════════════════════════════
+// 설정
+// ════════════════════════════════════════════════════════
+const ADMIN_PIN = '0000';
+
+const BRANCHES_DAYB = ['강서발산점','건대입구점','광주상무점','강남점','안양범계점',
+  '여의도점','영등포점','대전둔산점','명동점','분당점','인천구월점','전주점','부산서면점','명동2호점','수원점'];
+const BRANCHES_CERA = ['세라미크 강남점'];
+const ALL_BRANCHES  = [...BRANCHES_DAYB, ...BRANCHES_CERA];
+
+// 브랜드 판별
+function getBrand(branch) {
+  return branch.startsWith('세라미크') ? '세라미크' : '데이뷰';
+}
+
+
+// ════════════════════════════════════════════════════════
+// 로그인
+// ════════════════════════════════════════════════════════
+function showAdminScreen() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('adminScreen').style.display = 'block';
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('t1Month').value = ym;
+  document.getElementById('t2Month').value = ym;
+  document.getElementById('t6Month').value = ym;
+  renderOverview();
+  renderReports();
+  initFeeTable();
+  initPinTable();
+  updateDataCount();
+  renderMgmtCheck();
+}
+
+function doLogin() {
+  const pin = document.getElementById('pinInput').value.trim();
+  if (pin !== ADMIN_PIN) {
+    document.getElementById('loginError').textContent = '❌ PIN 번호가 올바르지 않습니다.';
+    document.getElementById('pinInput').value = '';
+    return;
+  }
+  sessionStorage.setItem('admin_logged_in', '1');
+  showAdminScreen();
+}
+
+function doLogout() {
+  if (!confirm('로그아웃 하시겠어요?')) return;
+  sessionStorage.removeItem('admin_logged_in');
+  document.getElementById('adminScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('pinInput').value = '';
+  switchTab(1);
+}
+
+// ════════════════════════════════════════════════════════
+// 탭
+// ════════════════════════════════════════════════════════
+function switchTab(n) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab'+n).classList.add('active');
+  document.getElementById('tabBtn'+n).classList.add('active');
+  if (n===1) renderOverview();
+  if (n===2) renderReports();
+  if (n===3) initFeeTable();
+  if (n===4) initPinTable();
+  if (n===5) updateDataCount();
+  if (n===6) renderMgmtCheck();
+}
+
+// ════════════════════════════════════════════════════════
+// 수수료 계산 규칙 (계약서 기준, 부가세 10% 포함)
+// ════════════════════════════════════════════════════════
+const E8 = 100000000;
+const FEE_RULES = {
+  '강서발산점':    { formula:'경영 고정 1,000만+VAT | 마케팅 3%+VAT',                                         mgmt:t=>11000000,                                                                      mkt:t=>Math.round(t*0.033) },
+  '건대입구점':    { formula:'경영 3억 미만 면제 / 이상 1,000만+VAT | 마케팅 4%+VAT',                          mgmt:t=>t<3*E8?0:11000000,                                                             mkt:t=>Math.round(t*0.044) },
+  '광주상무점':    { formula:'경영 3억 미만 면제 / 이상 1,000만+VAT | 마케팅 4%+VAT',                          mgmt:t=>t<3*E8?0:11000000,                                                             mkt:t=>Math.round(t*0.044) },
+  '강남점':        { formula:'경영 3억 미만 면제 / 3억~5억:5.5% / 5억~10억:7.7% / 10억~15억:9.35% / 15억+:9.9% | 마케팅 4.4%', mgmt:t=>{if(t<3*E8)return 0;if(t<5*E8)return Math.round(t*0.055);if(t<10*E8)return Math.round(t*0.077);if(t<15*E8)return Math.round(t*0.0935);return Math.round(t*0.099);}, mkt:t=>Math.round(t*0.044) },
+  '안양범계점':    { formula:'경영 1억 미만 면제 / 이상 1,000만+VAT | 마케팅 4%+VAT',                          mgmt:t=>t<1*E8?0:11000000,                                                             mkt:t=>Math.round(t*0.044) },
+  '여의도점':      { formula:'경영 3억 미만 면제 / 이상 3.5%+VAT | 마케팅 4%+VAT',                             mgmt:t=>t<3*E8?0:Math.round(t*0.0385),                                                 mkt:t=>Math.round(t*0.044) },
+  '영등포점':      { formula:'경영 3억 미만: 1%+VAT / 3억 이상: 2%+VAT | 마케팅 6%+VAT',                      mgmt:t=>t<3*E8?Math.round(t*0.011):Math.round(t*0.022),                                mkt:t=>Math.round(t*0.066) },
+  '대전둔산점':    { formula:'경영 3억 미만 면제 / 이상 1,000만+VAT | 마케팅 4%+VAT ※첫 2회 경영 면제',       mgmt:t=>t<3*E8?0:11000000,                                                             mkt:t=>Math.round(t*0.044) },
+  '명동점':        { formula:'경영 3억 미만 면제 / 3억~4억: 1,000만+VAT / 4억 이상: 10%+VAT | 마케팅 4%+VAT', mgmt:t=>{if(t<3*E8)return 0;if(t<4*E8)return 11000000;return Math.round(t*0.11);},   mkt:t=>Math.round(t*0.044) },
+  '분당점':        { formula:'경영 4%+VAT | 마케팅 4%+VAT ※화장품 결제건 제외',                                mgmt:t=>Math.round(t*0.044),                                                           mkt:t=>Math.round(t*0.044) },
+  '인천구월점':    { formula:'경영 2억5천 미만 면제 / 이상 4%+VAT | 마케팅 4%+VAT',                            mgmt:t=>t<2.5*E8?0:Math.round(t*0.044),                                                mkt:t=>Math.round(t*0.044) },
+  '전주점':        { formula:'경영·마케팅 1억 이하 면제 / 1억~2억: 2.2% / 2억~2.5억: 4.4% / 2.5억 이상: 4.95%', mgmt:t=>{if(t<=E8)return 0;if(t<2*E8)return Math.round(t*0.022);if(t<2.5*E8)return Math.round(t*0.044);return Math.round(t*0.0495);}, mkt:t=>{if(t<=E8)return 0;if(t<2*E8)return Math.round(t*0.022);if(t<2.5*E8)return Math.round(t*0.044);return Math.round(t*0.0495);} },
+  '부산서면점':    { formula:'경영·마케팅 1.5억 이하 면제 / 1.5억~3억: 2.75% / 3억 이상: 5.5%',               mgmt:t=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);}, mkt:t=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);} },
+  '명동2호점':     { formula:'경영 10%+VAT | 마케팅 5%+VAT',                                                   mgmt:t=>Math.round(t*0.11),                                                            mkt:t=>Math.round(t*0.055) },
+  '수원점':        { formula:'경영·마케팅 5억 미만: 3.3% / 5억 이상: 4.4%',                                    mgmt:t=>t<5*E8?Math.round(t*0.033):Math.round(t*0.044),                                mkt:t=>t<5*E8?Math.round(t*0.033):Math.round(t*0.044) },
+  '세라미크 강남점':{ formula:'경영 5%+VAT | 마케팅 10%+VAT',                                                  mgmt:t=>Math.round(t*0.055),                                                           mkt:t=>Math.round(t*0.11) },
+};
+
+// ════════════════════════════════════════════════════════
+// 데이터 & 수수료
+// ════════════════════════════════════════════════════════
+function getData() { return JSON.parse(localStorage.getItem('sales_data')||'[]'); }
+
+function calcFees(row) {
+  const tot = row.salesTotal || 0;
+  const branch = row.branch || '';
+  const override = localStorage.getItem('fee_override_' + branch);
+  if (override) {
+    const o = JSON.parse(override);
+    const mgmt = o.mgmtType==='fixed' ? o.mgmtVal : Math.round(tot * o.mgmtVal / 100);
+    const mkt  = Math.round(tot * o.mktPct / 100);
+    return { mgmt, mkt, total: mgmt+mkt, formula:'(수동 조정)', overridden: true };
+  }
+  const rule = FEE_RULES[branch];
+  if (!rule) return { mgmt:0, mkt:0, total:0, formula:'-', overridden:false };
+  return { mgmt:rule.mgmt(tot), mkt:rule.mkt(tot), total:rule.mgmt(tot)+rule.mkt(tot), formula:rule.formula, overridden:false };
+}
+
+// ════════════════════════════════════════════════════════
+// 탭1: 전체 현황
+// ════════════════════════════════════════════════════════
+function getOverviewFiltered() {
+  const m = document.getElementById('t1Month').value;
+  const b = document.getElementById('t1Branch').value;
+  return getData().filter(r => (!m||r.month===m) && (!b||r.branch===b));
+}
+
+function renderOverview() {
+  const rows = getOverviewFiltered();
+  rows.sort((a,b)=>ALL_BRANCHES.indexOf(a.branch)-ALL_BRANCHES.indexOf(b.branch));
+
+  // 요약 카드
+  let sTot=0,sFee=0,sMgmt=0,sMkt=0;
+  rows.forEach(r=>{ const f=calcFees(r); sTot+=r.salesTotal||0; sMgmt+=f.mgmt; sMkt+=f.mkt; sFee+=f.total; });
+  document.getElementById('summaryGrid').innerHTML=`
+    <div class="sum-card c-blue"><div class="lbl">총 매출</div><div class="val">${numFmtShort(sTot)}원</div><div class="sub">${numFmt(sTot)}원</div></div>
+    <div class="sum-card c-purple"><div class="lbl">총 수수료</div><div class="val">${numFmtShort(sFee)}원</div><div class="sub">${numFmt(sFee)}원</div></div>
+    <div class="sum-card c-green"><div class="lbl">경영 수수료</div><div class="val">${numFmtShort(sMgmt)}원</div><div class="sub">${numFmt(sMgmt)}원</div></div>
+    <div class="sum-card c-orange"><div class="lbl">마케팅 수수료</div><div class="val">${numFmtShort(sMkt)}원</div><div class="sub">${numFmt(sMkt)}원</div></div>`;
+
+  const tbody = document.getElementById('overviewBody');
+  const tfoot = document.getElementById('overviewFoot');
+  tbody.innerHTML = '';
+
+  if (rows.length===0) {
+    tbody.innerHTML='<tr class="empty-row"><td colspan="11">데이터가 없습니다.</td></tr>';
+    tfoot.innerHTML=''; return;
+  }
+
+  let dDom=0,dOvs=0,dTot=0,dMgmt=0,dMkt=0,dFee=0;
+  rows.forEach(row=>{
+    const f=calcFees(row);
+    const brand=getBrand(row.branch);
+    const [y,m]=(row.month||'').split('-');
+    const mLabel=y&&m?`${y}년 ${m}월`:(row.month||'-');
+    dDom+=row.salesDomestic||0; dOvs+=row.salesOverseas||0; dTot+=row.salesTotal||0;
+    dMgmt+=f.mgmt; dMkt+=f.mkt; dFee+=f.total;
+    const formulaTitle = (f.formula||'').replace(/'/g,'&apos;');
+    const overrideBadge = f.overridden ? '<span style="font-size:.65rem;background:#fef3c7;color:#d97706;border-radius:4px;padding:1px 5px;margin-left:4px;">수동</span>' : '';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="left">${mLabel}</td>
+      <td class="left"><span class="brand-tag ${brand==='세라미크'?'brand-cera':'brand-dayb'}">${brand}</span></td>
+      <td class="left branch-cell">${row.branch||'-'}</td>
+      <td class="left">${row.manager||'-'}</td>
+      <td class="money">${numFmt(row.salesDomestic)}</td>
+      <td class="money">${numFmt(row.salesOverseas)}</td>
+      <td class="money">${numFmt(row.salesTotal)}</td>
+      <td class="money" title="${formulaTitle}">${numFmt(f.mgmt)}${overrideBadge}</td>
+      <td class="money" title="${formulaTitle}">${numFmt(f.mkt)}${overrideBadge}</td>
+      <td class="fee-total" title="${formulaTitle}">${numFmt(f.total)}${overrideBadge}</td>
+      <td class="left special-cell" title="${buildSpecialText(row)||''}">${buildSpecialText(row)||'-'}</td>`;
+    tbody.appendChild(tr);
+  });
+  tfoot.innerHTML=`<tr class="tfoot-row">
+    <td class="left" colspan="4">합계 (${rows.length}건)</td>
+    <td>${numFmt(dDom)}</td><td>${numFmt(dOvs)}</td><td>${numFmt(dTot)}</td>
+    <td>${numFmt(dMgmt)}</td><td>${numFmt(dMkt)}</td><td>${numFmt(dFee)}</td><td></td>
+  </tr>`;
+}
+
+// ════════════════════════════════════════════════════════
+// 탭2: 매출 자료 카드
+// ════════════════════════════════════════════════════════
+function getReportsFiltered() {
+  const m   = document.getElementById('t2Month').value;
+  const brd = document.getElementById('t2Brand').value;
+  const brn = document.getElementById('t2Branch').value;
+  return getData().filter(r =>
+    (!m   || r.month===m) &&
+    (!brd || getBrand(r.branch)===brd) &&
+    (!brn || r.branch===brn)
+  );
+}
+
+function renderReports() {
+  const sortVal = document.getElementById('t2Sort').value;
+  let rows = getReportsFiltered();
+
+  if (sortVal==='desc') rows.sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0));
+  else if (sortVal==='asc') rows.sort((a,b)=>new Date(a.submittedAt||0)-new Date(b.submittedAt||0));
+  else rows.sort((a,b)=>(b.salesTotal||0)-(a.salesTotal||0));
+
+  const list = document.getElementById('reportList');
+  list.innerHTML = '';
+
+  if (rows.length===0) {
+    list.innerHTML=`<div class="report-empty"><div class="ico">📭</div><p>조건에 맞는 제출 데이터가 없습니다.</p></div>`;
+    return;
+  }
+
+  const isCera = b => b.startsWith('세라미크');
+
+  rows.forEach(row=>{
+    const [y,m]=(row.month||'').split('-');
+    const mLabel=y&&m?`${y}년 ${m}월`:(row.month||'-');
+    const fees = calcFees(row);
+
+    // 특약 HTML
+    let specialHtml='';
+    if (row.special && Object.keys(row.special).length>0) {
+      let rows2='';
+      Object.entries(row.special).forEach(([k,v])=>{
+        rows2+=`<div class="srow"><span>${k}</span><span>${numFmt(v.amount)}원${v.memo?' ('+v.memo+')':''}</span></div>`;
+      });
+      const spTotal=Object.values(row.special).reduce((s,v)=>s+(v.amount||0),0);
+      specialHtml=`<div class="rc-special"><div class="slbl">📝 특약사항 — 합계 ${numFmt(spTotal)}원</div>${rows2}</div>`;
+    }
+
+    const memoHtml=row.memo?`<div class="rc-memo"><div class="mlbl">💬 메모</div>${row.memo}</div>`:'';
+
+    const card=document.createElement('div');
+    card.className='report-card'+(isCera(row.branch)?' cera':'');
+    card.innerHTML=`
+      <div class="rc-header">
+        <div class="rc-top">
+          <div class="rc-month">${mLabel}</div>
+          <span class="brand-tag ${isCera(row.branch)?'brand-cera':'brand-dayb'}">${getBrand(row.branch)}</span>
+        </div>
+        <div class="rc-branch ${isCera(row.branch)?'cera':''}">${row.branch||'-'}</div>
+        <div class="rc-manager">담당자 : ${row.manager||'-'}</div>
+      </div>
+      <div class="rc-body">
+        <div class="rc-amounts">
+          <div class="rc-box"><div class="lbl">국내 매출</div><div class="val">${numFmt(row.salesDomestic)}원</div></div>
+          <div class="rc-box"><div class="lbl">해외 매출</div><div class="val">${numFmt(row.salesOverseas)}원</div></div>
+          <div class="rc-box accent"><div class="lbl">총 매출</div><div class="val">${numFmt(row.salesTotal)}원</div></div>
+          <div class="rc-box"><div class="lbl">경영수수료</div><div class="val">${numFmt(fees.mgmt)}원</div></div>
+          <div class="rc-box"><div class="lbl">마케팅수수료</div><div class="val">${numFmt(fees.mkt)}원</div></div>
+          <div class="rc-box accent"><div class="lbl">총 수수료</div><div class="val">${numFmt(fees.total)}원</div></div>
+        </div>
+        ${specialHtml}
+        ${memoHtml}
+        <div class="rc-files" id="files_${row.id||''}">
+          <div class="flbl">📎 첨부 증빙자료 <span class="fcnt">${row.fileCount||0}개</span></div>
+          <div class="file-thumbs" id="thumbs_${row.id||''}">
+            ${row.id ? '<div class="file-loading">불러오는 중...</div>' : '<div class="file-none">첨부파일 없음</div>'}
+          </div>
+        </div>
+      </div>
+      <div class="rc-footer">
+        <span>제출일시 : ${formatDate(row.submittedAt)}</span>
+        <span style="color:#7c3aed;font-weight:700">수수료 ${numFmt(fees.total)}원</span>
+      </div>`;
+    list.appendChild(card);
+
+    // 첨부파일 비동기 로드
+    if(row.id){
+      const thumbsEl = card.querySelector(`#thumbs_${row.id}`);
+      getFilesFromIDB(row.id).then(files => {
+        if(!files||files.length===0){
+          thumbsEl.innerHTML='<div class="file-none">첨부파일 없음</div>';
+          return;
+        }
+        // 이미지만 라이트박스에 사용
+        const imgFiles = files.filter(f=>f.type&&f.type.startsWith('image/'));
+        thumbsEl.innerHTML='';
+        files.forEach((f,fi)=>{
+          const thumb=document.createElement('div');
+          thumb.className='file-thumb';
+          if(f.type&&f.type.startsWith('image/')){
+            const imgIdx=imgFiles.indexOf(f);
+            thumb.innerHTML=`<img src="${f.data}" alt="${f.name}" /><div class="fname">${f.name}</div>`;
+            thumb.onclick=()=>openLightbox(imgFiles,imgIdx);
+          } else {
+            // PDF / 기타 → 다운로드
+            thumb.innerHTML=`<div class="pdf-icon">📄<span>${f.name.split('.').pop().toUpperCase()}</span></div><div class="fname">${f.name}</div>`;
+            thumb.onclick=()=>{
+              const a=document.createElement('a');
+              a.href=f.data; a.download=f.name; a.click();
+            };
+          }
+          thumbsEl.appendChild(thumb);
+        });
+      }).catch(()=>{ thumbsEl.innerHTML='<div class="file-none">파일 로드 실패</div>'; });
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// 탭3: 수수료 설정
+// ════════════════════════════════════════════════════════
+function initFeeTable() {
+  renderFeeSection('feeBodyDayb', BRANCHES_DAYB);
+  renderFeeSection('feeBodyCera', BRANCHES_CERA);
+}
+
+function renderFeeSection(tbodyId, branches) {
+  const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = '';
+  branches.forEach(branch => {
+    const rule = FEE_RULES[branch] || { formula: '-' };
+    const sid = branch.replace(/\s/g,'_');
+    const override = localStorage.getItem('fee_override_'+branch);
+    const hasOverride = !!override;
+    const o = hasOverride ? JSON.parse(override) : null;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="bname">${branch}</td>
+      <td style="font-size:.75rem;color:#555;line-height:1.6;white-space:normal;">${rule.formula}</td>
+      <td>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <select id="ovr_type_${sid}" style="padding:5px 7px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:.8rem;font-family:inherit;">
+            <option value="fixed" ${o&&o.mgmtType==='fixed'?'selected':''}>경영 고정(원)</option>
+            <option value="pct"   ${o&&o.mgmtType==='pct'  ?'selected':''}>경영 %(매출)</option>
+          </select>
+          <input type="number" id="ovr_mgmt_${sid}" placeholder="경영수수료" min="0" step="0.01"
+            value="${o?o.mgmtVal:''}"
+            style="width:120px;padding:5px 8px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:.8rem;font-family:inherit;" />
+          <input type="number" id="ovr_mkt_${sid}" placeholder="마케팅%" min="0" step="0.01"
+            value="${o?o.mktPct:''}"
+            style="width:80px;padding:5px 8px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:.8rem;font-family:inherit;" />
+          <button onclick="saveOverride('${sid}','${branch}')"
+            style="background:#7c3aed;color:#fff;border:none;border-radius:7px;padding:5px 12px;font-size:.78rem;cursor:pointer;font-family:inherit;">저장</button>
+          <button onclick="clearOverride('${sid}','${branch}')"
+            style="background:#fff;color:#dc2626;border:1.5px solid #fca5a5;border-radius:7px;padding:5px 10px;font-size:.78rem;cursor:pointer;font-family:inherit;">초기화</button>
+          ${hasOverride?'<span style="font-size:.72rem;color:#d97706;font-weight:600;">⚠️ 수동 적용 중</span>':'<span style="font-size:.72rem;color:#059669;">✅ 자동계산</span>'}
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function toggleOverride(sid, branch) {
+  const checked = document.getElementById('ovr_'+sid).checked;
+  document.getElementById('ovr_fields_'+sid).style.display = checked ? 'flex' : 'none';
+  if (!checked) clearOverride(sid, branch);
+}
+
+function saveOverride(sid, branch) {
+  const type = document.getElementById('ovr_type_'+sid).value;
+  const mgmtVal = parseFloat(document.getElementById('ovr_mgmt_'+sid).value)||0;
+  const mktPct  = parseFloat(document.getElementById('ovr_mkt_'+sid).value)||0;
+  localStorage.setItem('fee_override_'+branch, JSON.stringify({mgmtType:type, mgmtVal, mktPct}));
+  renderFeeSection(
+    BRANCHES_DAYB.includes(branch) ? 'feeBodyDayb' : 'feeBodyCera',
+    BRANCHES_DAYB.includes(branch) ? BRANCHES_DAYB : BRANCHES_CERA
+  );
+  renderOverview(); renderReports();
+  const n=document.getElementById('saveNotice'); n.style.display='inline';
+  setTimeout(()=>n.style.display='none',2500);
+}
+
+function clearOverride(sid, branch) {
+  localStorage.removeItem('fee_override_'+branch);
+  document.getElementById('ovr_'+sid).checked = false;
+  document.getElementById('ovr_fields_'+sid).style.display = 'none';
+  renderFeeSection(
+    BRANCHES_DAYB.includes(branch) ? 'feeBodyDayb' : 'feeBodyCera',
+    BRANCHES_DAYB.includes(branch) ? BRANCHES_DAYB : BRANCHES_CERA
+  );
+  renderOverview(); renderReports();
+}
+
+// ════════════════════════════════════════════════════════
+// 탭4: PIN 관리
+// ════════════════════════════════════════════════════════
+const DEFAULT_PIN_MAP = {
+  '강서발산점':'3847','건대입구점':'5129','광주상무점':'7264','강남점':'9381',
+  '안양범계점':'4756','여의도점':'6203','영등포점':'8415','대전둔산점':'2974',
+  '명동점':'5638','분당점':'7192','인천구월점':'3056','전주점':'8743',
+  '부산서면점':'1629','명동2호점':'4385','수원점':'6071','세라미크 강남점':'2583'
+};
+
+function getPins() {
+  const saved = localStorage.getItem('pin_map');
+  return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_PIN_MAP));
+}
+
+function initPinTable() {
+  const pins = getPins();
+  renderPinSection('pinBodyDayb', BRANCHES_DAYB, pins, 'dayb');
+  renderPinSection('pinBodyCera', BRANCHES_CERA, pins, 'cera');
+}
+
+function renderPinSection(containerId, branches, pins, brand) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  branches.forEach(branch => {
+    const pin = pins[branch] || '----';
+    const safeId = branch.replace(/\s/g,'_');
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fafafa;border:1.5px solid #ede9fe;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;';
+    card.innerHTML = `
+      <span class="pin-badge ${brand}" style="flex-shrink:0;">${brand==='dayb'?'데이뷰':'세라미크'}</span>
+      <span style="font-weight:700;font-size:.84rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${branch}</span>
+      <input type="text" id="pin_${safeId}" value="${pin}" maxlength="4"
+             oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+             style="width:72px;padding:5px 8px;border:1.5px solid #d8b4fe;border-radius:8px;font-size:.95rem;letter-spacing:4px;text-align:center;font-family:inherit;background:#fff;" />`;
+    container.appendChild(card);
+  });
+}
+
+function togglePinView(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    inp.classList.add('type-text');
+    btn.textContent = '🙈';
+  } else {
+    inp.type = 'password';
+    inp.classList.remove('type-text');
+    btn.textContent = '👁️';
+  }
+}
+
+function savePins() {
+  const pins = {};
+  ALL_BRANCHES.forEach(branch => {
+    const safeId = branch.replace(/\s/g,'_');
+    const val = (document.getElementById('pin_'+safeId)?.value || '').trim();
+    if (val.length === 4) pins[branch] = val;
+    else { alert(`${branch}의 PIN은 4자리 숫자여야 합니다.`); throw new Error('invalid pin'); }
+  });
+  localStorage.setItem('pin_map', JSON.stringify(pins));
+  const n = document.getElementById('pinSaveNotice');
+  n.style.display = 'inline';
+  setTimeout(() => n.style.display = 'none', 2500);
+}
+
+// ════════════════════════════════════════════════════════
+// 탭5: 데이터 관리
+// ════════════════════════════════════════════════════════
+function updateDataCount() {
+  document.getElementById('dataCount').textContent=`현재 저장된 데이터: ${getData().length}건`;
+}
+
+function exportCSV(scope) {
+  const rows = scope==='all' ? getData() : getOverviewFiltered();
+  if (!rows.length) { alert('내보낼 데이터가 없습니다.'); return; }
+  const hdr=['보고기간','브랜드','지점명','담당자','국내매출','해외매출','총매출','경영수수료','마케팅수수료','총수수료','특약사항','제출일시'];
+  const lines=[hdr.join(',')];
+  rows.forEach(row=>{
+    const f=calcFees(row);
+    lines.push([row.month,getBrand(row.branch),row.branch,row.manager,
+      row.salesDomestic||0,row.salesOverseas||0,row.salesTotal||0,
+      f.mgmt,f.mkt,f.total,'"'+buildSpecialText(row)+'"',formatDate(row.submittedAt)].join(','));
+  });
+  const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`매출현황_${scope==='all'?'전체':document.getElementById('t1Month').value||'all'}.csv`;
+  a.click();
+}
+
+function exportJSON() {
+  const blob=new Blob([JSON.stringify(getData(),null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`sales_backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
+}
+
+function importJSON() { document.getElementById('importFile').click(); }
+
+function handleImport(input) {
+  const file=input.files[0]; if (!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try {
+      const data=JSON.parse(e.target.result);
+      if (!Array.isArray(data)) throw new Error();
+      if (!confirm(`${data.length}건 데이터를 복원합니다. 기존 데이터에 추가됩니다.`)) return;
+      localStorage.setItem('sales_data',JSON.stringify([...getData(),...data]));
+      updateDataCount(); renderOverview(); renderReports();
+      alert('복원 완료!');
+    } catch { alert('올바른 JSON 파일이 아닙니다.'); }
+  };
+  reader.readAsText(file); input.value='';
+}
+
+function clearData() {
+  if (!confirm('정말로 모든 데이터를 삭제할까요?')) return;
+  if (!confirm('한 번 더 확인합니다. 전체 삭제하시겠습니까?')) return;
+  localStorage.removeItem('sales_data');
+  updateDataCount(); renderOverview(); renderReports();
+}
+
+// ════════════════════════════════════════════════════════
+// 탭6: 경영팀 확인
+// ════════════════════════════════════════════════════════
+function getMgmtData() { return JSON.parse(localStorage.getItem('mgmt_check')||'{}'); }
+function saveMgmtData(d) { localStorage.setItem('mgmt_check', JSON.stringify(d)); }
+
+function renderMgmtCheck() {
+  const m   = document.getElementById('t6Month').value;
+  const b   = document.getElementById('t6Branch').value;
+  const st  = document.getElementById('t6Status').value;
+  const mgmtMap = getMgmtData();
+
+  let rows = getData().filter(r =>
+    (!m || r.month === m) &&
+    (!b || r.branch === b)
+  );
+  rows.sort((a,b)=>ALL_BRANCHES.indexOf(a.branch)-ALL_BRANCHES.indexOf(b.branch));
+
+  if (st === 'unpaid')   rows = rows.filter(r => !mgmtMap[r.id]?.paid);
+  if (st === 'paid')     rows = rows.filter(r =>  mgmtMap[r.id]?.paid);
+  if (st === 'noinvoice')rows = rows.filter(r => !mgmtMap[r.id]?.invoice);
+  if (st === 'invoice')  rows = rows.filter(r =>  mgmtMap[r.id]?.invoice);
+
+  const tbody = document.getElementById('mgmtBody');
+  tbody.innerHTML = '';
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="12">데이터가 없습니다.</td></tr>';
+    return;
+  }
+
+  rows.forEach(row => {
+    const id    = row.id || (row.branch + '_' + row.submittedAt);
+    const mc    = mgmtMap[id] || {};
+    const fees  = calcFees(row);
+    const brand = getBrand(row.branch);
+    const [y,mo]= (row.month||'').split('-');
+    const mLabel= y&&mo ? `${y}년 ${mo}월` : (row.month||'-');
+    const isPaid    = !!mc.paid;
+    const isInvoice = !!mc.invoice;
+
+    const tr = document.createElement('tr');
+    if (isPaid)    tr.classList.add('paid-yes');
+    if (isInvoice) tr.classList.add('invoice-yes');
+
+    tr.innerHTML = `
+      <td class="left">${mLabel}</td>
+      <td class="left"><span class="brand-tag ${brand==='세라미크'?'brand-cera':'brand-dayb'}">${brand}</span></td>
+      <td class="left" style="font-weight:700;color:#059669;">${row.branch||'-'}</td>
+      <td style="font-weight:600;text-align:right;">${numFmt(row.salesTotal)}</td>
+      <td style="font-weight:700;color:#7c3aed;text-align:right;">${numFmt(fees.mgmt)}</td>
+      <td class="left" style="font-size:.78rem;color:#b45309;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:help;" title="${buildSpecialText(row)||''}">${buildSpecialText(row)||'-'}</td>
+      <td>
+        <input type="checkbox" ${isPaid?'checked':''} onchange="onMgmtChange('${id}','paid',this)" />
+        ${isPaid?'<span class="mgmt-badge-paid">완료</span>':''}
+      </td>
+      <td>
+        <input type="date" id="pd_${id}" value="${mc.paidDate||''}"
+          onchange="onMgmtChange('${id}','paidDate',this)"
+          ${!isPaid?'disabled':''} style="${!isPaid?'opacity:.4':''}"/>
+      </td>
+      <td>
+        ${isPaid ? `<input type="text" value="${Number(mc.paidAmt !== undefined ? mc.paidAmt : fees.mgmt).toLocaleString('ko-KR')}"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'');this.value=this.value?Number(this.value).toLocaleString('ko-KR'):'';"
+          onchange="onMgmtChange('${id}','paidAmt',this)"
+          style="width:120px;padding:4px 6px;border:1.5px solid #6ee7b7;border-radius:7px;font-size:.82rem;font-family:inherit;font-weight:600;text-align:right;" />` : ''}
+      </td>
+      <td>
+        <input type="checkbox" ${isInvoice?'checked':''} onchange="onMgmtChange('${id}','invoice',this)" />
+        ${isInvoice?'<span class="mgmt-badge-inv">발행</span>':''}
+      </td>
+      <td>
+        <input type="date" id="id_${id}" value="${mc.invoiceDate||''}"
+          onchange="onMgmtChange('${id}','invoiceDate',this)"
+          ${!isInvoice?'disabled':''} style="${!isInvoice?'opacity:.4':''}"/>
+      </td>
+      <td>
+        <input type="text" class="note-input" value="${mc.note||''}" placeholder="비고"
+          onchange="onMgmtChange('${id}','note',this)" />
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function onMgmtChange(id, field, el) {
+  const d = getMgmtData();
+  if (!d[id]) d[id] = {};
+  const today = new Date().toISOString().slice(0,10);
+
+  if (field === 'paid') {
+    d[id].paid = el.checked;
+    if (el.checked && !d[id].paidDate) d[id].paidDate = today;
+  } else if (field === 'invoice') {
+    d[id].invoice = el.checked;
+    if (el.checked && !d[id].invoiceDate) d[id].invoiceDate = today;
+  } else if (field === 'paidAmt') {
+    d[id].paidAmt = parseFloat((el.value||'').replace(/,/g,'')) || 0;
+  } else {
+    d[id][field] = el.value;
+  }
+  saveMgmtData(d);
+  renderMgmtCheck();
+}
+
+// ════════════════════════════════════════════════════════
+// 유틸
+// ════════════════════════════════════════════════════════
+function numFmt(n) { return Number(n||0).toLocaleString('ko-KR'); }
+function numFmtShort(n) {
+  n=Number(n||0);
+  if (n>=1e8) return (n/1e8).toFixed(1)+'억';
+  if (n>=1e4) return Math.round(n/1e4).toLocaleString('ko-KR')+'만';
+  return n.toLocaleString('ko-KR');
+}
+function formatDate(iso) {
+  if (!iso) return '-';
+  try { const d=new Date(iso); return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+  catch { return iso; }
+}
+function buildSpecialText(row) {
+  if (!row.special) return '';
+  return Object.entries(row.special).map(([k,v])=>`${k} ${numFmt(v.amount)}원`).join(' / ');
+}
+
+// 새로고침 후 세션 복원 (모든 const 초기화 후 실행)
+if (sessionStorage.getItem('admin_logged_in') === '1') {
+  showAdminScreen();
+}
+</script>
+</body>
+</html>
