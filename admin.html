@@ -699,17 +699,17 @@ const FEE_RULES = {
   '강서발산점':    { formula:'경영 고정 1,000만+VAT | 마케팅 3%+VAT',                                         mgmt:t=>11000000,                                                                      mkt:t=>Math.round(t*0.033) },
   '건대입구점':    { formula:'경영 3억 미만 면제 / 이상 1,000만+VAT | 마케팅 4%+VAT',                          mgmt:t=>t<3*E8?0:11000000,                                                             mkt:t=>Math.round(t*0.044) },
   '광주상무점':    { formula:'경영 3억 미만 면제 / 이상 1,000만+VAT | 마케팅 4%+VAT',                          mgmt:t=>t<3*E8?0:11000000,                                                             mkt:t=>Math.round(t*0.044) },
-  '강남점':        { formula:'경영 3억 미만 면제 / 3억~5억:5.5% / 5억~10억:7.7% / 10억~15억:9.35% / 15억+:9.9% | 마케팅 4.4%', mgmt:t=>{if(t<3*E8)return 0;if(t<5*E8)return Math.round(t*0.055);if(t<10*E8)return Math.round(t*0.077);if(t<15*E8)return Math.round(t*0.0935);return Math.round(t*0.099);}, mkt:t=>Math.round(t*0.044) },
+  '강남점':        { formula:'경영 3억 미만 면제 / 3억~5억:5.5% / 5억~10억:7.7% / 10억~15억:9.35% / 15억+:9.9% | 마케팅 없음', mgmt:t=>{if(t<3*E8)return 0;if(t<5*E8)return Math.round(t*0.055);if(t<10*E8)return Math.round(t*0.077);if(t<15*E8)return Math.round(t*0.0935);return Math.round(t*0.099);}, mkt:t=>0 },
   '안양범계점':    { formula:'경영 1억 미만 면제 / 이상 1,000만+VAT | 마케팅 4%+VAT',                          mgmt:t=>t<1*E8?0:11000000,                                                             mkt:t=>Math.round(t*0.044) },
   '여의도점':      { formula:'경영 3억 미만 면제 / 이상 3.5%+VAT | 마케팅 4%+VAT',                             mgmt:t=>t<3*E8?0:Math.round(t*0.0385),                                                 mkt:t=>Math.round(t*0.044) },
   '영등포점':      { formula:'경영 3억 미만: 1%+VAT / 3억 이상: 2%+VAT | 마케팅 6%+VAT',                      mgmt:t=>t<3*E8?Math.round(t*0.011):Math.round(t*0.022),                                mkt:t=>Math.round(t*0.066) },
   '대전둔산점':    { formula:'경영 3억 미만 면제 / 이상 1,000만+VAT | 마케팅 4%+VAT ※첫 2회 경영 면제',       mgmt:t=>t<3*E8?0:11000000,                                                             mkt:t=>Math.round(t*0.044) },
-  '명동점':        { formula:'경영 3억 미만 면제 / 3억~4억: 1,000만+VAT / 4억 이상: 10%+VAT | 마케팅 4%+VAT', mgmt:t=>{if(t<3*E8)return 0;if(t<4*E8)return 11000000;return Math.round(t*0.11);},   mkt:t=>Math.round(t*0.044) },
+  '명동점':        { formula:'경영 3억 미만 면제 / 3억~4억: 1,000만+VAT / 4억 이상: 10%+VAT | 마케팅 4%+VAT (25.11부터 마케팅 없음)', mgmt:t=>{if(t<3*E8)return 0;if(t<4*E8)return 11000000;return Math.round(t*0.11);},   mkt:(t,ym)=>ym>='2025-11'?0:Math.round(t*0.044) },
   '분당점':        { formula:'경영 4%+VAT | 마케팅 4%+VAT ※화장품 결제건 제외',                                mgmt:t=>Math.round(t*0.044),                                                           mkt:t=>Math.round(t*0.044) },
   '인천구월점':    { formula:'경영 2억5천 미만 면제 / 이상 4%+VAT | 마케팅 4%+VAT',                            mgmt:t=>t<2.5*E8?0:Math.round(t*0.044),                                                mkt:t=>Math.round(t*0.044) },
   '전주점':        { formula:'경영·마케팅 1억 이하 면제 / 1억~2억: 2.2% / 2억~2.5억: 4.4% / 2.5억 이상: 4.95%', mgmt:t=>{if(t<=E8)return 0;if(t<2*E8)return Math.round(t*0.022);if(t<2.5*E8)return Math.round(t*0.044);return Math.round(t*0.0495);}, mkt:t=>{if(t<=E8)return 0;if(t<2*E8)return Math.round(t*0.022);if(t<2.5*E8)return Math.round(t*0.044);return Math.round(t*0.0495);} },
   '부산서면점':    { formula:'경영·마케팅 1.5억 이하 면제 / 1.5억~3억: 2.75% / 3억 이상: 5.5%',               mgmt:t=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);}, mkt:t=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);} },
-  '명동2호점':     { formula:'경영 10%+VAT | 마케팅 5%+VAT',                                                   mgmt:t=>Math.round(t*0.11),                                                            mkt:t=>Math.round(t*0.055) },
+  '명동2호점':     { formula:'경영 10%+VAT | 마케팅 없음→26.01부터 5%+VAT',                                    mgmt:t=>Math.round(t*0.11),                                                            mkt:(t,ym)=>ym>='2026-01'?Math.round(t*0.055):0 },
   '수원점':        { formula:'경영·마케팅 5억 미만: 3.3% / 5억 이상: 4.4%',                                    mgmt:t=>t<5*E8?Math.round(t*0.033):Math.round(t*0.044),                                mkt:t=>t<5*E8?Math.round(t*0.033):Math.round(t*0.044) },
   '세라미크 강남점':{ formula:'경영 5%+VAT | 마케팅 10%+VAT',                                                  mgmt:t=>Math.round(t*0.055),                                                           mkt:t=>Math.round(t*0.11) },
 };
@@ -731,7 +731,10 @@ function calcFees(row) {
   }
   const rule = FEE_RULES[branch];
   if (!rule) return { mgmt:0, mkt:0, total:0, formula:'-', overridden:false };
-  return { mgmt:rule.mgmt(tot), mkt:rule.mkt(tot), total:rule.mgmt(tot)+rule.mkt(tot), formula:rule.formula, overridden:false };
+  const ym = (row.month || '');
+  const mgmtAmt = rule.mgmt(tot);
+  const mktAmt  = rule.mkt(tot, ym);
+  return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:rule.formula, overridden:false };
 }
 
 // ════════════════════════════════════════════════════════
@@ -1130,13 +1133,13 @@ function renderInvoiceTab() {
   let html = `
     <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin-top:8px;">
       <thead>
-        <tr style="background:#f3f4f6;border-bottom:2px solid #e5e7eb;">
-          <th style="padding:10px 12px;text-align:left;font-weight:700;">지점명</th>
-          <th style="padding:10px 12px;text-align:right;">총 매출</th>
-          <th style="padding:10px 12px;text-align:right;">경영컨설팅</th>
-          <th style="padding:10px 12px;text-align:right;">마케팅</th>
-          <th style="padding:10px 12px;text-align:right;">합계</th>
-          <th style="padding:10px 12px;text-align:center;">청구서</th>
+        <tr style="background:#f3f4f6;border-bottom:2px solid #e5e7eb;color:#111;">
+          <th style="padding:10px 12px;text-align:left;font-weight:700;color:#111;">지점명</th>
+          <th style="padding:10px 12px;text-align:right;color:#111;">총 매출</th>
+          <th style="padding:10px 12px;text-align:right;color:#4f46e5;">경영컨설팅</th>
+          <th style="padding:10px 12px;text-align:right;color:#0891b2;">마케팅</th>
+          <th style="padding:10px 12px;text-align:right;color:#111;">합계</th>
+          <th style="padding:10px 12px;text-align:center;color:#111;">청구서</th>
         </tr>
       </thead>
       <tbody>`;
@@ -1364,14 +1367,14 @@ function buildInvoiceHTML(branch, month, isPreview) {
     '2. 예금주 : 더데이랩스 주식회사'
   );
 
-  const mktInv = makeInvoice(
+  const mktInv = mkt > 0 ? makeInvoice(
     mkt, '마케팅 수수료',
     makeSupplier('591-81-02463','주식회사 데이뷰마케팅그룹','홍봉기',
       '서울특별시 구로구 디지털로34길 55, 305호(구로동, 코오롱씨이엔스밸리2차)',
       '전문, 과학 및 기술서비스업 외','광고 대행업 외','홍봉기','hotissue-medical@hotissue-medical.kr', STAMP_MKT),
     '1. 입금계좌 : 신한은행 140-014-052189',
     '2. 예금주 : 주식회사 데이뷰마케팅그룹'
-  );
+  ) : '';
 
   const body = `<div class="inv-wrap">${mgmtInv}${mktInv}</div>`;
 
