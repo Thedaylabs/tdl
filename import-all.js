@@ -181,10 +181,8 @@
     });
   });
 
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgvA5ZB2ROdBTo4f_7N-GXTezd4UhH5kTWlIKInmlVrugTONgzApw5Ee4xL4orb0W_/exec';
-
   function serverPost(payload) {
-    fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) }).catch(()=>{});
+    fetch('/api/sync', { method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) }).catch(()=>{});
   }
 
   // localStorage 업데이트
