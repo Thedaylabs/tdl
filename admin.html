@@ -718,8 +718,8 @@ const FEE_RULES = {
   '영등포점':      { formula:'~26.03: 경영·마케팅 3%+VAT | 26.04~: 경영1%(3억미만)/6%(이상)+VAT, 마케팅6%+VAT',
     mgmt:(t,ym)=>ym>='2026-04'?(t<3*E8?Math.round(t*0.011):Math.round(t*0.066)):Math.round(t*0.033),
     mkt:(t,ym)=>ym>='2026-04'?Math.round(t*0.066):Math.round(t*0.033) },
-  '대전둔산점':    { formula:'경영 3억 미만 면제/이상 1,000만+VAT | 마케팅 4%+VAT',
-    mgmt:(t)=>t<3*E8?0:11000000,
+  '대전둔산점':    { formula:'경영 고정 1,000만+VAT | 마케팅 4%+VAT',
+    mgmt:(t)=>11000000,
     mkt:(t,ym,dom)=>Math.round(t*0.044) },
   '명동점':        { formula:'경영 3억미만:면제/3억~4억:1,000만/4억+:10%+VAT | 마케팅 국내4%+VAT(25.11~없음)',
     mgmt:(t)=>{if(t<3*E8)return 0;if(t<4*E8)return 11000000;return Math.round(t*0.11);},
@@ -1267,9 +1267,9 @@ function buildInvoiceHTML(branch, month, isPreview) {
   const fmt = n => n.toLocaleString('ko-KR');
   const fw  = n => '₩' + fmt(n);
 
-  // 도장 이미지 경로 (파일을 같은 폴더에 넣어두면 자동 적용)
-  const STAMP_MGMT = 'stamp_dayblabs.png';   // 더데이랩스 도장
-  const STAMP_MKT  = 'stamp_dayview.png';    // 데이뷰마케팅그룹 도장
+  // 도장 이미지 경로 (절대 URL로 새 창에서도 로드 가능)
+  const STAMP_MGMT = location.origin + '/stamp_dayblabs.png';
+  const STAMP_MKT  = location.origin + '/stamp_dayview.png';
 
   const css = `
     *{box-sizing:border-box;margin:0;padding:0;}
