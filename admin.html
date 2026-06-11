@@ -247,9 +247,12 @@
   <div class="top-header">
     <div class="top-header-inner">
       <span class="top-title">🛠️ 매출 관리자 페이지</span>
-      <div class="admin-chip">
-        👑 관리자
-        <button class="btn-logout" onclick="doLogout()">로그아웃</button>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span id="syncIndicator" style="font-size:.78rem;color:#6b7280;"></span>
+        <div class="admin-chip">
+          👑 관리자
+          <button class="btn-logout" onclick="doLogout()">로그아웃</button>
+        </div>
       </div>
     </div>
   </div>
@@ -572,6 +575,7 @@ document.addEventListener('keydown',e=>{
 // 설정
 // ════════════════════════════════════════════════════════
 const ADMIN_PIN = '0000';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwfuImmKRrrDRWvelWTzVhI_xhR3ZrUtt2U7XdaYjmqS_3RGILvFaQ0QZ9V3z3NCduL/exec';
 
 const BRANCHES_DAYB = ['강서발산점','건대입구점','광주상무점','강남점','안양범계점',
   '여의도점','영등포점','대전둔산점','명동점','분당점','인천구월점','전주점','부산서면점','명동2호점','수원점'];
@@ -587,6 +591,56 @@ function getBrand(branch) {
 // ════════════════════════════════════════════════════════
 // 로그인
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// 서버 동기화
+// ════════════════════════════════════════════════════════
+function serverPost(payload) {
+  if (!SCRIPT_URL) return;
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
+}
+
+function syncFromServer(callback) {
+  if (!SCRIPT_URL) { if (callback) callback(); return; }
+  const indicator = document.getElementById('syncIndicator');
+  if (indicator) indicator.textContent = '🔄 서버 동기화 중...';
+
+  fetch(SCRIPT_URL + '?action=all')
+    .then(r => r.json())
+    .then(data => {
+      if (data.result !== 'ok') return;
+
+      // 매출 데이터: 서버 우선, 로컬 신규 항목 유지
+      const serverRows = data.sales_data || [];
+      const serverIds  = new Set(serverRows.map(r => r.id));
+      const local      = JSON.parse(localStorage.getItem('sales_data') || '[]');
+      const localNew   = local.filter(r => !serverIds.has(r.id));
+      localStorage.setItem('sales_data', JSON.stringify([...serverRows, ...localNew]));
+
+      // 경영 확인: 서버 우선 merge
+      const srvMgmt  = data.mgmt_check || {};
+      const locMgmt  = JSON.parse(localStorage.getItem('mgmt_check') || '{}');
+      localStorage.setItem('mgmt_check', JSON.stringify({ ...locMgmt, ...srvMgmt }));
+
+      // PIN: 서버에 데이터 있으면 덮어쓰기
+      if (Object.keys(data.pin_map || {}).length > 0) {
+        localStorage.setItem('pin_map', JSON.stringify(data.pin_map));
+      }
+
+      if (indicator) indicator.textContent = '✅ 동기화 완료';
+      setTimeout(() => { if (indicator) indicator.textContent = ''; }, 3000);
+    })
+    .catch(() => {
+      if (indicator) indicator.textContent = '⚠️ 동기화 실패 (오프라인)';
+      setTimeout(() => { if (indicator) indicator.textContent = ''; }, 3000);
+    })
+    .finally(() => { if (callback) callback(); });
+}
+
 function showAdminScreen() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('adminScreen').style.display = 'block';
@@ -602,6 +656,15 @@ function showAdminScreen() {
   initPinTable();
   updateDataCount();
   renderMgmtCheck();
+
+  // 서버 동기화 후 재렌더링
+  syncFromServer(() => {
+    renderOverview();
+    renderReports();
+    renderMgmtCheck();
+    initPinTable();
+    updateDataCount();
+  });
 }
 
 function doLogin() {
@@ -1002,6 +1065,7 @@ function savePins() {
     else { alert(`${branch}의 PIN은 4자리 숫자여야 합니다.`); throw new Error('invalid pin'); }
   });
   localStorage.setItem('pin_map', JSON.stringify(pins));
+  serverPost({ action: 'save_pins', pins });
   const n = document.getElementById('pinSaveNotice');
   n.style.display = 'inline';
   setTimeout(() => n.style.display = 'none', 2500);
@@ -1347,6 +1411,7 @@ function onMgmtChange(id, field, el) {
     d[id][field] = el.value;
   }
   saveMgmtData(d);
+  serverPost({ action: 'update_mgmt', id, data: d[id] });
   renderMgmtCheck();
 }
 

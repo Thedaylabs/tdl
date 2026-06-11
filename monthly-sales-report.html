@@ -816,12 +816,15 @@ document.getElementById('mainForm').addEventListener('submit', async function(e)
   stored.push(payload);
   localStorage.setItem('sales_data', JSON.stringify(stored));
 
-  // Google Sheets 전송 (백업)
-  let iframe=document.getElementById('_sif');
-  if(!iframe){ iframe=document.createElement('iframe'); iframe.id='_sif'; iframe.name='_sif'; iframe.style.display='none'; document.body.appendChild(iframe); }
-  const form=document.createElement('form'); form.method='POST'; form.action=SCRIPT_URL; form.target='_sif';
-  const inp=document.createElement('input'); inp.type='hidden'; inp.name='data'; inp.value=JSON.stringify(payload);
-  form.appendChild(inp); document.body.appendChild(form); form.submit(); document.body.removeChild(form);
+  // Apps Script 서버 전송
+  if (SCRIPT_URL) {
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'submit_sales', data: payload })
+    }).catch(() => {});
+  }
 
   btn.classList.remove('loading');
   const [y,m]=month.split('-');
@@ -1015,6 +1018,15 @@ function saveEdit() {
   all[idx].salesTotal    = dom + ovs;
   all[idx].memo          = memo;
   localStorage.setItem('sales_data', JSON.stringify(all));
+
+  if (SCRIPT_URL) {
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'submit_sales', data: all[idx] })
+    }).catch(() => {});
+  }
 
   closeEditModal();
   loadHistory();
