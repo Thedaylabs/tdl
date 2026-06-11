@@ -696,22 +696,63 @@ function switchTab(n) {
 // ════════════════════════════════════════════════════════
 const E8 = 100000000;
 const FEE_RULES = {
-  '강서발산점':    { formula:'경영 고정 1,000만+VAT | 마케팅 3%+VAT',                                         mgmt:t=>11000000,                                                                      mkt:t=>Math.round(t*0.033) },
-  '건대입구점':    { formula:'경영 3억 미만 면제 / 이상 1,000만+VAT | 마케팅 4%+VAT',                          mgmt:t=>t<3*E8?0:11000000,                                                             mkt:t=>Math.round(t*0.044) },
-  '광주상무점':    { formula:'경영 3억 미만 면제 / 이상 1,000만+VAT | 마케팅 4%+VAT',                          mgmt:t=>t<3*E8?0:11000000,                                                             mkt:t=>Math.round(t*0.044) },
-  '강남점':        { formula:'경영 3억 미만 면제 / 3억~5억:5.5% / 5억~10억:7.7% / 10억~15억:9.35% / 15억+:9.9% | 마케팅 없음', mgmt:t=>{if(t<3*E8)return 0;if(t<5*E8)return Math.round(t*0.055);if(t<10*E8)return Math.round(t*0.077);if(t<15*E8)return Math.round(t*0.0935);return Math.round(t*0.099);}, mkt:t=>0 },
-  '안양범계점':    { formula:'경영 1억 미만 면제 / 이상 1,000만+VAT | 마케팅 4%+VAT',                          mgmt:t=>t<1*E8?0:11000000,                                                             mkt:t=>Math.round(t*0.044) },
-  '여의도점':      { formula:'경영 3억 미만 면제 / 이상 3.5%+VAT | 마케팅 4%+VAT',                             mgmt:t=>t<3*E8?0:Math.round(t*0.0385),                                                 mkt:t=>Math.round(t*0.044) },
-  '영등포점':      { formula:'경영 3억 미만: 1%+VAT / 3억 이상: 2%+VAT | 마케팅 6%+VAT',                      mgmt:t=>t<3*E8?Math.round(t*0.011):Math.round(t*0.022),                                mkt:t=>Math.round(t*0.066) },
-  '대전둔산점':    { formula:'경영 3억 미만 면제 / 이상 1,000만+VAT | 마케팅 4%+VAT ※첫 2회 경영 면제',       mgmt:t=>t<3*E8?0:11000000,                                                             mkt:t=>Math.round(t*0.044) },
-  '명동점':        { formula:'경영 3억 미만 면제 / 3억~4억: 1,000만+VAT / 4억 이상: 10%+VAT | 마케팅 4%+VAT (25.11부터 마케팅 없음)', mgmt:t=>{if(t<3*E8)return 0;if(t<4*E8)return 11000000;return Math.round(t*0.11);},   mkt:(t,ym)=>ym>='2025-11'?0:Math.round(t*0.044) },
-  '분당점':        { formula:'경영 4%+VAT | 마케팅 4%+VAT ※화장품 결제건 제외',                                mgmt:t=>Math.round(t*0.044),                                                           mkt:t=>Math.round(t*0.044) },
-  '인천구월점':    { formula:'경영 2억5천 미만 면제 / 이상 4%+VAT | 마케팅 4%+VAT',                            mgmt:t=>t<2.5*E8?0:Math.round(t*0.044),                                                mkt:t=>Math.round(t*0.044) },
-  '전주점':        { formula:'경영·마케팅 1억 이하 면제 / 1억~2억: 2.2% / 2억~2.5억: 4.4% / 2.5억 이상: 4.95%', mgmt:t=>{if(t<=E8)return 0;if(t<2*E8)return Math.round(t*0.022);if(t<2.5*E8)return Math.round(t*0.044);return Math.round(t*0.0495);}, mkt:t=>{if(t<=E8)return 0;if(t<2*E8)return Math.round(t*0.022);if(t<2.5*E8)return Math.round(t*0.044);return Math.round(t*0.0495);} },
-  '부산서면점':    { formula:'경영·마케팅 1.5억 이하 면제 / 1.5억~3억: 2.75% / 3억 이상: 5.5%',               mgmt:t=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);}, mkt:t=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);} },
-  '명동2호점':     { formula:'경영 10%+VAT | 마케팅 없음→26.01부터 5%+VAT',                                    mgmt:t=>Math.round(t*0.11),                                                            mkt:(t,ym)=>ym>='2026-01'?Math.round(t*0.055):0 },
-  '수원점':        { formula:'경영·마케팅 5억 미만: 3.3% / 5억 이상: 4.4%',                                    mgmt:t=>t<5*E8?Math.round(t*0.033):Math.round(t*0.044),                                mkt:t=>t<5*E8?Math.round(t*0.033):Math.round(t*0.044) },
-  '세라미크 강남점':{ formula:'경영 5%+VAT | 마케팅 10%+VAT',                                                  mgmt:t=>Math.round(t*0.055),                                                           mkt:t=>Math.round(t*0.11) },
+  // (t=총매출, ym=연월, dom=국내매출)
+  '강서발산점':    { formula:'경영 고정 1,000만+VAT | 마케팅 3%+VAT',
+    mgmt:(t)=>11000000,
+    mkt:(t,ym,dom)=>Math.round(t*0.033) },
+  '건대입구점':    { formula:'경영 3억 미만 면제/이상 1,000만+VAT | 마케팅 국내4%+VAT',
+    mgmt:(t)=>t<3*E8?0:11000000,
+    mkt:(t,ym,dom)=>Math.round(dom*0.044) },
+  '광주상무점':    { formula:'경영 3억 미만 면제/이상 1,000만+VAT | 마케팅 4%+VAT',
+    mgmt:(t)=>t<3*E8?0:11000000,
+    mkt:(t,ym,dom)=>Math.round(t*0.044) },
+  '강남점':        { formula:'경영 3억미만:면제/3억~5억:5.5%/5억~10억:7.7%/10억~15억:9.35%/15억+:9.9% | 마케팅 없음',
+    mgmt:(t)=>{if(t<3*E8)return 0;if(t<5*E8)return Math.round(t*0.055);if(t<10*E8)return Math.round(t*0.077);if(t<15*E8)return Math.round(t*0.0935);return Math.round(t*0.099);},
+    mkt:()=>0 },
+  '안양범계점':    { formula:'경영 1억 미만 면제/이상 1,000만+VAT | 마케팅 4%+VAT',
+    mgmt:(t)=>t<E8?0:11000000,
+    mkt:(t,ym,dom)=>Math.round(t*0.044) },
+  '여의도점':      { formula:'경영 3억 미만 면제/이상 3.5%+VAT | 마케팅 4%+VAT',
+    mgmt:(t)=>t<3*E8?0:Math.round(t*0.0385),
+    mkt:(t,ym,dom)=>Math.round(t*0.044) },
+  '영등포점':      { formula:'~26.03: 경영·마케팅 3%+VAT | 26.04~: 경영1%(3억미만)/6%(이상)+VAT, 마케팅6%+VAT',
+    mgmt:(t,ym)=>ym>='2026-04'?(t<3*E8?Math.round(t*0.011):Math.round(t*0.066)):Math.round(t*0.033),
+    mkt:(t,ym)=>ym>='2026-04'?Math.round(t*0.066):Math.round(t*0.033) },
+  '대전둔산점':    { formula:'경영 3억 미만 면제/이상 1,000만+VAT | 마케팅 4%+VAT',
+    mgmt:(t)=>t<3*E8?0:11000000,
+    mkt:(t,ym,dom)=>Math.round(t*0.044) },
+  '명동점':        { formula:'경영 3억미만:면제/3억~4억:1,000만/4억+:10%+VAT | 마케팅 국내4%+VAT(25.11~없음)',
+    mgmt:(t)=>{if(t<3*E8)return 0;if(t<4*E8)return 11000000;return Math.round(t*0.11);},
+    mkt:(t,ym,dom)=>ym>='2025-11'?0:Math.round(dom*0.044) },
+  '분당점':        { formula:'경영 4%+VAT | 마케팅 4%+VAT ※화장품 결제건 제외',
+    mgmt:(t)=>Math.round(t*0.044),
+    mkt:(t,ym,dom)=>Math.round(t*0.044) },
+  '인천구월점':    { formula:'경영 2억5천 미만 면제/이상 4%+VAT | 마케팅 4%+VAT',
+    mgmt:(t)=>t<2.5*E8?0:Math.round(t*0.044),
+    mkt:(t,ym,dom)=>Math.round(t*0.044) },
+  '전주점':        { formula:'1억이하 면제 | ~26.02: 1억~2억2.75%/2억+5.5% | 26.03~: 1억~2억2.2%/2억+4.4%',
+    mgmt:(t,ym)=>{
+      if(t<=E8) return 0;
+      if(ym>='2026-03') return t<2*E8?Math.round(t*0.022):Math.round(t*0.044);
+      return t<2*E8?Math.round(t*0.0275):Math.round(t*0.055);
+    },
+    mkt:(t,ym)=>{
+      if(t<=E8) return 0;
+      if(ym>='2026-03') return t<2*E8?Math.round(t*0.022):Math.round(t*0.044);
+      return t<2*E8?Math.round(t*0.0275):Math.round(t*0.055);
+    }},
+  '부산서면점':    { formula:'경영·마케팅 1.5억 이하 면제/1.5억~3억:2.75%/3억+:5.5%',
+    mgmt:(t)=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);},
+    mkt:(t)=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);} },
+  '명동2호점':     { formula:'경영 15%+VAT(~26.04)/10%+VAT(26.05~) | 마케팅 국내5%+VAT(26.01~)',
+    mgmt:(t,ym)=>ym>='2026-05'?Math.round(t*0.11):Math.round(t*0.165),
+    mkt:(t,ym,dom)=>ym>='2026-01'?Math.round(dom*0.055):0 },
+  '수원점':        { formula:'경영·마케팅 3%+VAT (구 영등포점 동일조건)',
+    mgmt:(t)=>Math.round(t*0.033),
+    mkt:(t)=>Math.round(t*0.033) },
+  '세라미크 강남점':{ formula:'경영 5%+VAT | 마케팅 10%+VAT',
+    mgmt:(t)=>Math.round(t*0.055),
+    mkt:(t)=>Math.round(t*0.11) },
 };
 
 // ════════════════════════════════════════════════════════
@@ -731,9 +772,10 @@ function calcFees(row) {
   }
   const rule = FEE_RULES[branch];
   if (!rule) return { mgmt:0, mkt:0, total:0, formula:'-', overridden:false };
-  const ym = (row.month || '');
-  const mgmtAmt = rule.mgmt(tot);
-  const mktAmt  = rule.mkt(tot, ym);
+  const ym  = row.month || '';
+  const dom = row.salesDomestic != null ? row.salesDomestic : tot;
+  const mgmtAmt = rule.mgmt(tot, ym, dom);
+  const mktAmt  = rule.mkt(tot, ym, dom);
   return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:rule.formula, overridden:false };
 }
 
@@ -1232,58 +1274,57 @@ function buildInvoiceHTML(branch, month, isPreview) {
   const css = `
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:10pt;background:#fff;color:#000;}
-    .inv-wrap{display:flex;flex-direction:column;gap:8mm;padding:10mm;}
-    .inv-page{border:1.5px solid #000;}
-    .inv-title{text-align:center;font-size:17pt;font-weight:700;letter-spacing:8px;padding:8px 0;border-bottom:1.5px solid #000;}
+    .inv-wrap{display:flex;flex-direction:column;gap:7mm;padding:10mm;}
+    .inv-page{border:1.5px solid #000;page-break-inside:avoid;}
+    .inv-title{text-align:center;font-size:16pt;font-weight:700;letter-spacing:8px;padding:7px 0;border-bottom:1.5px solid #000;}
     .inv-top{display:flex;border-bottom:1px solid #000;}
-    .inv-meta{padding:8px 10px;border-right:1px solid #000;width:150px;flex-shrink:0;font-size:9pt;}
-    .inv-meta>div{margin-bottom:6px;white-space:nowrap;}
-    .inv-total-box{display:flex;align-items:center;margin-top:10px;border:1px solid #000;}
-    .inv-total-label{padding:4px 6px;font-size:8.5pt;font-weight:700;border-right:1px solid #000;text-align:center;line-height:1.4;white-space:nowrap;}
-    .inv-total-val{padding:4px 8px;font-size:10pt;font-weight:700;white-space:nowrap;}
-    .sup-table{width:100%;border-collapse:collapse;font-size:8.5pt;table-layout:fixed;}
-    .sup-table td{border:1px solid #000;padding:3px 5px;vertical-align:middle;overflow:hidden;}
-    .sup-key{font-weight:600;white-space:nowrap;width:52px;}
-    .sup-hdr{writing-mode:vertical-rl;text-align:center;font-weight:700;width:18px;}
-    .inv-note{font-size:8pt;text-align:right;padding:2px 6px;color:#555;}
-    .items-table{width:100%;border-collapse:collapse;font-size:9pt;table-layout:fixed;}
-    .items-table th{border:1px solid #000;padding:5px 6px;text-align:center;background:#f0f0f0;font-weight:700;}
-    .items-table td{border:1px solid #000;padding:5px 6px;text-align:right;}
-    .items-table .col-no{width:36px;}
-    .items-table .col-item{width:auto;}
-    .items-table .col-sales{width:22%;}
-    .items-table .col-fee{width:22%;}
-    .items-table .col-total{width:22%;}
+    .inv-meta{padding:8px 10px;border-right:1px solid #000;width:148px;flex-shrink:0;font-size:8.5pt;line-height:1.7;}
+    .inv-meta>div{white-space:nowrap;}
+    .inv-total-box{display:flex;align-items:stretch;margin-top:8px;border:1px solid #000;}
+    .inv-total-label{padding:3px 5px;font-size:8pt;font-weight:700;border-right:1px solid #000;text-align:center;line-height:1.5;white-space:nowrap;display:flex;align-items:center;}
+    .inv-total-val{padding:3px 7px;font-size:9.5pt;font-weight:700;white-space:nowrap;display:flex;align-items:center;}
+    .sup-table{width:100%;border-collapse:collapse;font-size:8.5pt;}
+    .sup-table td{border:1px solid #000;padding:3px 6px;vertical-align:middle;line-height:1.5;}
+    .sup-hdr{writing-mode:vertical-rl;text-align:center;font-weight:700;width:16px;background:#f8f8f8;}
+    .sup-key{font-weight:600;white-space:nowrap;background:#fafafa;}
+    .sup-ceo-cell{position:relative;min-height:22px;}
+    .sup-stamp{position:absolute;right:2px;top:50%;transform:translateY(-50%);width:44px;height:44px;opacity:.82;object-fit:contain;pointer-events:none;}
+    .inv-note{font-size:7.5pt;text-align:right;padding:1px 6px;color:#666;}
+    .items-table{width:100%;border-collapse:collapse;font-size:9pt;}
+    .items-table th{border:1px solid #000;padding:5px 8px;text-align:center;background:#f0f0f0;font-weight:700;white-space:nowrap;}
+    .items-table td{border:1px solid #000;padding:5px 8px;text-align:right;vertical-align:middle;}
     .items-table td.left{text-align:left;}
     .items-table td.center{text-align:center;}
-    .sum-row td{font-weight:700;background:#f9f9f9;}
-    .inv-footer{padding:8px 10px;font-size:8.5pt;border-top:1px solid #000;line-height:1.9;}
-    .stamp-wrap{position:relative;display:inline-block;}
-    .stamp-img{position:absolute;right:-8px;top:-22px;width:52px;height:52px;opacity:.85;object-fit:contain;}
+    .sum-row td{font-weight:700;background:#f5f5f5;}
+    .inv-footer{padding:7px 10px;font-size:8.5pt;border-top:1px solid #000;line-height:1.85;}
     @page{size:A4 portrait;margin:0;}
   `;
 
   function makeSupplier(bizNo, company, ceo, address, bizType, bizItem, manager, email, stampSrc) {
     return `<table class="sup-table">
-      <colgroup><col style="width:18px"><col style="width:52px"><col><col style="width:18%"><col style="width:18%"></colgroup>
+      <colgroup>
+        <col style="width:16px">
+        <col style="width:58px">
+        <col>
+        <col style="width:15%">
+        <col style="width:26%">
+      </colgroup>
       <tr>
         <td rowspan="5" class="sup-hdr">공급자</td>
         <td class="sup-key">사업자번호</td>
-        <td colspan="3" style="letter-spacing:1px;">${bizNo}</td>
+        <td colspan="3" style="letter-spacing:2px;font-weight:600;">${bizNo}</td>
       </tr>
       <tr>
         <td class="sup-key">회사명</td>
         <td colspan="2" style="font-weight:700;">${company}</td>
-        <td style="white-space:nowrap;">
-          <span class="sup-key">대표</span>
-          <span class="stamp-wrap">${ceo}
-            <img src="${stampSrc}" class="stamp-img" onerror="this.style.display='none'">
-          </span>
+        <td class="sup-ceo-cell">
+          <span class="sup-key">대표</span> ${ceo}
+          <img src="${stampSrc}" class="sup-stamp" onerror="this.style.display='none'">
         </td>
       </tr>
       <tr>
         <td class="sup-key">주소</td>
-        <td colspan="3" style="font-size:8pt;">${address}</td>
+        <td colspan="3" style="font-size:8pt;word-break:keep-all;">${address}</td>
       </tr>
       <tr>
         <td class="sup-key">업태</td>
@@ -1293,7 +1334,7 @@ function buildInvoiceHTML(branch, month, isPreview) {
       </tr>
       <tr>
         <td class="sup-key">담당자</td>
-        <td>${manager}</td>
+        <td style="font-size:8.5pt;">${manager}</td>
         <td class="sup-key" style="text-align:center;">E-mail</td>
         <td style="font-size:8pt;">${email}</td>
       </tr>
@@ -1312,19 +1353,22 @@ function buildInvoiceHTML(branch, month, isPreview) {
             <div class="inv-total-val">${fw(amount)}</div>
           </div>
         </div>
-        <div style="flex:1;min-width:0;">
+        <div style="flex:1;min-width:0;overflow:hidden;">
           ${supplier}
           <div class="inv-note">(vat 포함)</div>
         </div>
       </div>
-      <table class="items-table">
+      <table class="items-table" style="table-layout:fixed;">
         <colgroup>
-          <col class="col-no"><col class="col-item">
-          <col class="col-sales"><col class="col-fee"><col class="col-total">
+          <col style="width:40px">
+          <col>
+          <col style="width:22%">
+          <col style="width:22%">
+          <col style="width:22%">
         </colgroup>
         <thead>
           <tr>
-            <th class="col-no">No</th>
+            <th>No</th>
             <th class="left">항목</th>
             <th>총 매출</th>
             <th>${feeLabel}</th>
@@ -1344,7 +1388,7 @@ function buildInvoiceHTML(branch, month, isPreview) {
           <tr class="sum-row">
             <td colspan="2" class="center">합 계</td>
             <td></td>
-            <td style="text-align:right;"></td>
+            <td></td>
             <td>${fw(amount)}</td>
           </tr>
         </tfoot>
