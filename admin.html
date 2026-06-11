@@ -639,7 +639,7 @@ function showAdminScreen() {
   document.getElementById('adminScreen').style.display = 'block';
   const now = new Date();
   const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  document.getElementById('t1Month').value = ym;
+  document.getElementById('t1Month').value = '';
   document.getElementById('t2Month').value = ym;
   document.getElementById('t6Month').value = ym;
   document.getElementById('t7Month').value = ym;
