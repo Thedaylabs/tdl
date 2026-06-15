@@ -747,9 +747,9 @@ const FEE_RULES = {
       if(ym>='2026-03') return t<2*E8?Math.round(t*0.022):Math.round(t*0.044);
       return t<2*E8?Math.round(t*0.0275):Math.round(t*0.055);
     }},
-  '부산서면점':    { formula:'경영 1.5억 이하 면제/1.5억~3억:2.75%/3억+:5.5% | 마케팅 5%+VAT',
+  '부산서면점':    { formula:'경영 1.5억 이하 면제/1.5억~3억:2.75%/3억+:5.5% | 마케팅 국내매출 5%+VAT',
     mgmt:(t)=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);},
-    mkt:(t)=>Math.round(t*0.055) },
+    mkt:(t,ym,dom)=>Math.round(dom*0.055) },
   '명동2호점':     { formula:'경영 15%+VAT(~26.04)/10%+VAT(26.05~) | 마케팅 국내5%+VAT(26.01~)',
     mgmt:(t,ym)=>ym>='2026-05'?Math.round(t*0.11):Math.round(t*0.165),
     mkt:(t,ym,dom)=>ym>='2026-01'?Math.round(dom*0.055):0 },
