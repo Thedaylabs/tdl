@@ -701,6 +701,19 @@ function switchTab(n) {
 // 수수료 계산 규칙 (계약서 기준, 부가세 10% 포함)
 // ════════════════════════════════════════════════════════
 const E8 = 100000000;
+
+// 강남점 특약사항 — 월별 고정 차감액 (row.special에 미입력된 과거 데이터 보완용)
+const GANGNAM_SPECIAL_FALLBACK = {
+  '2025-09': 60648390,
+  '2025-10': 59801742,
+  '2025-11': 97815415,
+  '2025-12': 95605587,
+  '2026-01': 91341657,
+  '2026-02': 25228269,
+  '2026-03': 58202595,
+  '2026-04': 71403057,
+  '2026-05': 62413956,
+};
 const FEE_RULES = {
   // (t=총매출, ym=연월, dom=국내매출)
   '강서발산점':    { formula:'경영 고정 1,000만+VAT | 마케팅 3%+VAT',
@@ -780,7 +793,8 @@ function calcFees(row) {
   if (!rule) return { mgmt:0, mkt:0, total:0, formula:'-', overridden:false };
   const ym  = row.month || '';
   const dom = row.salesDomestic != null ? row.salesDomestic : tot;
-  const sp  = row.special ? Object.values(row.special).reduce((s,v)=>s+(v.amount||0),0) : 0;
+  const spFromRow = row.special ? Object.values(row.special).reduce((s,v)=>s+(v.amount||0),0) : 0;
+  const sp = spFromRow || (branch === '강남점' ? (GANGNAM_SPECIAL_FALLBACK[ym] || 0) : 0);
   // 분당점은 특약을 총매출에서 차감 후 수수료 계산
   const effTot = branch === '분당점' ? Math.max(0, tot - sp) : tot;
   const effSp  = branch === '분당점' ? 0 : sp;
