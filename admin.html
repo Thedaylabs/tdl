@@ -709,18 +709,18 @@ const FEE_RULES = {
   '건대입구점':    { formula:'경영 3억 미만 면제/이상 1,000만+VAT | 마케팅 국내4%+VAT',
     mgmt:(t)=>t<3*E8?0:11000000,
     mkt:(t,ym,dom)=>Math.round(dom*0.044) },
-  '광주상무점':    { formula:'경영 3억 미만 면제/이상 1,000만+VAT | 마케팅 4%+VAT',
+  '광주상무점':    { formula:'경영 3억 미만 면제/이상 1,000만+VAT | 마케팅 3억이하:4%/초과분:3%+VAT',
     mgmt:(t)=>t<3*E8?0:11000000,
-    mkt:(t,ym,dom)=>Math.round(t*0.044) },
-  '강남점':        { formula:'경영 3억미만:면제/3억~5억:5.5%/5억~10억:7.7%/10억~15억:9.35%/15억+:9.9% | 마케팅 없음',
-    mgmt:(t)=>{if(t<3*E8)return 0;if(t<5*E8)return Math.round(t*0.055);if(t<10*E8)return Math.round(t*0.077);if(t<15*E8)return Math.round(t*0.0935);return Math.round(t*0.099);},
+    mkt:(t)=>t>3*E8?Math.round(((3*E8*0.04)+(t-3*E8)*0.03)*1.1):Math.round(t*0.044) },
+  '강남점':        { formula:'경영 3억미만:면제/3억~5억:5.5%/5억~10억:7.7%/10억~15억:9.35%/15억+:9.9% (특약사항 차감) | 마케팅 없음',
+    mgmt:(t,ym,dom,sp)=>{let b;if(t<3*E8)b=0;else if(t<5*E8)b=Math.round(t*0.055);else if(t<10*E8)b=Math.round(t*0.077);else if(t<15*E8)b=Math.round(t*0.0935);else b=Math.round(t*0.099);return Math.max(0,b-(sp||0));},
     mkt:()=>0 },
-  '안양범계점':    { formula:'경영 1억 미만 면제/이상 1,000만+VAT | 마케팅 4%+VAT',
+  '안양범계점':    { formula:'경영 1억 미만 면제/이상 1,000만+VAT | 마케팅 3억이하:4%/초과분:3%+VAT',
     mgmt:(t)=>t<E8?0:11000000,
-    mkt:(t,ym,dom)=>Math.round(t*0.044) },
-  '여의도점':      { formula:'경영 3억 미만 면제/이상 3.5%+VAT | 마케팅 4%+VAT',
+    mkt:(t)=>t>3*E8?Math.round(((3*E8*0.04)+(t-3*E8)*0.03)*1.1):Math.round(t*0.044) },
+  '여의도점':      { formula:'경영 3억 미만 면제/이상 3.5%+VAT | 마케팅 3억이하:4%/초과분:3%+VAT',
     mgmt:(t)=>t<3*E8?0:Math.round(t*0.0385),
-    mkt:(t,ym,dom)=>Math.round(t*0.044) },
+    mkt:(t)=>t>3*E8?Math.round(((3*E8*0.04)+(t-3*E8)*0.03)*1.1):Math.round(t*0.044) },
   '영등포점':      { formula:'~26.03: 경영·마케팅 3%+VAT | 26.04~: 경영1%(3억미만)/6%(이상)+VAT, 마케팅6%+VAT',
     mgmt:(t,ym)=>ym>='2026-04'?(t<3*E8?Math.round(t*0.011):Math.round(t*0.066)):Math.round(t*0.033),
     mkt:(t,ym)=>ym>='2026-04'?Math.round(t*0.066):Math.round(t*0.033) },
@@ -747,9 +747,9 @@ const FEE_RULES = {
       if(ym>='2026-03') return t<2*E8?Math.round(t*0.022):Math.round(t*0.044);
       return t<2*E8?Math.round(t*0.0275):Math.round(t*0.055);
     }},
-  '부산서면점':    { formula:'경영·마케팅 1.5억 이하 면제/1.5억~3억:2.75%/3억+:5.5%',
+  '부산서면점':    { formula:'경영 1.5억 이하 면제/1.5억~3억:2.75%/3억+:5.5% | 마케팅 5%+VAT',
     mgmt:(t)=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);},
-    mkt:(t)=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);} },
+    mkt:(t)=>Math.round(t*0.055) },
   '명동2호점':     { formula:'경영 15%+VAT(~26.04)/10%+VAT(26.05~) | 마케팅 국내5%+VAT(26.01~)',
     mgmt:(t,ym)=>ym>='2026-05'?Math.round(t*0.11):Math.round(t*0.165),
     mkt:(t,ym,dom)=>ym>='2026-01'?Math.round(dom*0.055):0 },
@@ -780,8 +780,9 @@ function calcFees(row) {
   if (!rule) return { mgmt:0, mkt:0, total:0, formula:'-', overridden:false };
   const ym  = row.month || '';
   const dom = row.salesDomestic != null ? row.salesDomestic : tot;
-  const mgmtAmt = rule.mgmt(tot, ym, dom);
-  const mktAmt  = rule.mkt(tot, ym, dom);
+  const sp  = row.special ? Object.values(row.special).reduce((s,v)=>s+(v.amount||0),0) : 0;
+  const mgmtAmt = rule.mgmt(tot, ym, dom, sp);
+  const mktAmt  = rule.mkt(tot, ym, dom, sp);
   return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:rule.formula, overridden:false };
 }
 
