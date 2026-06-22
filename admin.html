@@ -264,12 +264,10 @@
     <div class="tab-bar-inner">
       <button class="tab-btn active" id="tabBtn1" onclick="switchTab(1)">📊 전체 현황</button>
       <button class="tab-btn" id="tabBtn2" onclick="switchTab(2)">📋 매출 자료</button>
-      <button class="tab-btn" id="tabBtn3" onclick="switchTab(3)">⚙️ 수수료 설정</button>
-      <button class="tab-btn" id="tabBtn4" onclick="switchTab(4)">🔑 PIN 관리</button>
-      <button class="tab-btn" id="tabBtn5" onclick="switchTab(5)">🗂️ 데이터 관리</button>
-      <button class="tab-btn" id="tabBtn6" onclick="switchTab(6)">✅ 경영팀 확인</button>
-      <button class="tab-btn" id="tabBtn7" onclick="switchTab(7)">📄 수수료 청구서</button>
-      <button class="tab-btn" id="tabBtn8" onclick="switchTab(8)">📈 매출 추이</button>
+      <button class="tab-btn" id="tabBtn3" onclick="switchTab(3)">📈 매출 추이</button>
+      <button class="tab-btn" id="tabBtn4" onclick="switchTab(4)">📄 수수료 청구서</button>
+      <button class="tab-btn" id="tabBtn5" onclick="switchTab(5)">✅ 경영팀 확인</button>
+      <button class="tab-btn" id="tabBtn6" onclick="switchTab(6)">🏢 본사 설정</button>
     </div>
   </div>
 
@@ -352,51 +350,47 @@
     <div class="report-list" id="reportList"></div>
   </div>
 
-  <!-- ── 탭3: 수수료 설정 ── -->
-  <div class="tab-content" id="tab3">
-    <div class="settings-wrap">
-      <div class="settings-card">
-        <h2>⚙️ 지점별 수수료율 설정</h2>
-        <p>지점별 수수료를 직접 입력합니다. 경영수수료는 고정금액(원) 또는 총매출 비율(%)로, 마케팅 수수료는 총매출 기준 비율(%)로 설정하세요.</p>
-        <div class="vat-notice">💡 모든 수수료는 부가세(VAT 10%) 포함 금액입니다.</div>
-        <div class="fee-section-title">🏥 데이뷰의원</div>
-        <div class="table-scroll-wrap">
-        <table class="fee-table">
-          <thead>
-            <tr>
+  <!-- ── 탭6: 본사 설정 ── -->
+  <div class="tab-content" id="tab6">
+    <div style="max-width:1100px;margin:0 auto;padding-bottom:40px;">
+
+      <!-- 수수료 설정 -->
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:20px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">⚙️ 수수료 설정</div>
+      <div class="settings-wrap" style="padding:0;">
+        <div class="settings-card">
+          <p>지점별 수수료를 직접 입력합니다. 경영수수료는 고정금액(원) 또는 총매출 비율(%)로, 마케팅 수수료는 총매출 기준 비율(%)로 설정하세요.</p>
+          <div class="vat-notice">💡 모든 수수료는 부가세(VAT 10%) 포함 금액입니다.</div>
+          <div class="fee-section-title">🏥 데이뷰의원</div>
+          <div class="table-scroll-wrap">
+          <table class="fee-table">
+            <thead><tr>
               <th style="width:130px">지점명</th>
               <th style="width:320px">계약서 기준 계산식 (부가세 포함)</th>
               <th>수동 조정값 입력</th>
-            </tr>
-          </thead>
-          <tbody id="feeBodyDayb"></tbody>
-        </table>
-        </div>
-        <div class="fee-section-title">💆 세라미크의원</div>
-        <div class="table-scroll-wrap">
-        <table class="fee-table">
-          <thead>
-            <tr>
+            </tr></thead>
+            <tbody id="feeBodyDayb"></tbody>
+          </table>
+          </div>
+          <div class="fee-section-title">💆 세라미크의원</div>
+          <div class="table-scroll-wrap">
+          <table class="fee-table">
+            <thead><tr>
               <th style="width:130px">지점명</th>
               <th style="width:320px">계약서 기준 계산식 (부가세 포함)</th>
               <th>수동 조정값 입력</th>
-            </tr>
-          </thead>
-          <tbody id="feeBodyCera"></tbody>
-        </table>
-        </div>
-        <div style="margin-top:16px;display:flex;align-items:center">
-          <span class="save-notice" id="saveNotice" style="margin-left:0">✅ 저장되었습니다!</span>
+            </tr></thead>
+            <tbody id="feeBodyCera"></tbody>
+          </table>
+          </div>
+          <div style="margin-top:16px;display:flex;align-items:center">
+            <span class="save-notice" id="saveNotice" style="margin-left:0">✅ 저장되었습니다!</span>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ── 탭4: PIN 관리 ── -->
-  <div class="tab-content" id="tab4">
-    <div style="max-width:1100px;margin:0 auto;">
+      <!-- PIN 관리 -->
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">🔑 PIN 관리</div>
       <div class="settings-card">
-        <h2>🔑 지점별 PIN 관리</h2>
         <p style="margin-bottom:14px;">변경 후 아래 <strong>PIN 저장</strong> 버튼을 누르세요.</p>
         <div class="pin-section-title">🏥 데이뷰의원</div>
         <div id="pinBodyDayb" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;"></div>
@@ -407,11 +401,30 @@
           <span class="save-notice" id="pinSaveNotice">✅ PIN이 저장되었습니다!</span>
         </div>
       </div>
+
+      <!-- 데이터 관리 -->
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">🗂️ 데이터 관리</div>
+      <div class="data-card">
+        <h2>📋 저장된 데이터 현황</h2>
+        <p id="dataCount" style="font-size:1rem;font-weight:700;color:#7c3aed;margin-bottom:16px;"></p>
+        <div class="btn-group">
+          <button class="btn-green" onclick="exportCSV('all')">📥 전체 CSV</button>
+          <button class="btn-blue"  onclick="exportJSON()">📦 JSON 백업</button>
+          <button class="btn-outline" onclick="importJSON()">📂 JSON 복원</button>
+          <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(this)" />
+        </div>
+      </div>
+      <div class="data-card">
+        <h2 style="color:#dc2626">⚠️ 데이터 초기화</h2>
+        <p>저장된 모든 제출 데이터가 삭제됩니다. 삭제 전 반드시 백업하세요.</p>
+        <button class="btn-danger" onclick="clearData()">🗑️ 전체 데이터 삭제</button>
+      </div>
+
     </div>
   </div>
 
-  <!-- ── 탭6: 경영팀 확인 ── -->
-  <div class="tab-content" id="tab6">
+  <!-- ── 탭5: 경영팀 확인 ── -->
+  <div class="tab-content" id="tab5">
     <div class="toolbar">
       <input type="month" id="t6Month" onchange="renderMgmtCheck()" />
       <select id="t6Branch" onchange="renderMgmtCheck()">
@@ -460,8 +473,8 @@
     </div>
   </div>
 
-  <!-- ── 탭8: 매출 추이 ── -->
-  <div class="tab-content" id="tab8">
+  <!-- ── 탭3: 매출 추이 ── -->
+  <div class="tab-content" id="tab3">
     <div class="toolbar">
       <select id="t8Branch" onchange="renderTrend()">
         <optgroup label="데이뷰의원">
@@ -512,8 +525,8 @@
     </div>
   </div>
 
-  <!-- ── 탭7: 수수료 청구서 ── -->
-  <div class="tab-content" id="tab7">
+  <!-- ── 탭4: 수수료 청구서 ── -->
+  <div class="tab-content" id="tab4">
     <div class="toolbar">
       <input type="month" id="t7Month" />
       <button class="btn-purple" onclick="renderInvoiceTab()">🔍 전체 조회</button>
@@ -522,24 +535,6 @@
     <div id="invoicePreviewArea" style="max-width:900px;margin:0 auto;padding-bottom:40px;"></div>
   </div>
 
-  <!-- ── 탭5: 데이터 관리 ── -->
-  <div class="tab-content" id="tab5">
-    <div class="data-card" style="max-width:900px">
-      <h2>📋 저장된 데이터 현황</h2>
-      <p id="dataCount" style="font-size:1rem;font-weight:700;color:#7c3aed;margin-bottom:16px;"></p>
-      <div class="btn-group">
-        <button class="btn-green" onclick="exportCSV('all')">📥 전체 CSV</button>
-        <button class="btn-blue"  onclick="exportJSON()">📦 JSON 백업</button>
-        <button class="btn-outline" onclick="importJSON()">📂 JSON 복원</button>
-        <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(this)" />
-      </div>
-    </div>
-    <div class="data-card" style="max-width:900px">
-      <h2 style="color:#dc2626">⚠️ 데이터 초기화</h2>
-      <p>저장된 모든 제출 데이터가 삭제됩니다. 삭제 전 반드시 백업하세요.</p>
-      <button class="btn-danger" onclick="clearData()">🗑️ 전체 데이터 삭제</button>
-    </div>
-  </div>
 
 </div>
 
@@ -746,12 +741,10 @@ function switchTab(n) {
   document.getElementById('tabBtn'+n).classList.add('active');
   if (n===1) renderOverview();
   if (n===2) renderReports();
-  if (n===3) initFeeTable();
-  if (n===4) initPinTable();
-  if (n===5) updateDataCount();
-  if (n===6) renderMgmtCheck();
-  if (n===7) renderInvoiceTab();
-  if (n===8) renderTrend();
+  if (n===3) renderTrend();
+  if (n===4) renderInvoiceTab();
+  if (n===5) renderMgmtCheck();
+  if (n===6) { initFeeTable(); initPinTable(); updateDataCount(); }
 }
 
 // ════════════════════════════════════════════════════════
