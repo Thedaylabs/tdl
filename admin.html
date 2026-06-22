@@ -198,7 +198,8 @@
 
     /* ── 탭6: 경영팀 확인 ── */
     .mgmt-table-wrap { max-width:1400px; margin:0 auto; background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); overflow:hidden; }
-    .mgmt-table { width:100%; border-collapse:collapse; min-width:1200px; }
+    .mgmt-table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; width:100%; }
+    .mgmt-table { width:100%; border-collapse:collapse; min-width:900px; }
     .mgmt-table thead tr { background:#059669; }
     .mgmt-table thead th { padding:11px 10px; font-size:.76rem; font-weight:700; color:#fff; text-align:center; white-space:nowrap; }
     .mgmt-table thead th.left { text-align:left; }
@@ -520,7 +521,7 @@
       </select>
     </div>
     <div class="mgmt-table-wrap">
-      <div class="table-scroll">
+      <div class="mgmt-table-scroll">
         <table class="mgmt-table">
           <thead>
             <tr>
@@ -1318,7 +1319,7 @@ function renderInvoiceTab() {
   const [y, m] = month.split('-');
 
   let html = `
-    <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin-top:8px;">
+    <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin-top:8px;min-width:620px;">
       <thead>
         <tr style="background:#f3f4f6;border-bottom:2px solid #e5e7eb;color:#111;">
           <th style="padding:10px 12px;text-align:left;font-weight:700;color:#111;">지점명</th>
@@ -1374,7 +1375,7 @@ function renderInvoiceTab() {
     </tfoot>
   </table>`;
 
-  document.getElementById('invoiceListArea').innerHTML = html;
+  document.getElementById('invoiceListArea').innerHTML = `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.07);">${html}</div>`;
   document.getElementById('invoicePreviewArea').innerHTML = '';
 }
 
