@@ -226,31 +226,75 @@
     .btn-danger:hover { background:#fff5f5; }
     .btn-group { display:flex; gap:10px; flex-wrap:wrap; }
 
+    /* ── PIN 그리드 ── */
+    .pin-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+
     /* ── 모바일 반응형 ── */
     @media(max-width:768px){
+      /* 헤더 */
       .top-header { padding:0 12px; }
       .top-title { font-size:.85rem; }
-      .admin-chip { font-size:.75rem; padding:4px 10px; gap:6px; }
+      .admin-chip { font-size:.75rem; padding:4px 10px; gap:5px; }
+      .btn-logout { font-size:.7rem; padding:2px 10px; }
+
+      /* 탭바 */
       .tab-bar-inner { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
       .tab-bar-inner::-webkit-scrollbar { display:none; }
-      .tab-btn { padding:12px 14px; font-size:.78rem; }
-      .tab-content { padding:16px 10px 60px; }
-      .toolbar { gap:8px; }
-      .toolbar select, .toolbar input[type=month] { font-size:.82rem; padding:8px 10px; }
+      .tab-btn { padding:11px 13px; font-size:.78rem; white-space:nowrap; }
+
+      /* 콘텐츠 영역 */
+      .tab-content { padding:14px 10px 60px; }
+
+      /* 툴바 */
+      .toolbar { gap:6px; }
+      .toolbar select, .toolbar input[type=month] { font-size:.82rem; padding:7px 10px; flex:1; min-width:0; }
+      .toolbar .btn-outline, .toolbar .btn-purple { flex-shrink:0; padding:8px 12px; font-size:.8rem; }
+
+      /* 요약 카드 */
       .summary-grid { grid-template-columns:repeat(2,1fr); gap:8px; }
       .sum-card { padding:12px 14px; }
-      .sum-card .val { font-size:.95rem; }
+      .sum-card .val { font-size:.92rem; }
+      .sum-card .sub { display:none; }
+
+      /* 매출자료 카드 */
       .rc-amounts { grid-template-columns:1fr 1fr; }
-      .settings-card { padding:18px 14px; }
-      .data-card { padding:18px 14px; }
+      .rc-box .val { font-size:.82rem; }
+
+      /* 설정 */
+      .settings-card { padding:16px 12px; }
+      .settings-wrap { padding:0; }
+      .data-card { padding:16px 12px; }
+      .vat-notice { font-size:.74rem; padding:6px 10px; }
+      .btn-save { width:100%; padding:12px; text-align:center; }
+      .btn-group { flex-direction:column; }
+      .btn-group button { width:100%; }
+
+      /* PIN */
+      .pin-grid { grid-template-columns:repeat(2,1fr); }
+
+      /* 경영팀 확인 테이블 */
       .mgmt-table-wrap { border-radius:10px; }
-      .btn-save { padding:10px 20px; }
-      .btn-year { padding:8px 14px; font-size:.8rem; }
+
+      /* 매출추이 카드 (인라인 그리드 오버라이드) */
+      #t8Cards { grid-template-columns:repeat(2,1fr) !important; gap:8px !important; }
+
+      /* 연도 선택 버튼 */
+      .btn-year { padding:8px 12px; font-size:.8rem; }
+
+      /* 본사설정 섹션 헤더 */
+      .hq-section-title { font-size:.9rem !important; padding:16px 0 8px !important; }
     }
+
     @media(max-width:480px){
-      .summary-grid { grid-template-columns:1fr 1fr; }
+      .admin-chip span:first-child { display:none; }
+      .pin-grid { grid-template-columns:1fr; }
       .rc-amounts { grid-template-columns:1fr; }
-      .top-title { display:none; }
+      .summary-grid { grid-template-columns:1fr 1fr; }
+      #t8Cards { grid-template-columns:1fr 1fr !important; }
+      .toolbar { flex-direction:column; align-items:stretch; }
+      .toolbar select, .toolbar input[type=month] { width:100%; }
+      .toolbar > div { width:100%; }
+      .btn-year { flex:1; }
     }
   </style>
 </head>
@@ -420,9 +464,9 @@
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
         <p style="margin-bottom:14px;">변경 후 아래 <strong>PIN 저장</strong> 버튼을 누르세요.</p>
         <div class="pin-section-title">🏥 데이뷰의원</div>
-        <div id="pinBodyDayb" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;"></div>
+        <div id="pinBodyDayb" class="pin-grid" style="margin-bottom:14px;"></div>
         <div class="pin-section-title">💆 세라미크의원</div>
-        <div id="pinBodyCera" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px;"></div>
+        <div id="pinBodyCera" class="pin-grid" style="margin-bottom:18px;"></div>
         <div style="display:flex;align-items:center;gap:12px;">
           <button class="btn-save" onclick="savePins()">💾 PIN 저장</button>
           <span class="save-notice" id="pinSaveNotice">✅ PIN이 저장되었습니다!</span>
