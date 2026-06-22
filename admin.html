@@ -225,6 +225,33 @@
     .btn-danger { background:#fff; color:#dc2626; border:1.5px solid #fca5a5; border-radius:10px; padding:10px 18px; font-size:.87rem; font-weight:600; cursor:pointer; font-family:inherit; }
     .btn-danger:hover { background:#fff5f5; }
     .btn-group { display:flex; gap:10px; flex-wrap:wrap; }
+
+    /* ── 모바일 반응형 ── */
+    @media(max-width:768px){
+      .top-header { padding:0 12px; }
+      .top-title { font-size:.85rem; }
+      .admin-chip { font-size:.75rem; padding:4px 10px; gap:6px; }
+      .tab-bar-inner { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+      .tab-bar-inner::-webkit-scrollbar { display:none; }
+      .tab-btn { padding:12px 14px; font-size:.78rem; }
+      .tab-content { padding:16px 10px 60px; }
+      .toolbar { gap:8px; }
+      .toolbar select, .toolbar input[type=month] { font-size:.82rem; padding:8px 10px; }
+      .summary-grid { grid-template-columns:repeat(2,1fr); gap:8px; }
+      .sum-card { padding:12px 14px; }
+      .sum-card .val { font-size:.95rem; }
+      .rc-amounts { grid-template-columns:1fr 1fr; }
+      .settings-card { padding:18px 14px; }
+      .data-card { padding:18px 14px; }
+      .mgmt-table-wrap { border-radius:10px; }
+      .btn-save { padding:10px 20px; }
+      .btn-year { padding:8px 14px; font-size:.8rem; }
+    }
+    @media(max-width:480px){
+      .summary-grid { grid-template-columns:1fr 1fr; }
+      .rc-amounts { grid-template-columns:1fr; }
+      .top-title { display:none; }
+    }
   </style>
 </head>
 <body>
@@ -390,7 +417,7 @@
 
       <!-- PIN 관리 -->
       <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">🔑 PIN 관리</div>
-      <div class="settings-card">
+      <div class="settings-wrap" style="padding:0;"><div class="settings-card">
         <p style="margin-bottom:14px;">변경 후 아래 <strong>PIN 저장</strong> 버튼을 누르세요.</p>
         <div class="pin-section-title">🏥 데이뷰의원</div>
         <div id="pinBodyDayb" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;"></div>
@@ -400,7 +427,7 @@
           <button class="btn-save" onclick="savePins()">💾 PIN 저장</button>
           <span class="save-notice" id="pinSaveNotice">✅ PIN이 저장되었습니다!</span>
         </div>
-      </div>
+      </div></div>
 
       <!-- 데이터 관리 -->
       <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">🗂️ 데이터 관리</div>
@@ -775,8 +802,8 @@ const FEE_RULES = {
   '광주상무점':    { formula:'경영 3억 미만 면제/이상 1,000만+VAT | 마케팅 3억이하:4%/초과분:3%+VAT',
     mgmt:(t)=>t<3*E8?0:11000000,
     mkt:(t)=>t>3*E8?Math.round(((3*E8*0.04)+(t-3*E8)*0.03)*1.1):Math.round(t*0.044) },
-  '강남점':        { formula:'경영 3억미만:면제/3억~5억:5.5%/5억~10억:7.7%/10억~15억:9.35%/15억+:9.9% (특약사항 차감) | 마케팅 없음',
-    mgmt:(t,ym,dom,sp)=>{let b;if(t<3*E8)b=0;else if(t<5*E8)b=Math.round(t*0.055);else if(t<10*E8)b=Math.round(t*0.077);else if(t<15*E8)b=Math.round(t*0.0935);else b=Math.round(t*0.099);return Math.max(0,b-(sp||0));},
+  '강남점':        { formula:'경영 ~26.05: 3억미만면제/3억~5억5.5%/5억~10억7.7%/10억~15억9.35%/15억+9.9% | 26.06~: 4.5%+VAT 최대9천만(특약차감) | 마케팅없음',
+    mgmt:(t,ym,dom,sp)=>{let b;if(ym>='2026-06'){b=Math.min(Math.round(t*0.0495),90000000);}else{if(t<3*E8)b=0;else if(t<5*E8)b=Math.round(t*0.055);else if(t<10*E8)b=Math.round(t*0.077);else if(t<15*E8)b=Math.round(t*0.0935);else b=Math.round(t*0.099);}return Math.max(0,b-(sp||0));},
     mkt:()=>0 },
   '안양범계점':    { formula:'경영 1억 미만 면제/이상 1,000만+VAT | 마케팅 3억이하:4%/초과분:3%+VAT',
     mgmt:(t)=>t<E8?0:11000000,
@@ -813,9 +840,9 @@ const FEE_RULES = {
   '부산서면점':    { formula:'경영 1.5억 이하 면제/1.5억~3억:2.75%/3억+:5.5% | 마케팅 국내매출 5%+VAT',
     mgmt:(t)=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);},
     mkt:(t,ym,dom)=>Math.round(dom*0.055) },
-  '명동2호점':     { formula:'경영 15%+VAT(~26.04)/10%+VAT(26.05~) | 마케팅 국내5%+VAT(26.01~)',
+  '명동2호점':     { formula:'경영 15%+VAT(~26.04)/10%+VAT(26.05~) | 마케팅 국내5%+VAT(26.01~26.06)/없음(26.07~)',
     mgmt:(t,ym)=>ym>='2026-05'?Math.round(t*0.11):Math.round(t*0.165),
-    mkt:(t,ym,dom)=>ym>='2026-01'?Math.round(dom*0.055):0 },
+    mkt:(t,ym,dom)=>ym>='2026-07'?0:ym>='2026-01'?Math.round(dom*0.055):0 },
   '수원점':        { formula:'경영·마케팅 3%+VAT (구 영등포점 동일조건)',
     mgmt:(t)=>Math.round(t*0.033),
     mkt:(t)=>Math.round(t*0.033) },

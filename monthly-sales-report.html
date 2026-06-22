@@ -309,6 +309,30 @@
     /* 입력 오류 강조 */
     .input-error { border-color: #e53e3e !important; background: #fff5f5 !important; }
     .upload-error { border-color: #e53e3e !important; background: #fff5f5 !important; }
+
+    /* ── 모바일 반응형 ── */
+    @media (max-width: 768px) {
+      .top-header { padding: 0 12px; }
+      .top-title { font-size: 0.88rem; }
+      .branch-chip { font-size: 0.78rem; padding: 4px 10px; gap: 6px; }
+      .tab-btn { font-size: 0.82rem; padding: 12px 0; }
+      .tab-content { padding: 16px 10px 60px; }
+      .card { padding: 18px 14px; }
+      .card h2 { font-size: 0.92rem; margin-bottom: 14px; }
+      .special-card { padding: 18px 14px; }
+      .submit-wrap { padding: 0 4px; }
+      .btn-submit { width: 100%; padding: 15px 20px; }
+      .history-toolbar { gap: 8px; }
+      .hi-card-header { flex-direction: column; gap: 8px; align-items: flex-start; }
+      .hi-total-badge { align-self: flex-end; }
+      .amount-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .s-row { grid-template-columns: 1fr; }
+      .hi-amounts { grid-template-columns: 1fr 1fr; }
+      .preview-item { width: 70px; height: 70px; }
+      .hi-thumb { width: 64px; height: 64px; }
+    }
   </style>
 </head>
 <body>
