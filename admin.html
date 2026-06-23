@@ -1327,7 +1327,7 @@ function renderInvoiceTab() {
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#4f46e5;">경영컨설팅</th>
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#0891b2;">마케팅</th>
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#888;">합계</th>
-          <th style="padding:8px 10px;text-align:center;font-weight:600;color:#888;width:80px;">청구서</th>
+          <th style="padding:8px 6px;text-align:center;font-weight:600;color:#888;width:64px;">청구서</th>
         </tr>
       </thead>
       <tbody>`;
@@ -1355,9 +1355,9 @@ function renderInvoiceTab() {
       <td style="padding:8px 10px;text-align:right;color:#4f46e5;">${fmt(fees.mgmt)}</td>
       <td style="padding:8px 10px;text-align:right;color:#0891b2;">${fmt(fees.mkt)}</td>
       <td style="padding:8px 10px;text-align:right;font-weight:700;">${fmt(fees.mgmt + fees.mkt)}</td>
-      <td style="padding:8px 10px;text-align:center;">
-        <button class="btn-purple" style="padding:3px 8px;font-size:.78rem;" onclick="previewInvoice('${branch}','${month}')">👁️</button>
-        <button class="btn-outline" style="padding:3px 8px;font-size:.78rem;" onclick="printInvoice('${branch}','${month}')">🖨️</button>
+      <td style="padding:8px 6px;text-align:center;white-space:nowrap;">
+        <button class="btn-purple" style="padding:2px 5px;font-size:.72rem;" onclick="previewInvoice('${branch}','${month}')">👁️</button>
+        <button class="btn-outline" style="padding:2px 5px;font-size:.72rem;" onclick="printInvoice('${branch}','${month}')">🖨️</button>
       </td>
     </tr>`;
   });
@@ -1375,7 +1375,7 @@ function renderInvoiceTab() {
     </tfoot>
   </table>`;
 
-  document.getElementById('invoiceListArea').innerHTML = `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.07);">${html}</div>`;
+  document.getElementById('invoiceListArea').innerHTML = `<div style="background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.07);">${html}</div>`;
   document.getElementById('invoicePreviewArea').innerHTML = '';
 }
 
