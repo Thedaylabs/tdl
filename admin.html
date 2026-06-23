@@ -1319,15 +1319,15 @@ function renderInvoiceTab() {
   const [y, m] = month.split('-');
 
   let html = `
-    <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin-top:8px;min-width:480px;">
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px;table-layout:fixed;">
       <thead>
         <tr style="background:#f3f4f6;border-bottom:2px solid #e5e7eb;color:#111;">
-          <th style="padding:8px 6px;text-align:left;font-weight:700;color:#111;">지점명</th>
-          <th style="padding:8px 6px;text-align:right;color:#111;">총 매출</th>
-          <th style="padding:8px 6px;text-align:right;color:#4f46e5;">경영컨설팅</th>
-          <th style="padding:8px 6px;text-align:right;color:#0891b2;">마케팅</th>
-          <th style="padding:8px 6px;text-align:right;color:#111;">합계</th>
-          <th style="padding:8px 6px;text-align:center;color:#111;">청구서</th>
+          <th style="padding:8px 10px;text-align:left;font-weight:600;color:#888;">지점명</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:600;color:#888;">총 매출</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:600;color:#4f46e5;">경영컨설팅</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:600;color:#0891b2;">마케팅</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:600;color:#888;">합계</th>
+          <th style="padding:8px 10px;text-align:center;font-weight:600;color:#888;width:80px;">청구서</th>
         </tr>
       </thead>
       <tbody>`;
@@ -1338,9 +1338,9 @@ function renderInvoiceTab() {
     const row = all.find(r => r.branch === branch && r.month === month);
     if (!row) {
       html += `<tr style="border-bottom:1px solid #f3f4f6;">
-        <td style="padding:7px 6px;font-weight:600;">${branch}</td>
-        <td colspan="4" style="padding:7px 6px;color:#aaa;text-align:center;">데이터 없음</td>
-        <td style="padding:7px 6px;text-align:center;">-</td>
+        <td style="padding:8px 10px;font-weight:600;">${branch}</td>
+        <td colspan="4" style="padding:8px 10px;color:#aaa;text-align:center;">데이터 없음</td>
+        <td style="padding:8px 10px;text-align:center;">-</td>
       </tr>`;
       return;
     }
@@ -1350,12 +1350,12 @@ function renderInvoiceTab() {
     totalMgmt  += fees.mgmt;
     totalMkt   += fees.mkt;
     html += `<tr style="border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background=''">
-      <td style="padding:7px 6px;font-weight:600;">${branch}</td>
-      <td style="padding:7px 6px;text-align:right;">${fmt(tot)}</td>
-      <td style="padding:7px 6px;text-align:right;color:#4f46e5;">${fmt(fees.mgmt)}</td>
-      <td style="padding:7px 6px;text-align:right;color:#0891b2;">${fmt(fees.mkt)}</td>
-      <td style="padding:7px 6px;text-align:right;font-weight:700;">${fmt(fees.mgmt + fees.mkt)}</td>
-      <td style="padding:7px 6px;text-align:center;">
+      <td style="padding:8px 10px;font-weight:600;">${branch}</td>
+      <td style="padding:8px 10px;text-align:right;">${fmt(tot)}</td>
+      <td style="padding:8px 10px;text-align:right;color:#4f46e5;">${fmt(fees.mgmt)}</td>
+      <td style="padding:8px 10px;text-align:right;color:#0891b2;">${fmt(fees.mkt)}</td>
+      <td style="padding:8px 10px;text-align:right;font-weight:700;">${fmt(fees.mgmt + fees.mkt)}</td>
+      <td style="padding:8px 10px;text-align:center;">
         <button class="btn-purple" style="padding:3px 8px;font-size:.78rem;" onclick="previewInvoice('${branch}','${month}')">👁️</button>
         <button class="btn-outline" style="padding:3px 8px;font-size:.78rem;" onclick="printInvoice('${branch}','${month}')">🖨️</button>
       </td>
@@ -1365,11 +1365,11 @@ function renderInvoiceTab() {
   html += `</tbody>
     <tfoot>
       <tr style="background:#f0f0ff;font-weight:700;border-top:2px solid #c7d2fe;">
-        <td style="padding:8px 6px;">합 계</td>
-        <td style="padding:8px 6px;text-align:right;">${fmt(totalSales)}</td>
-        <td style="padding:8px 6px;text-align:right;color:#4f46e5;">${fmt(totalMgmt)}</td>
-        <td style="padding:8px 6px;text-align:right;color:#0891b2;">${fmt(totalMkt)}</td>
-        <td style="padding:8px 6px;text-align:right;">${fmt(totalMgmt+totalMkt)}</td>
+        <td style="padding:8px 10px;">합 계</td>
+        <td style="padding:8px 10px;text-align:right;">${fmt(totalSales)}</td>
+        <td style="padding:8px 10px;text-align:right;color:#4f46e5;">${fmt(totalMgmt)}</td>
+        <td style="padding:8px 10px;text-align:right;color:#0891b2;">${fmt(totalMkt)}</td>
+        <td style="padding:8px 10px;text-align:right;">${fmt(totalMgmt+totalMkt)}</td>
         <td></td>
       </tr>
     </tfoot>
