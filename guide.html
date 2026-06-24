@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>월별 매출 보고서 작성 가이드</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      background: #f0f2f5; color: #1a1a2e; min-height: 100vh;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 28px 16px 60px; }
+
+    .hero {
+      background: #4f46e5; color: #fff; border-radius: 18px;
+      padding: 32px 24px; margin-bottom: 20px; text-align: center;
+    }
+    .hero .ico { font-size: 2.2rem; margin-bottom: 8px; }
+    .hero h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 6px; }
+    .hero p { font-size: 0.85rem; opacity: 0.9; line-height: 1.6; }
+
+    .card {
+      background: #fff; border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+      padding: 24px 22px; margin-bottom: 16px;
+    }
+    .card h2 {
+      font-size: 1rem; font-weight: 700; margin-bottom: 14px;
+      padding-bottom: 11px; border-bottom: 2px solid #f0f2f5;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card p, .card li { font-size: 0.87rem; line-height: 1.75; color: #333; }
+    .card ul, .card ol { padding-left: 20px; margin-top: 6px; }
+    .card li { margin-bottom: 4px; }
+
+    .badge { display:inline-block; font-size: 0.68rem; padding: 2px 9px; border-radius: 20px; font-weight: 700; margin-left: 6px; }
+    .badge.req { background: #fee2e2; color: #b91c1c; }
+    .badge.opt { background: #e5e7eb; color: #4b5563; }
+
+    .step-list { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+    .step {
+      display: flex; align-items: flex-start; gap: 12px;
+      background: #f8f8ff; border-radius: 12px; padding: 12px 14px;
+    }
+    .step .num {
+      flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+      background: #4f46e5; color: #fff; font-size: 0.8rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step .txt { font-size: 0.87rem; line-height: 1.6; }
+    .step .txt b { color: #4f46e5; }
+
+    .info-box {
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;
+      padding: 13px 16px; font-size: 0.85rem; color: #1d4ed8; line-height: 1.7; margin-top: 10px;
+    }
+    .warn-box {
+      background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px;
+      padding: 13px 16px; font-size: 0.85rem; color: #92400e; line-height: 1.7; margin-top: 10px;
+    }
+    .warn-box b { color: #b45309; }
+
+    .term-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.84rem; }
+    .term-table th { background: #f8f5ff; color: #4f46e5; padding: 9px 10px; text-align: left; border-bottom: 2px solid #ede9fe; font-weight: 700; }
+    .term-table td { padding: 9px 10px; border-bottom: 1px solid #f0f2f5; line-height: 1.6; }
+    .term-table td.term { font-weight: 700; color: #1a1a2e; white-space: nowrap; }
+
+    .example-box {
+      background: #f5f3ff; border: 1.5px solid #ddd6fe; border-radius: 12px;
+      padding: 16px 18px; margin-top: 14px;
+    }
+    .example-box .ex-title { font-size: 0.82rem; font-weight: 700; color: #5b21b6; margin-bottom: 10px; }
+    .ex-timeline { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .ex-row { display: flex; align-items: center; gap: 8px; font-size: 0.83rem; }
+    .ex-date { background: #ede9fe; color: #5b21b6; font-weight: 700; border-radius: 6px; padding: 2px 8px; font-size: 0.78rem; white-space: nowrap; }
+    .ex-result { display: flex; flex-direction: column; gap: 6px; }
+    .ex-result-row { display: flex; justify-content: space-between; align-items: center; background: #fff; border-radius: 8px; padding: 9px 12px; font-size: 0.84rem; }
+    .ex-result-row .lbl { color: #555; }
+    .ex-result-row .val { font-weight: 700; }
+    .ex-result-row .val.include { color: #059669; }
+    .ex-result-row .val.exclude { color: #dc2626; }
+
+    .pin-box {
+      display: flex; align-items: center; gap: 10px; background: #f8f8ff;
+      border-radius: 10px; padding: 12px 14px; margin-top: 8px;
+    }
+    .pin-box .pin-icon { font-size: 1.3rem; }
+    .pin-box .pin-txt { font-size: 0.85rem; }
+    .pin-box .pin-txt b { color: #4f46e5; }
+
+    .footer-note { text-align: center; font-size: 0.78rem; color: #aaa; margin-top: 24px; line-height: 1.7; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="hero">
+      <div class="ico">📋</div>
+      <h1>월별 매출 보고서 작성 가이드</h1>
+      <p>각 지점 원장님들께서는 매월 매출 보고서를 아래 안내에 따라<br>작성·제출해 주시기 바랍니다.</p>
+    </div>
+
+    <div class="card">
+      <h2>🗓️ 제출 일정</h2>
+      <div class="step-list">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="txt">매월 <b>1일</b>부터 전월 매출 보고서를 작성합니다.</div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="txt">매월 <b>3일까지</b> 수정 및 작성이 가능합니다. (3일 이후에는 수정 불가)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🔑 로그인 정보</h2>
+      <div class="pin-box">
+        <div class="pin-icon">🔢</div>
+        <div class="pin-txt">PIN 번호는 <b>원내 대표번호 뒷자리 4자리</b>입니다.</div>
+      </div>
+      <div class="warn-box" style="margin-top:10px;">🚫 <b>본인 지점 PIN으로만 접속</b>해 주세요. 타 지점 PIN으로 접속할 경우 <b>본사에 알림이 전송</b>됩니다.</div>
+      <div class="info-box" style="margin-top:10px;">💬 <b>작성자(담당자명)</b>는 실제 보고서를 작성하는 분의 이름으로 <b>필수</b> 입력해 주세요.</div>
+    </div>
+
+    <div class="card">
+      <h2>📎 첨부 서류 안내</h2>
+      <ul>
+        <li><b>CRM 매출집계 캡처본</b> <span class="badge req">필수</span></li>
+        <li><b>내원경로별 캡처본</b> <span class="badge req">필수</span></li>
+        <li><b>월 매출 집계 자료</b> (엑셀·PDF 등) <span class="badge opt">선택</span></li>
+      </ul>
+      <div class="info-box">월 매출 집계 자료는 <b>원내에서 매출을 추가로 확인할 수 있는 별도 자료가 있을 경우에만</b> 첨부해 주시면 됩니다.</div>
+    </div>
+
+    <div class="card">
+      <h2>⚠️ 매출 기준 변경 안내</h2>
+      <p><b style="color:#dc2626;">앞으로 CRM 매출집계에서 월 매출 기준은 [수납집계] 기준으로 진행됩니다.</b></p>
+
+      <table class="term-table">
+        <thead><tr><th>구분</th><th>기준</th></tr></thead>
+        <tbody>
+          <tr><td class="term">매출집계</td><td>환자 차트 생성 기준 (내원 기준)</td></tr>
+          <tr><td class="term">수납집계</td><td>실제 결제한 날짜 기준</td></tr>
+          <tr><td class="term">내원경로별집계</td><td>매출집계와 동일 (내원 기준)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="example-box">
+        <div class="ex-title">📌 예시로 알아보기</div>
+        <div class="ex-timeline">
+          <div class="ex-row"><span class="ex-date">5/6</span> 100만원 결제</div>
+          <div class="ex-row"><span class="ex-date">6/2</span> 100만원 환불</div>
+        </div>
+        <p style="font-size:0.82rem;color:#666;margin-bottom:10px;">→ 6월에 <b>5월 매출</b>을 보고하는 경우:</p>
+        <div class="ex-result">
+          <div class="ex-result-row"><span class="lbl">매출집계 (내원기준)</span><span class="val include">100만원 포함</span></div>
+          <div class="ex-result-row"><span class="lbl">수납집계 (결제기준)</span><span class="val exclude">100만원 제외</span></div>
+        </div>
+        <p style="font-size:0.8rem;color:#5b21b6;margin-top:10px;font-weight:600;">➡️ 보고서에는 <u>수납집계 기준</u>으로 환불이 반영된 금액을 입력해 주세요.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>💰 매출 입력 방법</h2>
+      <div class="step-list">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="txt"><b>국내 매출</b>과 <b>해외 매출</b>을 구분하여 입력합니다.</div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="txt"><b>총 매출</b>이 자동으로 합산되니, 제출 전 합계가 맞는지 확인합니다.</div>
+        </div>
+      </div>
+      <div class="info-box">글로벌점이 아닌 경우, 총 매출 전체를 <b>국내매출</b>란에 입력해 주세요.</div>
+    </div>
+
+    <div class="card">
+      <h2>💬 추가 메모</h2>
+      <p>이번 달 매출과 관련해 <b>큰 이슈사항</b>이 있을 경우, 보고서 하단의 <b>추가 메모</b>란에 자유롭게 작성해 주시기 바랍니다.</p>
+      <div class="warn-box">예) 휴진, 시스템 점검, 특수 프로모션, 대규모 환불 등 평소와 다른 변동사항</div>
+    </div>
+
+    <div class="footer-note">
+      문의사항이 있으시면 본사 담당자에게 연락해 주세요.<br>
+      더데이랩스 · 데이뷰마케팅그룹
+    </div>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "proposal",
+      "runtimeExecutable": "C:\\Users\\daybe\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe",
+      "runtimeArgs": ["-m", "http.server", "3400"],
+      "port": 3400
+    }
+  ]
+}
