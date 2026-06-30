@@ -474,7 +474,7 @@ function computeAggregates(rows) {
   const routeMap = {};
   rows.forEach(r => {
     const tv = (r.type || '');
-    const type = (tv.includes('재진') || tv.includes('구환')) ? '재진' : '초진';
+    const type = (tv.includes('재진') || tv.includes('구환') || tv.includes('구진') || tv.includes('기존')) ? '재진' : '초진';
     if (!routeMap[r.route]) routeMap[r.route] = { 초진: {cnt:0,amt:0}, 재진: {cnt:0,amt:0} };
     routeMap[r.route][type].cnt++; routeMap[r.route][type].amt += r.amount;
   });
