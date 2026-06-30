@@ -410,8 +410,9 @@ function handleFile(file) {
       const idxDate   = col('진료일');
       const idxAmount = col('금액');
       const idxRoute  = col('내원경로');
-      const idxChart  = col('차트번호');
-      const idxType   = col('구분', '초재진구분', '신구환', '환자구분');
+      const idxChart     = col('차트번호');
+      const idxType      = col('구분', '초재진구분', '신구환', '환자구분');
+      const idxVisitType = col('진료구분', '진료 구분');
 
       const rows = [];
       for (let i = headerIdx + 1; i < grid.length; i++) {
@@ -426,7 +427,7 @@ function handleFile(file) {
         const month = dateRaw.length >= 6 ? dateRaw.slice(0, 6) : '';
         rows.push({
           chart: r[idxChart] || '',
-          type: r[idxType] || '',
+          type: String(r[idxVisitType] || r[idxType] || ''),
           gender, age,
           order: r[idxOrder] || r[idxProc] || '(미지정)',
           proc: r[idxProc] || '',
