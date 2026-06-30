@@ -63,8 +63,11 @@
   .upload-wrap .ico { font-size: 1.6rem; margin-bottom: 5px; }
   .upload-wrap p { font-size: 0.8rem; color: #777; }
   .upload-wrap p strong { color: #0891b2; }
-  .file-chip { display: inline-flex; align-items: center; gap: 8px; background: #ecfeff; color: #0891b2; border-radius: 20px; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; margin-top: 12px; }
+  #fileChipArea { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+  .file-chip { display: inline-flex; align-items: center; gap: 8px; background: #ecfeff; color: #0891b2; border-radius: 20px; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; }
   .file-chip button { background: none; border: none; color: #0891b2; cursor: pointer; font-size: 0.9rem; }
+  .clear-all-btn { background: #fee2e2; color: #dc2626; border: none; border-radius: 20px; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+  .clear-all-btn:hover { background: #fca5a5; }
 
   .month-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
   .month-bar select { padding: 9px 14px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 0.88rem; font-family: inherit; background: #fff; }
@@ -215,11 +218,17 @@ function openIDB() {
     req.onerror = e => rej(e.target.error);
   });
 }
-async function saveBranchData(branch, fileName, rows) {
+async function saveBranchData(branch, fileName, newRows) {
   const db = await openIDB();
+  // 기존 데이터 불러와서 누적
+  const existing = await getBranchData(branch);
+  const fileList = existing ? (existing.fileList || [{ fileName: existing.fileName, uploadedAt: existing.uploadedAt }]) : [];
+  const existingRows = existing ? (existing.rows || []) : [];
+  fileList.push({ fileName, uploadedAt: new Date().toISOString() });
+  const allRows = [...existingRows, ...newRows];
   return new Promise((res, rej) => {
     const tx = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).put({ branch, fileName, rows, uploadedAt: new Date().toISOString() });
+    tx.objectStore(IDB_STORE).put({ branch, fileList, rows: allRows });
     tx.oncomplete = () => res();
     tx.onerror = e => rej(e.target.error);
   });
@@ -249,7 +258,10 @@ async function getAllBranchSummaries() {
     const req = tx.objectStore(IDB_STORE).getAll();
     req.onsuccess = () => {
       const map = {};
-      (req.result || []).forEach(r => { map[r.branch] = { fileName: r.fileName, count: (r.rows || []).length }; });
+      (req.result || []).forEach(r => {
+        const fileList = r.fileList || [{ fileName: r.fileName }];
+        map[r.branch] = { fileList, count: (r.rows || []).length };
+      });
       res(map);
     };
     req.onerror = e => rej(e.target.error);
@@ -333,8 +345,8 @@ async function loadSavedData(branch) {
     const saved = await getBranchData(branch);
     if (saved && saved.rows && saved.rows.length > 0) {
       rawRows = saved.rows;
-      document.getElementById('fileChipArea').innerHTML =
-        `<div class="file-chip">📊 ${saved.fileName || '저장된 데이터'} (이 PC) <button onclick="clearData()">✕ 삭제</button></div>`;
+      const fileList = saved.fileList || [{ fileName: saved.fileName || '저장된 데이터', uploadedAt: saved.uploadedAt }];
+      renderFileChips(fileList);
       buildMonthList();
       renderReport();
       return;
@@ -348,8 +360,7 @@ async function loadSavedData(branch) {
   if (srv) {
     serverData = srv;
     monthList = Object.keys(srv.months).filter(Boolean).sort().reverse();
-    document.getElementById('fileChipArea').innerHTML =
-      `<div class="file-chip">☁️ ${srv.fileName || '서버 데이터'} (${formatDate(srv.savedAt)}) <button onclick="clearData()">✕ 삭제</button></div>`;
+    renderFileChips(srv.fileList || [{ fileName: srv.fileName || '서버 데이터', uploadedAt: srv.savedAt }], true);
   }
   renderReport();
 }
@@ -369,6 +380,31 @@ function formatDate(iso) {
   if (!iso) return '';
   try { const d = new Date(iso); return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`; }
   catch(e) { return ''; }
+}
+function renderFileChips(fileList, isServer = false) {
+  const icon = isServer ? '☁️' : '📊';
+  const tag  = isServer ? ' (서버)' : ' (이 PC)';
+  const chips = (fileList || []).map((f, i) =>
+    `<div class="file-chip">${icon} ${f.fileName || '파일'}${tag}${f.uploadedAt ? ' · ' + formatDate(f.uploadedAt) : ''}
+      <button onclick="removeFile(${i})">✕</button></div>`
+  ).join('');
+  document.getElementById('fileChipArea').innerHTML =
+    chips + `<button class="clear-all-btn" onclick="clearData()">전체 삭제</button>`;
+}
+async function removeFile(idx) {
+  const saved = await getBranchData(currentBranch);
+  if (!saved) return;
+  const fileList = saved.fileList || [];
+  if (!confirm(`"${(fileList[idx] || {}).fileName}" 파일을 삭제할까요?`)) return;
+
+  // 해당 파일의 month 목록 파악 후 그 rows 제거
+  // 가장 단순한 방법: 전체 삭제 후 남은 파일들 재파싱은 불가 → rows는 month 기준으로 분리 불가
+  // → 파일 단위 삭제는 전체 초기화 안내
+  if (fileList.length <= 1) {
+    await clearData();
+    return;
+  }
+  alert('개별 파일 삭제는 지원되지 않습니다. 전체 삭제 후 원하는 파일만 다시 업로드해 주세요.');
 }
 
 // ── 드래그앤드롭 ──
@@ -437,24 +473,28 @@ function handleFile(file) {
           route: r[idxRoute] || '미지정'
         });
       }
-      rawRows = rows;
-      buildMonthList();
-
-      // IDB에 원본 저장 (이 PC 빠른 필터링용)
+      // IDB에 누적 저장 (기존 rows에 append)
       await saveBranchData(currentBranch, file.name, rows);
 
-      // 서버에 월별 집계 저장 (다른 PC에서 조회용)
+      // 전체 누적 rawRows 다시 로드
+      const saved = await getBranchData(currentBranch);
+      rawRows = saved ? saved.rows : rows;
+      buildMonthList();
+
+      // 서버에 누적 집계 저장
+      const savedFileList = saved ? (saved.fileList || []) : [];
       document.getElementById('fileChipArea').innerHTML =
-        `<div class="file-chip">📊 ${file.name} — ☁️ 서버에 저장 중...</div>`;
+        `<div class="file-chip">☁️ 서버에 저장 중...</div>`;
       const allMonths = ['', ...monthList];
       for (const mo of allMonths) {
-        const filtered = mo ? rows.filter(r => r.month === mo) : rows;
+        const filtered = mo ? rawRows.filter(r => r.month === mo) : rawRows;
         const agg = computeAggregates(filtered);
         await postServerAnalysis(currentBranch, mo, file.name, agg);
       }
+      // 서버에 fileList도 별도 저장 (목록 표시용)
+      await postServerAnalysis(currentBranch, '__meta__', file.name, { fileList: savedFileList });
 
-      document.getElementById('fileChipArea').innerHTML =
-        `<div class="file-chip">📊 ${file.name} (이 PC + ☁️ 서버 저장 완료) <button onclick="clearData()">✕ 삭제</button></div>`;
+      renderFileChips(savedFileList);
       await renderBranchGrid();
       renderReport();
     } catch (err) {
