@@ -466,6 +466,8 @@ async function selectBranch(branch) {
   document.getElementById('fileInput').value = '';
   await loadSavedData(branch);
   document.getElementById('uploadSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // 로컬 파일 중 Drive에 없는 것 자동 백그라운드 업로드 (파일 관리 탭 열지 않아도 됨)
+  autoUploadMissingToDrive(branch);
 }
 
 async function loadSavedData(branch) {
@@ -937,6 +939,27 @@ function renderFiltered() {
 }
 
 // ── 지점별 파일 관리 (파일 관리 섹션) ──
+async function autoUploadMissingToDrive(branch) {
+  try {
+    const localFiles = await getFileRecords(branch);
+    if (!localFiles.length) return;
+    const srvList = serverData?.fileList || [];
+    const driveIdMap = {};
+    srvList.forEach(f => { if (f.driveFileId) driveIdMap[f.fileName] = f.driveFileId; });
+    const needUpload = localFiles.filter(f => !driveIdMap[f.fileName]);
+    for (const f of needUpload) {
+      const db = await openIDB();
+      const record = await new Promise((res, rej) => {
+        const tx = db.transaction(FILE_STORE, 'readonly');
+        const req = tx.objectStore(FILE_STORE).get(f.key);
+        req.onsuccess = () => res(req.result);
+        req.onerror = e => rej(e.target.error);
+      });
+      if (record?.buffer) uploadFileToDriveChunked(branch, f.fileName, record.buffer);
+    }
+  } catch(e) { /* 백그라운드 실패 무시 */ }
+}
+
 async function uploadFileToDriveChunked(branch, fileName, buffer) {
   try {
     const base64 = arrayBufferToBase64(buffer);
