@@ -108,6 +108,25 @@
     .bar-row { grid-template-columns: 170px 1fr 220px; }
     .bar-value { text-align: left; }
   }
+
+  /* 탭 */
+  .tab-bar { display: flex; gap: 4px; background: #f0f2f5; border-radius: 14px; padding: 4px; margin-bottom: 24px; max-width: 340px; }
+  .tab-btn { flex: 1; padding: 9px 0; border: none; background: none; border-radius: 10px; font-size: 0.88rem; font-weight: 600; color: #888; cursor: pointer; font-family: inherit; transition: background .15s, color .15s; }
+  .tab-btn.active { background: #fff; color: #0891b2; box-shadow: 0 1px 6px rgba(0,0,0,0.10); }
+
+  /* 파일 관리 */
+  #fileManagerSection { display: none; }
+  .fm-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+  .fm-table th, .fm-table td { padding: 10px 12px; border-bottom: 1px solid #f0f2f5; text-align: left; white-space: nowrap; }
+  .fm-table th { background: #f8fafc; font-weight: 700; color: #555; }
+  .fm-table tbody tr:hover { background: #fafcff; }
+  .fm-branch-row td { background: #ecfeff; font-weight: 700; color: #0891b2; font-size: 0.85rem; }
+  .btn-dl { background: #0891b2; color: #fff; border: none; border-radius: 8px; padding: 5px 12px; font-size: 0.78rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .btn-dl:hover { background: #0e7490; }
+  .btn-del { background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; padding: 5px 12px; font-size: 0.78rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .btn-del:hover { background: #fca5a5; }
+  .fm-size { color: #999; font-size: 0.78rem; }
+  .fm-empty { text-align: center; padding: 48px 20px; color: #aaa; font-size: 0.88rem; }
 </style>
 </head>
 <body>
@@ -141,6 +160,13 @@
 
   <div class="wrap">
 
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tabReport" onclick="switchTab('report')">📊 분석 리포트</button>
+      <button class="tab-btn" id="tabFiles" onclick="switchTab('files')">📁 파일 관리</button>
+    </div>
+
+    <!-- 분석 리포트 탭 -->
+    <div id="reportSection">
     <div class="card">
       <h2>🏬 지점 선택</h2>
       <p class="sub-note">분석할 지점을 선택하세요. 데이터가 업로드된 지점은 표시됩니다.</p>
@@ -161,6 +187,17 @@
       </div>
 
       <div id="reportArea"></div>
+    </div>
+
+    </div><!-- /reportSection -->
+
+    <!-- 파일 관리 탭 -->
+    <div id="fileManagerSection">
+      <div class="card">
+        <h2>📁 업로드 파일 관리</h2>
+        <p class="sub-note">각 지점별 업로드된 파일을 확인하고 다운로드하거나 삭제할 수 있습니다. (이 PC에 저장된 파일 기준)</p>
+        <div id="fmTableWrap"></div>
+      </div>
     </div>
 
   </div>
@@ -206,21 +243,57 @@ function doLogout() {
   if (sessionStorage.getItem('report_admin_logged_in') === '1') showMainScreen();
 })();
 
-// ── IndexedDB (지점별 대용량 거래 데이터 저장) ──
-const IDB_NAME = 'report_analysis_db', IDB_STORE = 'branch_data', IDB_VER = 1;
+// ── IndexedDB ──
+const IDB_NAME = 'report_analysis_db', IDB_STORE = 'branch_data', FILE_STORE = 'file_store', IDB_VER = 2;
 let idb = null;
 function openIDB() {
   return new Promise((res, rej) => {
     if (idb) { res(idb); return; }
     const req = indexedDB.open(IDB_NAME, IDB_VER);
-    req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE, { keyPath: 'branch' });
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(IDB_STORE))
+        db.createObjectStore(IDB_STORE, { keyPath: 'branch' });
+      if (!db.objectStoreNames.contains(FILE_STORE))
+        db.createObjectStore(FILE_STORE, { keyPath: 'key' });
+    };
     req.onsuccess = e => { idb = e.target.result; res(idb); };
     req.onerror = e => rej(e.target.error);
   });
 }
+
+// 원본 파일 저장 (파일 관리용)
+async function saveFileRecord(branch, fileName, buffer) {
+  const db = await openIDB();
+  const key = `${branch}::${fileName}::${Date.now()}`;
+  return new Promise((res, rej) => {
+    const tx = db.transaction(FILE_STORE, 'readwrite');
+    tx.objectStore(FILE_STORE).put({ key, branch, fileName, uploadedAt: new Date().toISOString(), size: buffer.byteLength, buffer });
+    tx.oncomplete = () => res(key);
+    tx.onerror = e => rej(e.target.error);
+  });
+}
+async function getFileRecords(branch) {
+  const db = await openIDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(FILE_STORE, 'readonly');
+    const req = tx.objectStore(FILE_STORE).getAll();
+    req.onsuccess = () => res((req.result || []).filter(r => !branch || r.branch === branch));
+    req.onerror = e => rej(e.target.error);
+  });
+}
+async function deleteFileRecord(key) {
+  const db = await openIDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(FILE_STORE, 'readwrite');
+    tx.objectStore(FILE_STORE).delete(key);
+    tx.oncomplete = () => res();
+    tx.onerror = e => rej(e.target.error);
+  });
+}
+
 async function saveBranchData(branch, fileName, newRows) {
   const db = await openIDB();
-  // 기존 데이터 불러와서 누적
   const existing = await getBranchData(branch);
   const fileList = existing ? (existing.fileList || [{ fileName: existing.fileName, uploadedAt: existing.uploadedAt }]) : [];
   const existingRows = existing ? (existing.rows || []) : [];
@@ -381,6 +454,99 @@ function formatDate(iso) {
   try { const d = new Date(iso); return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`; }
   catch(e) { return ''; }
 }
+// ── 탭 전환 ──
+function switchTab(tab) {
+  document.getElementById('reportSection').style.display    = tab === 'report' ? '' : 'none';
+  document.getElementById('fileManagerSection').style.display = tab === 'files'  ? '' : 'none';
+  document.getElementById('tabReport').classList.toggle('active', tab === 'report');
+  document.getElementById('tabFiles').classList.toggle('active', tab === 'files');
+  if (tab === 'files') renderFileManager();
+}
+
+// ── 파일 관리 렌더링 ──
+async function renderFileManager() {
+  const wrap = document.getElementById('fmTableWrap');
+  wrap.innerHTML = '<p class="sub-note" style="text-align:center;padding:20px">불러오는 중...</p>';
+  const all = await getFileRecords(null);
+  if (!all.length) {
+    wrap.innerHTML = '<div class="fm-empty">📭 업로드된 파일이 없습니다.</div>';
+    return;
+  }
+  // 지점별 그룹
+  const byBranch = {};
+  all.forEach(f => { if (!byBranch[f.branch]) byBranch[f.branch] = []; byBranch[f.branch].push(f); });
+  // 지점은 BRANCHES 순서로
+  const orderedBranches = BRANCHES.filter(b => byBranch[b]).concat(Object.keys(byBranch).filter(b => !BRANCHES.includes(b)));
+
+  let rows = '';
+  orderedBranches.forEach(branch => {
+    const files = byBranch[branch].sort((a,b) => b.uploadedAt.localeCompare(a.uploadedAt));
+    rows += `<tr class="fm-branch-row"><td colspan="4">🏬 ${branch}</td></tr>`;
+    files.forEach(f => {
+      rows += `<tr>
+        <td style="padding-left:24px">${f.fileName}</td>
+        <td>${formatDate(f.uploadedAt)}</td>
+        <td class="fm-size">${fmtSize(f.size)}</td>
+        <td style="display:flex;gap:6px;padding:8px 12px">
+          <button class="btn-dl" onclick="downloadFile('${f.key.replace(/'/g,"\\'")}','${f.fileName.replace(/'/g,"\\'")}')">⬇ 다운로드</button>
+          <button class="btn-del" onclick="deleteFile('${f.key.replace(/'/g,"\\'")}','${f.branch.replace(/'/g,"\\'")}')">🗑 삭제</button>
+        </td>
+      </tr>`;
+    });
+  });
+
+  wrap.innerHTML = `<div class="table-scroll"><table class="fm-table">
+    <thead><tr><th>파일명</th><th>업로드일</th><th>크기</th><th>작업</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function fmtSize(bytes) {
+  if (!bytes) return '-';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+
+async function downloadFile(key, fileName) {
+  const db = await openIDB();
+  const rec = await new Promise((res, rej) => {
+    const tx = db.transaction(FILE_STORE, 'readonly');
+    const req = tx.objectStore(FILE_STORE).get(key);
+    req.onsuccess = () => res(req.result);
+    req.onerror = e => rej(e.target.error);
+  });
+  if (!rec || !rec.buffer) { alert('파일 데이터를 찾을 수 없습니다.'); return; }
+  const blob = new Blob([rec.buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+
+async function deleteFile(key, branch) {
+  if (!confirm('이 파일을 삭제하시겠습니까?\n\n※ 분석 데이터에서도 해당 지점 전체 데이터가 초기화됩니다.')) return;
+  await deleteFileRecord(key);
+  // 남은 파일 확인 후 branch_data 재구성
+  const remaining = await getFileRecords(branch);
+  if (remaining.length === 0) {
+    await deleteBranchData(branch);
+    await deleteServerAnalysis(branch);
+  } else {
+    // 남은 파일의 rows 재합산 — 원본 buffer 재파싱 없이 branch_data 전체 삭제 후 안내
+    await deleteBranchData(branch);
+    alert(`"${branch}" 지점의 나머지 파일은 남아있습니다.\n분석 데이터를 갱신하려면 해당 파일들을 다시 업로드해 주세요.`);
+  }
+  if (branch === currentBranch) {
+    rawRows = []; serverData = null; monthList = [];
+    document.getElementById('fileChipArea').innerHTML = '';
+    renderReport();
+  }
+  await renderBranchGrid();
+  renderFileManager();
+}
+
 function renderFileChips(fileList, isServer = false) {
   const icon = isServer ? '☁️' : '📊';
   const tag  = isServer ? ' (서버)' : ' (이 PC)';
@@ -492,6 +658,9 @@ function handleFile(file) {
           (existing?.fileList || []).length = 0;
         }
       }
+
+      // 원본 파일 바이너리 저장 (파일 관리 페이지용 다운로드)
+      await saveFileRecord(currentBranch, file.name, e.target.result);
 
       // IDB에 누적 저장 (기존 rows에 append)
       await saveBranchData(currentBranch, file.name, rows);
