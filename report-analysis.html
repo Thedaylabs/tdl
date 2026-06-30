@@ -663,9 +663,23 @@ function handleFile(file) {
       let headerIdx = grid.findIndex(r => r.some(c => String(c).trim() === '차트번호' || String(c).trim() === '내원경로'));
       if (headerIdx === -1) headerIdx = 1;
       const headers = grid[headerIdx].map(h => String(h ?? '').trim());
+      const normalize = s => String(s).replace(/\s/g, '').toLowerCase();
+      const normHeaders = headers.map(normalize);
       const col = (...names) => {
+        // 1차: 완전 일치
         for (const name of names) {
           const i = headers.indexOf(name);
+          if (i >= 0) return i;
+        }
+        // 2차: 공백 제거 후 일치
+        for (const name of names) {
+          const i = normHeaders.indexOf(normalize(name));
+          if (i >= 0) return i;
+        }
+        // 3차: 헤더가 name을 포함하거나 name이 헤더를 포함
+        for (const name of names) {
+          const nName = normalize(name);
+          const i = normHeaders.findIndex(h => h.includes(nName) || nName.includes(h) && h.length >= 2);
           if (i >= 0) return i;
         }
         return -1;
