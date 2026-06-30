@@ -210,7 +210,7 @@
       <nav class="section-nav" id="sectionNav" style="display:none">
         <button onclick="switchSection('route')"   id="snRoute">🚪 내원경로</button>
         <button onclick="switchSection('popular')" id="snPopular">💉 인기 시술</button>
-        <button onclick="switchSection('category')" id="snCategory">📊 시술별 매출</button>
+
         <button onclick="switchSection('staff')"   id="snStaff">👤 실장별 객단가</button>
         <button onclick="switchSection('files')"   id="snFiles">📁 파일 관리</button>
       </nav>
@@ -232,7 +232,7 @@
         <div class="card" id="topProcCard"></div>
         <div class="card" id="demoCard"></div>
       </div>
-      <div id="secCategory" class="sec-panel" style="display:none"><div class="card" id="categoryChartCard"></div></div>
+
       <div id="secStaff"    class="sec-panel" style="display:none"><div class="card" id="staffCard"></div></div>
       <div id="secFiles"    class="sec-panel" style="display:none">
         <div class="card">
@@ -513,8 +513,8 @@ function formatDate(iso) {
 }
 // ── 탭 전환 ──
 let currentSection = 'route';
-const SECTION_IDS = { route:'secRoute', popular:'secPopular', category:'secCategory', staff:'secStaff', files:'secFiles' };
-const SECTION_BTNS = { route:'snRoute', popular:'snPopular', category:'snCategory', staff:'snStaff', files:'snFiles' };
+const SECTION_IDS = { route:'secRoute', popular:'secPopular', staff:'secStaff', files:'secFiles' };
+const SECTION_BTNS = { route:'snRoute', popular:'snPopular', staff:'snStaff', files:'snFiles' };
 
 function switchSection(name) {
   currentSection = name;
@@ -693,8 +693,13 @@ function handleFile(file) {
       const idxAmount = col('금액');
       const idxRoute  = col('내원경로');
       const idxChart     = col('차트번호');
-      const idxType      = col('구분', '초재진구분', '신구환', '환자구분');
-      const idxVisitType = col('진료구분', '진료 구분');
+      // 초진/재진 구분 컬럼 — 지점마다 명칭이 다를 수 있어 포괄적으로 탐색
+      const idxVisitType = col(
+        '진료구분', '진료 구분', '구분', '초재진구분', '신구환', '환자구분',
+        '방문구분', '내원구분', '방문유형', '진료유형', '초재진여부',
+        '초재진', '신구환구분', '고객구분', '환자유형', '방문종류'
+      );
+      const idxType = -1; // idxVisitType으로 통합
       const idxStaff     = col('담당직원명', '담당직원', '상담사', '실장명', '직원명', '상담실장');
 
       const rows = [];
@@ -754,14 +759,33 @@ function handleFile(file) {
       const savedFileList = saved ? (saved.fileList || []) : [];
       document.getElementById('fileChipArea').innerHTML =
         `<div class="file-chip">☁️ 서버에 저장 중...</div>`;
+
+      // 원본 파일을 Google Drive에 업로드 (다른 PC 다운로드용)
+      let driveFileId = null;
+      try {
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(e.target.result)));
+        const driveResp = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_file', branch: currentBranch, fileName: file.name, base64 })
+        });
+        const driveJson = await driveResp.json();
+        driveFileId = driveJson.fileId || null;
+      } catch(ex) { /* Drive 업로드 실패해도 집계 데이터는 저장 */ }
+
+      // fileList에 driveFileId 포함
+      const fileListWithDrive = savedFileList.map(f =>
+        f.fileName === file.name ? { ...f, driveFileId } : f
+      );
+
       const allMonths = ['', ...monthList];
       for (const mo of allMonths) {
         const filtered = mo ? rawRows.filter(r => r.month === mo) : rawRows;
         const agg = computeAggregates(filtered);
         await postServerAnalysis(currentBranch, mo, file.name, agg);
       }
-      // 서버에 fileList도 별도 저장 (목록 표시용)
-      await postServerAnalysis(currentBranch, '__meta__', file.name, { fileList: savedFileList });
+      // 서버에 fileList도 별도 저장 (목록 표시용, driveFileId 포함)
+      await postServerAnalysis(currentBranch, '__meta__', file.name, { fileList: fileListWithDrive });
 
       renderFileChips(savedFileList);
       await renderBranchGrid();
@@ -893,11 +917,33 @@ function renderFiltered() {
   renderRouteTable(agg.routeTable || []);
   renderTopProcedures(agg.top10 || []);
   renderStaffTable(agg.staffTable || []);
-  renderCategoryChart(agg.catMap || {});
   renderDemographics(agg.demographics || {});
 }
 
 // ── 지점별 파일 관리 (파일 관리 섹션) ──
+async function downloadFromDrive(fileId, fileName) {
+  try {
+    const btn = event.currentTarget;
+    btn.textContent = '⏳ 받는 중...';
+    btn.disabled = true;
+    const resp = await fetch(`/api/sync?action=get_file&fileId=${encodeURIComponent(fileId)}`);
+    const { base64 } = await resp.json();
+    if (!base64) throw new Error('파일을 찾을 수 없습니다.');
+    const bytes = atob(base64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fileName; a.click();
+    URL.revokeObjectURL(url);
+    btn.textContent = '⬇ 다운로드';
+    btn.disabled = false;
+  } catch(e) {
+    alert('다운로드 실패: ' + e.message);
+  }
+}
+
 async function renderBranchFileManager() {
   const wrap = document.getElementById('branchFileWrap');
   if (!wrap) return;
@@ -929,11 +975,15 @@ async function renderBranchFileManager() {
     </tr>`).join('');
 
   const remoteRows = remoteFiles.map(f => `
-    <tr style="opacity:0.65">
-      <td>${f.fileName} <span style="font-size:0.75rem;color:#888;margin-left:4px">☁️ 다른 PC 업로드</span></td>
+    <tr>
+      <td>${f.fileName} <span style="font-size:0.75rem;color:#0891b2;margin-left:4px">☁️</span></td>
       <td>${formatDate(f.uploadedAt)}</td>
       <td class="fm-size">—</td>
-      <td style="padding:8px 12px;color:#aaa;font-size:0.8rem">원본 PC에서 다운로드 가능</td>
+      <td style="display:flex;gap:6px;padding:8px 12px">
+        ${f.driveFileId
+          ? `<button class="btn-dl" onclick="downloadFromDrive('${f.driveFileId.replace(/'/g,"\\'")}','${f.fileName.replace(/'/g,"\\'")}')">⬇ 다운로드</button>`
+          : `<span style="color:#aaa;font-size:0.8rem">원본 PC에서만 가능</span>`}
+      </td>
     </tr>`).join('');
 
   wrap.innerHTML = `<div class="table-scroll"><table class="fm-table">

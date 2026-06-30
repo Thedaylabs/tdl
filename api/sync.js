@@ -1,3 +1,5 @@
+export const config = { api: { bodyParser: false, responseLimit: '20mb' } };
+
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbye2uaGpCexhNKivxrQf6givnzkIMUNdJVSny9GOTfmnHT0A5QvIKRIFcbbPU_m9vJz/exec';
 
 export default async function handler(req, res) {
