@@ -486,12 +486,10 @@ async function loadSavedData(branch) {
   } catch(e) {}
 
   // 2) IDB 없으면 서버에서 집계 데이터 불러오기
-  document.getElementById('reportArea').innerHTML =
-    `<div class="card"><div class="empty-state"><div class="ico">⏳</div><p>서버에서 데이터를 불러오는 중입니다...</p></div></div>`;
   const srv = await fetchServerData(branch);
   if (srv) {
     serverData = srv;
-    monthList = Object.keys(srv.months).filter(Boolean).sort().reverse();
+    monthList = Object.keys(srv.months).filter(m => m && m !== '__meta__').sort().reverse();
     renderFileChips(srv.fileList || [{ fileName: srv.fileName || '서버 데이터', uploadedAt: srv.savedAt }], true);
   }
   renderReport();
