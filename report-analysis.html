@@ -109,15 +109,11 @@
     .bar-value { text-align: left; }
   }
 
-  /* 섹션 네비 바 (리포트 내부) */
+  /* 섹션 네비 바 */
   .section-nav { background: #0891b2; border-radius: 12px; display: flex; overflow: hidden; margin-bottom: 20px; }
-  .section-nav a { flex: 1; padding: 12px 8px; text-align: center; color: rgba(255,255,255,0.75); font-size: 0.82rem; font-weight: 600; text-decoration: none; transition: background .15s, color .15s; white-space: nowrap; }
-  .section-nav a:hover { background: rgba(255,255,255,0.15); color: #fff; }
-
-  /* 상단 탭 (분석리포트/파일관리) */
-  .tab-bar { display: flex; gap: 4px; background: #f0f2f5; border-radius: 14px; padding: 4px; margin-bottom: 20px; max-width: 300px; }
-  .tab-btn { flex: 1; padding: 9px 0; border: none; background: none; border-radius: 10px; font-size: 0.86rem; font-weight: 600; color: #888; cursor: pointer; font-family: inherit; transition: background .15s, color .15s; }
-  .tab-btn.active { background: #fff; color: #0891b2; box-shadow: 0 1px 6px rgba(0,0,0,0.10); }
+  .section-nav button { flex: 1; padding: 13px 6px; text-align: center; color: rgba(255,255,255,0.72); font-size: 0.82rem; font-weight: 600; border: none; background: none; cursor: pointer; font-family: inherit; transition: background .15s, color .15s; white-space: nowrap; }
+  .section-nav button:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .section-nav button.active { background: rgba(255,255,255,0.22); color: #fff; box-shadow: inset 0 -3px 0 #fff; }
 
   /* 지점 선택 박스 */
   .branch-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
@@ -184,28 +180,23 @@
 
   <div class="wrap">
 
-    <div class="tab-bar">
-      <button class="tab-btn active" id="tabReport" onclick="switchTab('report')">📊 분석 리포트</button>
-      <button class="tab-btn" id="tabFiles" onclick="switchTab('files')">📁 파일 관리</button>
-    </div>
-
-    <!-- 분석 리포트 탭 -->
-    <div id="reportSection">
+    <!-- 지점 선택 -->
     <div class="card">
       <div class="branch-header">
         <h2 style="margin:0;border:none;padding:0">🏬 지점 선택</h2>
         <input class="branch-search" id="branchSearch" placeholder="🔍 지점명 검색" oninput="filterBranchGrid(this.value)" />
       </div>
-      <div class="branch-scroll-box" id="branchScrollBox">
+      <div class="branch-scroll-box">
         <div class="branch-grid" id="branchGrid"></div>
       </div>
       <p class="branch-nav-hint">↑ ↓ ← → 방향키로 이동 · Enter로 선택</p>
     </div>
 
+    <!-- 업로드 + 리포트 -->
     <div id="uploadSection" style="display:none">
       <div class="card">
         <h2 id="uploadTitle">📂 오더판매내역 업로드</h2>
-        <p class="sub-note">CRM에서 받은 "오더판매내역및환자내역" 엑셀(.xlsx)을 업로드하면 자동으로 분석합니다. 업로드한 파일은 이 브라우저(관리자 PC)에만 저장됩니다.</p>
+        <p class="sub-note">CRM에서 받은 "오더판매내역및환자내역" 엑셀(.xlsx)을 업로드하면 자동으로 분석합니다.</p>
         <div class="upload-wrap" id="uploadArea">
           <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFile(this.files[0])" />
           <div class="ico">📊</div>
@@ -215,27 +206,40 @@
         <div id="fileChipArea"></div>
       </div>
 
-      <div id="sectionNav" style="display:none">
-        <nav class="section-nav">
-          <a href="#sec-route">🚪 내원경로</a>
-          <a href="#sec-top">💉 인기 시술</a>
-          <a href="#sec-staff">👤 실장별 객단가</a>
-          <a href="#sec-cat">📊 시술 카테고리</a>
-          <a href="#sec-demo">👥 성별·나이대</a>
-          <a onclick="switchTab('files')" href="#">📁 파일 관리</a>
-        </nav>
+      <!-- 섹션 네비 -->
+      <nav class="section-nav" id="sectionNav" style="display:none">
+        <button onclick="switchSection('route')"   id="snRoute">🚪 내원경로</button>
+        <button onclick="switchSection('popular')" id="snPopular">💉 인기 시술</button>
+        <button onclick="switchSection('category')" id="snCategory">📊 시술별 매출</button>
+        <button onclick="switchSection('staff')"   id="snStaff">👤 실장별 객단가</button>
+        <button onclick="switchSection('files')"   id="snFiles">📁 파일 관리</button>
+      </nav>
+
+      <!-- 월 선택 -->
+      <div class="card" id="monthCard" style="display:none">
+        <div class="month-bar">
+          <label style="font-size:0.85rem;font-weight:600;">분석 월 선택</label>
+          <select id="monthSelect">
+            <option value="">전체 기간</option>
+          </select>
+          <span class="month-count" id="rowCount"></span>
+        </div>
       </div>
-      <div id="reportArea"></div>
-    </div>
 
-    </div><!-- /reportSection -->
-
-    <!-- 파일 관리 탭 -->
-    <div id="fileManagerSection">
-      <div class="card">
-        <h2>📁 업로드 파일 관리</h2>
-        <p class="sub-note">각 지점별 업로드된 파일을 확인하고 다운로드하거나 삭제할 수 있습니다. (이 PC에 저장된 파일 기준)</p>
-        <div id="fmTableWrap"></div>
+      <!-- 각 섹션 카드 -->
+      <div id="secRoute"    class="sec-panel" style="display:none"><div class="card" id="routeCard"></div></div>
+      <div id="secPopular"  class="sec-panel" style="display:none">
+        <div class="card" id="topProcCard"></div>
+        <div class="card" id="demoCard"></div>
+      </div>
+      <div id="secCategory" class="sec-panel" style="display:none"><div class="card" id="categoryChartCard"></div></div>
+      <div id="secStaff"    class="sec-panel" style="display:none"><div class="card" id="staffCard"></div></div>
+      <div id="secFiles"    class="sec-panel" style="display:none">
+        <div class="card">
+          <h2>📁 파일 관리</h2>
+          <p class="sub-note">이 지점에 업로드된 파일을 다운로드하거나 삭제할 수 있습니다. (이 PC 저장 기준)</p>
+          <div id="branchFileWrap"></div>
+        </div>
       </div>
     </div>
 
@@ -510,12 +514,21 @@ function formatDate(iso) {
   catch(e) { return ''; }
 }
 // ── 탭 전환 ──
-function switchTab(tab) {
-  document.getElementById('reportSection').style.display    = tab === 'report' ? '' : 'none';
-  document.getElementById('fileManagerSection').style.display = tab === 'files'  ? '' : 'none';
-  document.getElementById('tabReport').classList.toggle('active', tab === 'report');
-  document.getElementById('tabFiles').classList.toggle('active', tab === 'files');
-  if (tab === 'files') renderFileManager();
+let currentSection = 'route';
+const SECTION_IDS = { route:'secRoute', popular:'secPopular', category:'secCategory', staff:'secStaff', files:'secFiles' };
+const SECTION_BTNS = { route:'snRoute', popular:'snPopular', category:'snCategory', staff:'snStaff', files:'snFiles' };
+
+function switchSection(name) {
+  currentSection = name;
+  Object.keys(SECTION_IDS).forEach(k => {
+    const panel = document.getElementById(SECTION_IDS[k]);
+    const btn   = document.getElementById(SECTION_BTNS[k]);
+    if (panel) panel.style.display = k === name ? '' : 'none';
+    if (btn)   btn.classList.toggle('active', k === name);
+  });
+  const monthCard = document.getElementById('monthCard');
+  if (monthCard) monthCard.style.display = name === 'files' ? 'none' : '';
+  if (name === 'files') renderBranchFileManager();
 }
 
 // ── 파일 관리 렌더링 ──
@@ -599,7 +612,7 @@ async function deleteFile(key, branch) {
     renderReport();
   }
   await renderBranchGrid();
-  renderFileManager();
+  renderBranchFileManager();
 }
 
 function renderFileChips(fileList, isServer = false) {
@@ -826,35 +839,25 @@ function fmt(n) { return Math.round(n || 0).toLocaleString('ko-KR'); }
 function monthLabel(ym) { return ym ? `${ym.slice(0,4)}년 ${ym.slice(4,6)}월` : '전체'; }
 
 function renderReport() {
-  const area = document.getElementById('reportArea');
   const hasData = rawRows.length > 0 || serverData;
+
+  // 섹션 네비 표시
+  document.getElementById('sectionNav').style.display = '';
+
   if (!hasData) {
-    area.innerHTML = `<div class="card"><div class="empty-state"><div class="ico">📭</div><p>${currentBranch}에 업로드된 데이터가 없습니다.<br>엑셀 파일을 업로드하면 모든 PC에서 볼 수 있습니다.</p></div></div>`;
+    // 데이터 없으면 파일 관리만 보여줌
+    switchSection('files');
     return;
   }
 
-  area.innerHTML = `
-    <div class="card">
-      <div class="month-bar">
-        <label style="font-size:0.85rem;font-weight:600;">분석 월 선택</label>
-        <select id="monthSelect">
-          <option value="">전체 기간</option>
-          ${monthList.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('')}
-        </select>
-        <span class="month-count" id="rowCount"></span>
-      </div>
-    </div>
-    <div class="card" id="routeCard" style="scroll-margin-top:80px" id="sec-route"></div>
-    <div class="card" id="topProcCard" style="scroll-margin-top:80px" id="sec-top"></div>
-    <div class="card" id="staffCard" style="scroll-margin-top:80px" id="sec-staff"></div>
-    <div class="card" id="categoryChartCard" style="scroll-margin-top:80px" id="sec-cat"></div>
-    <div class="card" id="demoCard" style="scroll-margin-top:80px" id="sec-demo"></div>
-  `;
-  document.getElementById('sectionNav').style.display = '';
-
+  // 월 선택 드롭다운 채우기
   const sel = document.getElementById('monthSelect');
+  sel.innerHTML = `<option value="">전체 기간</option>` +
+    monthList.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('');
   sel.value = window.__selectedMonth || '';
-  sel.addEventListener('change', () => { window.__selectedMonth = sel.value; renderFiltered(); });
+  sel.onchange = () => { window.__selectedMonth = sel.value; renderFiltered(); };
+
+  switchSection(currentSection === 'files' ? 'route' : currentSection);
   renderFiltered();
 }
 
@@ -864,12 +867,10 @@ function renderFiltered() {
 
   let agg;
   if (rawRows.length > 0) {
-    // 이 PC: 원본 행에서 실시간 집계
     const rows = month ? rawRows.filter(r => r.month === month) : rawRows;
     document.getElementById('rowCount').textContent = `총 ${rows.length.toLocaleString('ko-KR')}건 거래 데이터`;
     agg = computeAggregates(rows);
   } else if (serverData) {
-    // 다른 PC: 서버에서 불러온 사전 집계 데이터 사용
     agg = serverData.months[month] || serverData.months[''] || {};
     document.getElementById('rowCount').textContent =
       `☁️ 서버 데이터 · ${agg.totalCnt ? agg.totalCnt.toLocaleString('ko-KR') + '건' : '-'}`;
@@ -880,6 +881,32 @@ function renderFiltered() {
   renderStaffTable(agg.staffTable || []);
   renderCategoryChart(agg.catMap || {});
   renderDemographics(agg.demographics || {});
+}
+
+// ── 지점별 파일 관리 (파일 관리 섹션) ──
+async function renderBranchFileManager() {
+  const wrap = document.getElementById('branchFileWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<p class="sub-note" style="text-align:center;padding:16px">불러오는 중...</p>';
+  const files = await getFileRecords(currentBranch);
+  if (!files.length) {
+    wrap.innerHTML = '<div class="fm-empty">📭 이 지점에 업로드된 파일이 없습니다.</div>';
+    return;
+  }
+  const rows = files.sort((a,b) => b.uploadedAt.localeCompare(a.uploadedAt)).map(f => `
+    <tr>
+      <td>${f.fileName}</td>
+      <td>${formatDate(f.uploadedAt)}</td>
+      <td class="fm-size">${fmtSize(f.size)}</td>
+      <td style="display:flex;gap:6px;padding:8px 12px">
+        <button class="btn-dl" onclick="downloadFile('${f.key.replace(/'/g,"\\'")}','${f.fileName.replace(/'/g,"\\'")}')">⬇ 다운로드</button>
+        <button class="btn-del" onclick="deleteFile('${f.key.replace(/'/g,"\\'")}','${f.branch.replace(/'/g,"\\'")}')">🗑 삭제</button>
+      </td>
+    </tr>`).join('');
+  wrap.innerHTML = `<div class="table-scroll"><table class="fm-table">
+    <thead><tr><th>파일명</th><th>업로드일</th><th>크기</th><th>작업</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
 }
 
 // ── 실장별 객단가 ──
