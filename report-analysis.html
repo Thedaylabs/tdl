@@ -921,6 +921,41 @@ function renderFiltered() {
 }
 
 // ── 지점별 파일 관리 (파일 관리 섹션) ──
+async function uploadLocalFileToDrive(key, fileName, btn) {
+  try {
+    btn.textContent = '⏳ 업로드 중...';
+    btn.disabled = true;
+    // IDB에서 원본 ArrayBuffer 읽기
+    const db = await openIDB();
+    const record = await new Promise((res, rej) => {
+      const tx = db.transaction(FILE_STORE, 'readonly');
+      const req = tx.objectStore(FILE_STORE).get(key);
+      req.onsuccess = () => res(req.result);
+      req.onerror = e => rej(e.target.error);
+    });
+    if (!record?.buffer) throw new Error('파일 데이터를 찾을 수 없습니다.');
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(record.buffer)));
+    const resp = await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save_file', branch: currentBranch, fileName, base64 })
+    });
+    const { fileId } = await resp.json();
+    if (!fileId) throw new Error('Drive 업로드 실패');
+    // 서버 __meta__ fileList에 driveFileId 업데이트
+    const saved = await getBranchData(currentBranch);
+    const fileList = (saved?.fileList || []).map(f =>
+      f.fileName === fileName ? { ...f, driveFileId: fileId } : f
+    );
+    await postServerAnalysis(currentBranch, '__meta__', fileName, { fileList });
+    btn.outerHTML = `<span style="font-size:0.75rem;color:#0891b2">☁️ 공유중</span>`;
+  } catch(e) {
+    alert('Drive 업로드 실패: ' + e.message);
+    btn.textContent = '☁️ Drive 올리기';
+    btn.disabled = false;
+  }
+}
+
 async function downloadFromDrive(fileId, fileName) {
   try {
     const btn = event.currentTarget;
@@ -963,16 +998,27 @@ async function renderBranchFileManager() {
     return;
   }
 
-  const localRows = localFiles.sort((a,b) => b.uploadedAt.localeCompare(a.uploadedAt)).map(f => `
-    <tr>
+  // 서버 메타에서 driveFileId 조회 (이미 Drive 업로드된 파일 확인)
+  const srvMeta = serverData?.fileList || [];
+  const driveIdMap = {};
+  srvMeta.forEach(f => { if (f.driveFileId) driveIdMap[f.fileName] = f.driveFileId; });
+
+  const localRows = localFiles.sort((a,b) => b.uploadedAt.localeCompare(a.uploadedAt)).map(f => {
+    const hasDrive = !!driveIdMap[f.fileName];
+    const driveBtn = hasDrive
+      ? `<span style="font-size:0.75rem;color:#0891b2">☁️ 공유중</span>`
+      : `<button class="btn-dl" style="background:#0891b2" onclick="uploadLocalFileToDrive('${f.key.replace(/'/g,"\\'")}','${f.fileName.replace(/'/g,"\\'")}',this)">☁️ Drive 올리기</button>`;
+    return `<tr>
       <td>${f.fileName}</td>
       <td>${formatDate(f.uploadedAt)}</td>
       <td class="fm-size">${fmtSize(f.size)}</td>
-      <td style="display:flex;gap:6px;padding:8px 12px">
+      <td style="display:flex;gap:6px;padding:8px 12px;flex-wrap:wrap">
         <button class="btn-dl" onclick="downloadFile('${f.key.replace(/'/g,"\\'")}','${f.fileName.replace(/'/g,"\\'")}')">⬇ 다운로드</button>
+        ${driveBtn}
         <button class="btn-del" onclick="deleteFile('${f.key.replace(/'/g,"\\'")}','${f.branch.replace(/'/g,"\\'")}')">🗑 삭제</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   const remoteRows = remoteFiles.map(f => `
     <tr>
