@@ -11,7 +11,9 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const response = await fetch(SCRIPT_URL + '?action=all');
+      const qs = new URLSearchParams(req.query || {});
+      const url = SCRIPT_URL + (qs.toString() ? '?' + qs.toString() : '?action=all');
+      const response = await fetch(url);
       const data = await response.json();
       return res.status(200).json(data);
     }
@@ -20,12 +22,13 @@ export default async function handler(req, res) {
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
       const body = Buffer.concat(chunks).toString();
-      await fetch(SCRIPT_URL, {
+      const response = await fetch(SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body
       });
-      return res.status(200).json({ result: 'ok' });
+      const data = await response.json().catch(() => ({ result: 'ok' }));
+      return res.status(200).json(data);
     }
   } catch (e) {
     return res.status(500).json({ result: 'error', message: e.message });

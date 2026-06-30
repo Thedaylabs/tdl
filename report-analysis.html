@@ -165,6 +165,7 @@
 
 <script>
 const ADMIN_PIN = '0000';
+const SYNC_URL = '/api/sync';
 const BRANCHES = [
   '강서발산점', '건대입구점', '광주상무점', '강남점', '안양범계점', '여의도점',
   '영등포점', '대전둔산점', '명동점', '분당점', '인천구월점', '전주점',
@@ -172,7 +173,8 @@ const BRANCHES = [
 ];
 
 let currentBranch = '';
-let rawRows = [];
+let rawRows = [];       // 이 PC에서 업로드한 원본 행 (IDB)
+let serverData = null;  // 서버에서 불러온 집계 데이터 {fileName, savedAt, months:{}}
 let monthList = [];
 
 function doLogin() {
@@ -254,16 +256,60 @@ async function getAllBranchSummaries() {
   });
 }
 
+// ── 서버 연동 ──
+let serverBranchList = {};
+async function fetchServerBranchList() {
+  try {
+    const r = await fetch(`${SYNC_URL}?action=list_analysis`);
+    const j = await r.json();
+    serverBranchList = j.list || {};
+  } catch(e) { serverBranchList = {}; }
+}
+async function fetchServerData(branch) {
+  try {
+    const r = await fetch(`${SYNC_URL}?action=get_analysis&branch=${encodeURIComponent(branch)}`);
+    const j = await r.json();
+    return j.analysis || null;
+  } catch(e) { return null; }
+}
+async function postServerAnalysis(branch, month, fileName, data) {
+  try {
+    await fetch(SYNC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save_analysis', branch, month, savedAt: new Date().toISOString(), fileName, data })
+    });
+  } catch(e) { console.warn('서버 저장 실패', e); }
+}
+async function deleteServerAnalysis(branch) {
+  try {
+    await fetch(SYNC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_analysis', branch })
+    });
+  } catch(e) {}
+}
+
 // ── 지점 선택 그리드 ──
 let branchSummaries = {};
 async function renderBranchGrid() {
-  branchSummaries = await getAllBranchSummaries().catch(() => ({}));
+  const [idbSummaries] = await Promise.all([
+    getAllBranchSummaries().catch(() => ({})),
+    fetchServerBranchList()
+  ]);
+  branchSummaries = idbSummaries;
   const grid = document.getElementById('branchGrid');
   grid.innerHTML = BRANCHES.map(b => {
-    const info = branchSummaries[b];
+    const idb = branchSummaries[b];
+    const srv = serverBranchList[b];
+    const hasData = idb || srv;
+    let stat = '데이터 없음';
+    if (idb) stat = `📊 ${idb.count.toLocaleString('ko-KR')}건 (이 PC)`;
+    else if (srv) stat = `☁️ ${srv.months.length}개월 데이터 (서버)`;
     return `<div class="branch-tile ${b === currentBranch ? 'active' : ''}" onclick="selectBranch('${b}')">
       <div class="bname">${b}</div>
-      <div class="bstat ${info ? 'has-data' : ''}">${info ? `📊 ${info.count.toLocaleString('ko-KR')}건 업로드됨` : '데이터 없음'}</div>
+      <div class="bstat ${hasData ? 'has-data' : ''}">${stat}</div>
     </div>`;
   }).join('');
 }
@@ -279,26 +325,50 @@ async function selectBranch(branch) {
 }
 
 async function loadSavedData(branch) {
-  rawRows = []; monthList = [];
+  rawRows = []; serverData = null; monthList = [];
   document.getElementById('fileChipArea').innerHTML = '';
+
+  // 1) 이 PC IDB에 원본 데이터 있으면 우선 사용
   try {
     const saved = await getBranchData(branch);
-    if (saved) {
-      rawRows = saved.rows || [];
+    if (saved && saved.rows && saved.rows.length > 0) {
+      rawRows = saved.rows;
       document.getElementById('fileChipArea').innerHTML =
-        `<div class="file-chip">📊 ${saved.fileName || '저장된 데이터'} <button onclick="clearData()">✕ 삭제</button></div>`;
+        `<div class="file-chip">📊 ${saved.fileName || '저장된 데이터'} (이 PC) <button onclick="clearData()">✕ 삭제</button></div>`;
       buildMonthList();
+      renderReport();
+      return;
     }
-  } catch (e) { console.warn('데이터 로드 실패', e); }
+  } catch(e) {}
+
+  // 2) IDB 없으면 서버에서 집계 데이터 불러오기
+  document.getElementById('reportArea').innerHTML =
+    `<div class="card"><div class="empty-state"><div class="ico">⏳</div><p>서버에서 데이터를 불러오는 중입니다...</p></div></div>`;
+  const srv = await fetchServerData(branch);
+  if (srv) {
+    serverData = srv;
+    monthList = Object.keys(srv.months).filter(Boolean).sort().reverse();
+    document.getElementById('fileChipArea').innerHTML =
+      `<div class="file-chip">☁️ ${srv.fileName || '서버 데이터'} (${formatDate(srv.savedAt)}) <button onclick="clearData()">✕ 삭제</button></div>`;
+  }
   renderReport();
 }
+
 async function clearData() {
-  if (!confirm(`${currentBranch}의 업로드 데이터를 삭제할까요?`)) return;
-  await deleteBranchData(currentBranch).catch(() => {});
-  rawRows = []; monthList = [];
+  if (!confirm(`${currentBranch}의 데이터를 삭제할까요? (이 PC + 서버 모두 삭제)`)) return;
+  await Promise.all([
+    deleteBranchData(currentBranch).catch(() => {}),
+    deleteServerAnalysis(currentBranch).catch(() => {})
+  ]);
+  rawRows = []; serverData = null; monthList = [];
   document.getElementById('fileChipArea').innerHTML = '';
   await renderBranchGrid();
   renderReport();
+}
+function formatDate(iso) {
+  if (!iso) return '';
+  try { const d = new Date(iso); return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`; }
+  catch(e) { return ''; }
 }
 
 // ── 드래그앤드롭 ──
@@ -361,10 +431,23 @@ function handleFile(file) {
         });
       }
       rawRows = rows;
-      await saveBranchData(currentBranch, file.name, rows);
-      document.getElementById('fileChipArea').innerHTML =
-        `<div class="file-chip">📊 ${file.name} <button onclick="clearData()">✕ 삭제</button></div>`;
       buildMonthList();
+
+      // IDB에 원본 저장 (이 PC 빠른 필터링용)
+      await saveBranchData(currentBranch, file.name, rows);
+
+      // 서버에 월별 집계 저장 (다른 PC에서 조회용)
+      document.getElementById('fileChipArea').innerHTML =
+        `<div class="file-chip">📊 ${file.name} — ☁️ 서버에 저장 중...</div>`;
+      const allMonths = ['', ...monthList];
+      for (const mo of allMonths) {
+        const filtered = mo ? rows.filter(r => r.month === mo) : rows;
+        const agg = computeAggregates(filtered);
+        await postServerAnalysis(currentBranch, mo, file.name, agg);
+      }
+
+      document.getElementById('fileChipArea').innerHTML =
+        `<div class="file-chip">📊 ${file.name} (이 PC + ☁️ 서버 저장 완료) <button onclick="clearData()">✕ 삭제</button></div>`;
       await renderBranchGrid();
       renderReport();
     } catch (err) {
@@ -376,6 +459,50 @@ function handleFile(file) {
 
 function buildMonthList() {
   monthList = [...new Set(rawRows.map(r => r.month).filter(Boolean))].sort().reverse();
+}
+
+// ── 집계 계산 (업로드 시 서버 저장용, 서버 데이터 렌더링용 공통) ──
+function computeAggregates(rows) {
+  // 내원경로별
+  const routeMap = {};
+  rows.forEach(r => {
+    const type = (r.type || '').includes('재진') ? '재진' : '초진';
+    if (!routeMap[r.route]) routeMap[r.route] = { 초진: {cnt:0,amt:0}, 재진: {cnt:0,amt:0} };
+    routeMap[r.route][type].cnt++; routeMap[r.route][type].amt += r.amount;
+  });
+  const routeTable = Object.entries(routeMap).map(([route, g]) => ({
+    route,
+    newCnt: g.초진.cnt, newAmt: g.초진.amt,
+    reCnt:  g.재진.cnt, reAmt:  g.재진.amt,
+    totalAmt: g.초진.amt + g.재진.amt,
+    totalCnt: g.초진.cnt + g.재진.cnt
+  })).sort((a,b) => b.totalAmt - a.totalAmt);
+
+  // TOP 10
+  const procMap = {};
+  rows.forEach(r => { if (!procMap[r.order]) procMap[r.order]={cnt:0,amt:0}; procMap[r.order].cnt++; procMap[r.order].amt+=r.amount; });
+  const top10 = Object.entries(procMap).map(([name,g])=>({name,...g})).sort((a,b)=>b.amt-a.amt).slice(0,10);
+
+  // 카테고리
+  const catMap = {};
+  PROC_CATEGORIES.forEach(c => catMap[c]={cnt:0,amt:0});
+  rows.forEach(r => { const c=categorizeProc(`${r.field||''} ${r.order||''} ${r.proc||''}`); catMap[c].cnt++; catMap[c].amt+=r.amount; });
+
+  // 성별·나이대
+  const demoMap = {};
+  rows.forEach(r => {
+    if (!r.gender) return;
+    const key = `${r.gender}|${ageGroup(r.age)}`;
+    if (!demoMap[key]) demoMap[key] = {};
+    if (!demoMap[key][r.order]) demoMap[key][r.order]={cnt:0,amt:0};
+    demoMap[key][r.order].cnt++; demoMap[key][r.order].amt+=r.amount;
+  });
+  const demographics = {};
+  Object.entries(demoMap).forEach(([key, procs]) => {
+    demographics[key] = Object.entries(procs).map(([name,g])=>({name,...g})).sort((a,b)=>b.amt-a.amt).slice(0,3);
+  });
+
+  return { routeTable, top10, catMap, demographics, totalCnt: rows.length, totalAmt: rows.reduce((s,r)=>s+r.amount,0) };
 }
 
 function ageGroup(age) {
@@ -392,8 +519,9 @@ function monthLabel(ym) { return ym ? `${ym.slice(0,4)}년 ${ym.slice(4,6)}월` 
 
 function renderReport() {
   const area = document.getElementById('reportArea');
-  if (rawRows.length === 0) {
-    area.innerHTML = `<div class="card"><div class="empty-state"><div class="ico">📭</div><p>${currentBranch}에 업로드된 데이터가 없습니다. 엑셀 파일을 업로드해 주세요.</p></div></div>`;
+  const hasData = rawRows.length > 0 || serverData;
+  if (!hasData) {
+    area.innerHTML = `<div class="card"><div class="empty-state"><div class="ico">📭</div><p>${currentBranch}에 업로드된 데이터가 없습니다.<br>엑셀 파일을 업로드하면 모든 PC에서 볼 수 있습니다.</p></div></div>`;
     return;
   }
 
@@ -423,35 +551,30 @@ function renderReport() {
 function renderFiltered() {
   const sel = document.getElementById('monthSelect');
   const month = sel ? sel.value : '';
-  const rows = month ? rawRows.filter(r => r.month === month) : rawRows;
-  document.getElementById('rowCount').textContent = `총 ${rows.length.toLocaleString('ko-KR')}건 거래 데이터`;
-  renderRouteTable(rows);
-  renderTopProcedures(rows);
-  renderCategoryChart(rows);
-  renderDemographics(rows);
+
+  let agg;
+  if (rawRows.length > 0) {
+    // 이 PC: 원본 행에서 실시간 집계
+    const rows = month ? rawRows.filter(r => r.month === month) : rawRows;
+    document.getElementById('rowCount').textContent = `총 ${rows.length.toLocaleString('ko-KR')}건 거래 데이터`;
+    agg = computeAggregates(rows);
+  } else if (serverData) {
+    // 다른 PC: 서버에서 불러온 사전 집계 데이터 사용
+    agg = serverData.months[month] || serverData.months[''] || {};
+    document.getElementById('rowCount').textContent =
+      `☁️ 서버 데이터 · ${agg.totalCnt ? agg.totalCnt.toLocaleString('ko-KR') + '건' : '-'}`;
+  } else return;
+
+  renderRouteTable(agg.routeTable || []);
+  renderTopProcedures(agg.top10 || []);
+  renderCategoryChart(agg.catMap || {});
+  renderDemographics(agg.demographics || {});
 }
 
 // ── 내원경로별 집계 ──
-function renderRouteTable(rows) {
-  const map = {};
-  rows.forEach(r => {
-    const type = (r.type || '').includes('재진') ? '재진' : '초진';
-    if (!map[r.route]) map[r.route] = { '초진': { chart: new Set(), cnt: 0, amt: 0 }, '재진': { chart: new Set(), cnt: 0, amt: 0 } };
-    const g = map[r.route][type];
-    if (r.chart) g.chart.add(r.chart);
-    g.cnt += 1; g.amt += r.amount;
-  });
-  const entries = Object.entries(map).map(([route, g]) => ({
-    route,
-    newCnt: g['초진'].cnt, newAmt: g['초진'].amt,
-    reCnt: g['재진'].cnt, reAmt: g['재진'].amt,
-    totalAmt: g['초진'].amt + g['재진'].amt,
-    totalCnt: g['초진'].cnt + g['재진'].cnt
-  })).sort((a, b) => b.totalAmt - a.totalAmt);
-
+function renderRouteTable(entries) {
   const totalAmt = entries.reduce((s, e) => s + e.totalAmt, 0);
   const totalCnt = entries.reduce((s, e) => s + e.totalCnt, 0);
-
   document.getElementById('routeCard').innerHTML = `
     <h2>🚪 내원경로별 집계</h2>
     <p class="sub-note">매출 비중이 높은 순으로 정렬되어 있습니다.</p>
@@ -481,13 +604,7 @@ function rankBadge(i) {
 }
 
 // ── 시술(오더)별 판매 TOP 10 ──
-function renderTopProcedures(rows) {
-  const map = {};
-  rows.forEach(r => {
-    if (!map[r.order]) map[r.order] = { cnt: 0, amt: 0 };
-    map[r.order].cnt += 1; map[r.order].amt += r.amount;
-  });
-  const entries = Object.entries(map).map(([name, g]) => ({ name, ...g })).sort((a, b) => b.amt - a.amt).slice(0, 10);
+function renderTopProcedures(entries) {
   document.getElementById('topProcCard').innerHTML = `
     <h2>💉 인기 시술/오더 TOP 10</h2>
     <p class="sub-note">매출 기준 상위 항목입니다.</p>
@@ -526,13 +643,8 @@ function categorizeProc(name) {
 }
 
 // ── 시술 카테고리별 매출 그래프 ──
-function renderCategoryChart(rows) {
-  const map = {};
-  PROC_CATEGORIES.forEach(c => map[c] = { cnt: 0, amt: 0 });
-  rows.forEach(r => {
-    const cat = categorizeProc(`${r.field || ''} ${r.order || ''} ${r.proc || ''}`);
-    map[cat].cnt += 1; map[cat].amt += r.amount;
-  });
+function renderCategoryChart(map) {
+  PROC_CATEGORIES.forEach(c => { if (!map[c]) map[c] = { cnt: 0, amt: 0 }; });
   const maxAmt = Math.max(1, ...PROC_CATEGORIES.map(c => map[c].amt));
   const totalAmt = PROC_CATEGORIES.reduce((s, c) => s + map[c].amt, 0);
 
@@ -554,25 +666,14 @@ function renderCategoryChart(rows) {
 }
 
 // ── 성별 x 나이대별 인기 시술 ──
-function renderDemographics(rows) {
-  const groups = {};
-  rows.forEach(r => {
-    if (!r.gender) return;
-    const key = `${r.gender}|${ageGroup(r.age)}`;
-    if (!groups[key]) groups[key] = {};
-    if (!groups[key][r.order]) groups[key][r.order] = { cnt: 0, amt: 0 };
-    groups[key][r.order].cnt += 1; groups[key][r.order].amt += r.amount;
-  });
-
-  const order = ['10대','20대','30대','40대','50대','60대 이상'];
+function renderDemographics(demographics) {
+  const ageOrder = ['10대','20대','30대','40대','50대','60대 이상'];
   const boxes = [];
   ['여','남'].forEach(gender => {
-    order.forEach(ag => {
+    ageOrder.forEach(ag => {
       const key = `${gender}|${ag}`;
-      if (!groups[key]) return;
-      const top3 = Object.entries(groups[key]).map(([name, g]) => ({ name, ...g }))
-        .sort((a, b) => b.amt - a.amt).slice(0, 3);
-      if (top3.length === 0) return;
+      const top3 = demographics[key];
+      if (!top3 || top3.length === 0) return;
       boxes.push(`
         <div class="group-box">
           <h3>${gender === '여' ? '👩' : '👨'} ${gender}성 ${ag}</h3>
@@ -580,7 +681,6 @@ function renderDemographics(rows) {
         </div>`);
     });
   });
-
   document.getElementById('demoCard').innerHTML = `
     <h2>👥 성별 · 나이대별 인기 시술</h2>
     <p class="sub-note">각 그룹별 매출 상위 3개 시술입니다. (이름 컬럼의 성별/나이 표기를 기준으로 집계)</p>
