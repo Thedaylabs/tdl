@@ -109,10 +109,34 @@
     .bar-value { text-align: left; }
   }
 
-  /* 탭 */
-  .tab-bar { display: flex; gap: 4px; background: #f0f2f5; border-radius: 14px; padding: 4px; margin-bottom: 24px; max-width: 340px; }
-  .tab-btn { flex: 1; padding: 9px 0; border: none; background: none; border-radius: 10px; font-size: 0.88rem; font-weight: 600; color: #888; cursor: pointer; font-family: inherit; transition: background .15s, color .15s; }
+  /* 섹션 네비 바 (리포트 내부) */
+  .section-nav { background: #0891b2; border-radius: 12px; display: flex; overflow: hidden; margin-bottom: 20px; }
+  .section-nav a { flex: 1; padding: 12px 8px; text-align: center; color: rgba(255,255,255,0.75); font-size: 0.82rem; font-weight: 600; text-decoration: none; transition: background .15s, color .15s; white-space: nowrap; }
+  .section-nav a:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+  /* 상단 탭 (분석리포트/파일관리) */
+  .tab-bar { display: flex; gap: 4px; background: #f0f2f5; border-radius: 14px; padding: 4px; margin-bottom: 20px; max-width: 300px; }
+  .tab-btn { flex: 1; padding: 9px 0; border: none; background: none; border-radius: 10px; font-size: 0.86rem; font-weight: 600; color: #888; cursor: pointer; font-family: inherit; transition: background .15s, color .15s; }
   .tab-btn.active { background: #fff; color: #0891b2; box-shadow: 0 1px 6px rgba(0,0,0,0.10); }
+
+  /* 지점 선택 박스 */
+  .branch-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+  .branch-search { padding: 8px 14px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 0.85rem; font-family: inherit; width: 200px; }
+  .branch-search:focus { outline: none; border-color: #0891b2; }
+  .branch-scroll-box { border: 2px solid #e0e7ef; border-radius: 12px; padding: 14px; max-height: 260px; overflow-y: auto; background: #f8fafc; }
+  .branch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+  .branch-tile {
+    background: #fff; border-radius: 12px; padding: 14px; cursor: pointer;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06); border: 2px solid transparent;
+    transition: border-color .15s, transform .1s; outline: none;
+  }
+  .branch-tile:hover { transform: translateY(-1px); border-color: #bae6fd; }
+  .branch-tile.active { border-color: #0891b2; background: #ecfeff; }
+  .branch-tile:focus { border-color: #0891b2; box-shadow: 0 0 0 3px rgba(8,145,178,0.2); }
+  .branch-tile .bname { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+  .branch-tile .bstat { font-size: 0.72rem; color: #999; }
+  .branch-tile .bstat.has-data { color: #0891b2; font-weight: 600; }
+  .branch-nav-hint { font-size: 0.74rem; color: #bbb; text-align: right; margin-top: 8px; }
 
   /* 파일 관리 */
   #fileManagerSection { display: none; }
@@ -168,9 +192,14 @@
     <!-- 분석 리포트 탭 -->
     <div id="reportSection">
     <div class="card">
-      <h2>🏬 지점 선택</h2>
-      <p class="sub-note">분석할 지점을 선택하세요. 데이터가 업로드된 지점은 표시됩니다.</p>
-      <div class="branch-grid" id="branchGrid"></div>
+      <div class="branch-header">
+        <h2 style="margin:0;border:none;padding:0">🏬 지점 선택</h2>
+        <input class="branch-search" id="branchSearch" placeholder="🔍 지점명 검색" oninput="filterBranchGrid(this.value)" />
+      </div>
+      <div class="branch-scroll-box" id="branchScrollBox">
+        <div class="branch-grid" id="branchGrid"></div>
+      </div>
+      <p class="branch-nav-hint">↑ ↓ ← → 방향키로 이동 · Enter로 선택</p>
     </div>
 
     <div id="uploadSection" style="display:none">
@@ -186,6 +215,16 @@
         <div id="fileChipArea"></div>
       </div>
 
+      <div id="sectionNav" style="display:none">
+        <nav class="section-nav">
+          <a href="#sec-route">🚪 내원경로</a>
+          <a href="#sec-top">💉 인기 시술</a>
+          <a href="#sec-staff">👤 실장별 객단가</a>
+          <a href="#sec-cat">📊 시술 카테고리</a>
+          <a href="#sec-demo">👥 성별·나이대</a>
+          <a onclick="switchTab('files')" href="#">📁 파일 관리</a>
+        </nav>
+      </div>
       <div id="reportArea"></div>
     </div>
 
@@ -385,18 +424,34 @@ async function renderBranchGrid() {
   ]);
   branchSummaries = idbSummaries;
   const grid = document.getElementById('branchGrid');
-  grid.innerHTML = BRANCHES.map(b => {
+  grid.innerHTML = BRANCHES.map((b, i) => {
     const idb = branchSummaries[b];
     const srv = serverBranchList[b];
     const hasData = idb || srv;
     let stat = '데이터 없음';
     if (idb) stat = `📊 ${idb.count.toLocaleString('ko-KR')}건 (이 PC)`;
     else if (srv) stat = `☁️ ${srv.months.length}개월 데이터 (서버)`;
-    return `<div class="branch-tile ${b === currentBranch ? 'active' : ''}" onclick="selectBranch('${b}')">
+    return `<div class="branch-tile ${b === currentBranch ? 'active' : ''}" data-name="${b.toLowerCase()}" tabindex="0"
+      onclick="selectBranch('${b}')" onkeydown="branchKeyNav(event,${i})">
       <div class="bname">${b}</div>
       <div class="bstat ${hasData ? 'has-data' : ''}">${stat}</div>
     </div>`;
   }).join('');
+}
+
+function branchKeyNav(e, idx) {
+  const tiles = [...document.querySelectorAll('#branchGrid .branch-tile:not([style*="display: none"])')];
+  const cur = tiles.indexOf(e.currentTarget);
+  const cols = Math.round(document.getElementById('branchGrid').offsetWidth / (190 + 10)) || 6;
+  let next = -1;
+  if (e.key === 'ArrowRight') next = cur + 1;
+  else if (e.key === 'ArrowLeft') next = cur - 1;
+  else if (e.key === 'ArrowDown') next = cur + cols;
+  else if (e.key === 'ArrowUp') next = cur - cols;
+  else if (e.key === 'Enter') { e.currentTarget.click(); return; }
+  else return;
+  e.preventDefault();
+  if (next >= 0 && next < tiles.length) tiles[next].focus();
 }
 
 async function selectBranch(branch) {
@@ -615,6 +670,7 @@ function handleFile(file) {
       const idxChart     = col('차트번호');
       const idxType      = col('구분', '초재진구분', '신구환', '환자구분');
       const idxVisitType = col('진료구분', '진료 구분');
+      const idxStaff     = col('담당직원명', '담당직원', '상담사', '실장명', '직원명', '상담실장');
 
       const rows = [];
       for (let i = headerIdx + 1; i < grid.length; i++) {
@@ -636,26 +692,25 @@ function handleFile(file) {
           field: r[idxField] || '',
           month,
           amount: parseFloat(r[idxAmount]) || 0,
-          route: r[idxRoute] || '미지정'
+          route: r[idxRoute] || '미지정',
+          staff: String(r[idxStaff] || '미지정').trim()
         });
       }
-      // 중복 감지: 새 파일 상위 20개 차트번호가 기존 데이터에 있는지 확인
+      // 중복 감지: 파일명이 같으면 중복으로 판단
       const existing = await getBranchData(currentBranch);
       const existingRows = existing ? (existing.rows || []) : [];
-      if (existingRows.length > 0) {
-        const newCharts = rows.slice(0, 20).map(r => r.chart).filter(Boolean);
-        const existingChartSet = new Set(existingRows.map(r => r.chart));
-        const dupCount = newCharts.filter(c => existingChartSet.has(c)).length;
-        if (dupCount >= 3) {
+      if (existing) {
+        const existingFileNames = (existing.fileList || [{ fileName: existing.fileName }]).map(f => f.fileName);
+        if (existingFileNames.includes(file.name)) {
           const overwrite = confirm(
-            `⚠️ 중복 데이터가 감지됐습니다.\n\n이미 업로드된 데이터와 같은 내용이 포함되어 있습니다.\n덮어쓰기 하시겠습니까?\n\n[확인] 덮어쓰기 (기존 전체 삭제 후 새 파일로 교체)\n[취소] 업로드 취소`
+            `⚠️ 동일한 파일이 이미 업로드되어 있습니다.\n\n파일명: ${file.name}\n\n덮어쓰기 하시겠습니까?\n\n[확인] 덮어쓰기 (기존 전체 삭제 후 새 파일로 교체)\n[취소] 업로드 취소`
           );
           if (!overwrite) return;
-          // 덮어쓰기: 기존 데이터 삭제 후 새 파일만 저장
           await deleteBranchData(currentBranch);
           await deleteServerAnalysis(currentBranch);
+          const oldRecords = await getFileRecords(currentBranch);
+          for (const r of oldRecords) await deleteFileRecord(r.key);
           existingRows.length = 0;
-          (existing?.fileList || []).length = 0;
         }
       }
 
@@ -739,7 +794,23 @@ function computeAggregates(rows) {
     demographics[key] = Object.entries(procs).map(([name,g])=>({name,...g})).sort((a,b)=>b.amt-a.amt).slice(0,3);
   });
 
-  return { routeTable, top10, catMap, demographics, totalCnt: rows.length, totalAmt: rows.reduce((s,r)=>s+r.amount,0) };
+  // 실장별 객단가
+  const staffMap = {};
+  rows.forEach(r => {
+    const s = r.staff || '미지정';
+    if (!staffMap[s]) staffMap[s] = { charts: new Set(), cnt: 0, amt: 0 };
+    if (r.chart) staffMap[s].charts.add(r.chart);
+    staffMap[s].cnt++; staffMap[s].amt += r.amount;
+  });
+  const staffTable = Object.entries(staffMap).map(([name, g]) => ({
+    name,
+    patients: g.charts.size,
+    cnt: g.cnt,
+    amt: g.amt,
+    perPatient: g.charts.size > 0 ? Math.round(g.amt / g.charts.size) : 0
+  })).sort((a, b) => b.perPatient - a.perPatient);
+
+  return { routeTable, top10, catMap, demographics, staffTable, totalCnt: rows.length, totalAmt: rows.reduce((s,r)=>s+r.amount,0) };
 }
 
 function ageGroup(age) {
@@ -773,11 +844,13 @@ function renderReport() {
         <span class="month-count" id="rowCount"></span>
       </div>
     </div>
-    <div class="card" id="routeCard"></div>
-    <div class="card" id="topProcCard"></div>
-    <div class="card" id="categoryChartCard"></div>
-    <div class="card" id="demoCard"></div>
+    <div class="card" id="routeCard" style="scroll-margin-top:80px" id="sec-route"></div>
+    <div class="card" id="topProcCard" style="scroll-margin-top:80px" id="sec-top"></div>
+    <div class="card" id="staffCard" style="scroll-margin-top:80px" id="sec-staff"></div>
+    <div class="card" id="categoryChartCard" style="scroll-margin-top:80px" id="sec-cat"></div>
+    <div class="card" id="demoCard" style="scroll-margin-top:80px" id="sec-demo"></div>
   `;
+  document.getElementById('sectionNav').style.display = '';
 
   const sel = document.getElementById('monthSelect');
   sel.value = window.__selectedMonth || '';
@@ -804,8 +877,41 @@ function renderFiltered() {
 
   renderRouteTable(agg.routeTable || []);
   renderTopProcedures(agg.top10 || []);
+  renderStaffTable(agg.staffTable || []);
   renderCategoryChart(agg.catMap || {});
   renderDemographics(agg.demographics || {});
+}
+
+// ── 실장별 객단가 ──
+function renderStaffTable(entries) {
+  const totalAmt = entries.reduce((s, e) => s + e.amt, 0);
+  document.getElementById('staffCard').innerHTML = `
+    <h2>👤 실장별 객단가 분석</h2>
+    <p class="sub-note">객단가 = 총 매출 ÷ 담당 환자 수 (차트번호 기준). 높은 순으로 정렬됩니다.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>담당 실장</th><th>환자 수</th><th>거래 건수</th><th>총 매출</th><th>객단가</th><th>비중</th></tr></thead>
+        <tbody>
+          ${entries.length ? entries.map((e, i) => `
+            <tr>
+              <td>${rankBadge(i)}${e.name}</td>
+              <td>${e.patients.toLocaleString('ko-KR')}명</td>
+              <td>${e.cnt.toLocaleString('ko-KR')}건</td>
+              <td>${fmt(e.amt)}원</td>
+              <td><strong>${fmt(e.perPatient)}원</strong></td>
+              <td>${totalAmt ? (e.amt / totalAmt * 100).toFixed(1) : 0}%</td>
+            </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:#aaa;padding:20px">담당직원 정보가 없습니다.</td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ── 지점 검색 필터 ──
+function filterBranchGrid(q) {
+  const kw = q.trim().toLowerCase();
+  document.querySelectorAll('#branchGrid .branch-tile').forEach(el => {
+    el.style.display = (!kw || el.dataset.name.includes(kw)) ? '' : 'none';
+  });
 }
 
 // ── 내원경로별 집계 ──
