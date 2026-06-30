@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>지점 매출 분석 리포트 (관리자)</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: #f0f2f5; color: #1a1a2e; min-height: 100vh;
+  }
+
+  /* 로그인 */
+  #loginScreen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px 16px; }
+  .login-card { background: #fff; border-radius: 20px; box-shadow: 0 4px 32px rgba(0,0,0,0.10); padding: 44px 36px 36px; width: 100%; max-width: 400px; text-align: center; }
+  .login-logo { font-size: 2.4rem; margin-bottom: 10px; }
+  .login-card h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; }
+  .login-card > p { font-size: 0.85rem; color: #888; margin-bottom: 28px; }
+  .login-card label { display: block; text-align: left; font-size: 0.83rem; font-weight: 600; color: #444; margin-bottom: 6px; }
+  .login-card input[type="password"] {
+    width: 100%; padding: 13px 16px; border: 1.5px solid #e0e0e0; border-radius: 12px;
+    font-size: 1.1rem; font-family: inherit; letter-spacing: 6px; text-align: center;
+    background: #fafafa; color: #1a1a2e; margin-bottom: 8px;
+  }
+  .login-card input:focus { outline: none; border-color: #0891b2; background: #fff; }
+  .login-error { font-size: 0.82rem; color: #e53e3e; min-height: 20px; margin-bottom: 14px; }
+  .btn-login { width: 100%; background: #0891b2; color: #fff; border: none; border-radius: 12px; padding: 14px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .btn-login:hover { background: #0e7490; }
+  .login-hint { margin-top: 18px; font-size: 0.78rem; color: #bbb; }
+
+  /* 메인 */
+  #mainScreen { display: none; }
+  .top-header { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0 24px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+  .top-header-inner { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .top-title { font-size: 1rem; font-weight: 700; }
+  .admin-chip { display: flex; align-items: center; gap: 8px; background: #ccfbf1; color: #0891b2; border-radius: 30px; padding: 5px 14px; font-size: 0.85rem; font-weight: 700; }
+  .btn-logout { background: none; border: 1.5px solid #99f6e4; color: #0891b2; border-radius: 20px; padding: 3px 12px; font-size: 0.75rem; cursor: pointer; font-family: inherit; font-weight: 600; }
+
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  /* 지점 선택 그리드 */
+  .branch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .branch-tile {
+    background: #fff; border-radius: 14px; padding: 16px; cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 2px solid transparent;
+    transition: border-color .15s, transform .1s;
+  }
+  .branch-tile:hover { transform: translateY(-2px); }
+  .branch-tile.active { border-color: #0891b2; background: #ecfeff; }
+  .branch-tile .bname { font-size: 0.92rem; font-weight: 700; margin-bottom: 6px; }
+  .branch-tile .bstat { font-size: 0.74rem; color: #999; }
+  .branch-tile .bstat.has-data { color: #0891b2; font-weight: 600; }
+
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); padding: 24px; margin-bottom: 20px; }
+  .card h2 { font-size: 1.0rem; font-weight: 700; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #f0f2f5; display: flex; align-items: center; gap: 8px; }
+  .sub-note { font-size: 0.8rem; color: #999; margin-bottom: 14px; }
+
+  .upload-wrap { border: 2px dashed #c7c7d4; border-radius: 12px; padding: 22px 16px; text-align: center; cursor: pointer; background: #fafafa; position: relative; }
+  .upload-wrap:hover, .upload-wrap.over { border-color: #0891b2; background: #ecfeff; }
+  .upload-wrap input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-wrap .ico { font-size: 1.6rem; margin-bottom: 5px; }
+  .upload-wrap p { font-size: 0.8rem; color: #777; }
+  .upload-wrap p strong { color: #0891b2; }
+  .file-chip { display: inline-flex; align-items: center; gap: 8px; background: #ecfeff; color: #0891b2; border-radius: 20px; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; margin-top: 12px; }
+  .file-chip button { background: none; border: none; color: #0891b2; cursor: pointer; font-size: 0.9rem; }
+
+  .month-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
+  .month-bar select { padding: 9px 14px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 0.88rem; font-family: inherit; background: #fff; }
+  .month-count { font-size: 0.8rem; color: #888; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+  th, td { padding: 9px 10px; text-align: right; border-bottom: 1px solid #f0f2f5; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { background: #f8fafc; font-weight: 700; color: #555; position: sticky; top: 0; }
+  tbody tr:hover { background: #fafcff; }
+  tfoot td { font-weight: 700; background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+  .rank { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #ecfeff; color: #0891b2; font-size: 0.74rem; font-weight: 700; margin-right: 6px; }
+  .rank.top1 { background: #fef3c7; color: #b45309; }
+  .rank.top2 { background: #e5e7eb; color: #4b5563; }
+  .rank.top3 { background: #fde8d7; color: #c2410c; }
+
+  .group-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 680px) { .group-grid { grid-template-columns: 1fr; } }
+  .group-box { background: #f8faff; border-radius: 12px; padding: 14px 16px; }
+  .group-box h3 { font-size: 0.86rem; font-weight: 700; color: #374151; margin-bottom: 10px; }
+  .group-box ol { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .group-box li { font-size: 0.82rem; display: flex; justify-content: space-between; gap: 8px; }
+  .group-box li .nm { color: #333; }
+  .group-box li .amt { color: #0891b2; font-weight: 600; white-space: nowrap; }
+  .empty-state { text-align: center; padding: 40px 20px; color: #999; font-size: 0.86rem; }
+  .empty-state .ico { font-size: 2.2rem; margin-bottom: 10px; }
+
+  .bar-chart { display: flex; flex-direction: column; gap: 12px; }
+  .bar-row { display: grid; grid-template-columns: 170px 1fr; gap: 12px; align-items: center; }
+  @media (max-width: 600px) { .bar-row { grid-template-columns: 1fr; gap: 4px; } }
+  .bar-label { font-size: 0.84rem; font-weight: 600; color: #374151; }
+  .bar-track { background: #f0f2f5; border-radius: 8px; height: 26px; position: relative; overflow: hidden; }
+  .bar-fill { background: linear-gradient(90deg, #0891b2, #06b6d4); height: 100%; border-radius: 8px; transition: width .3s; min-width: 2px; }
+  .bar-value { position: static; font-size: 0.78rem; color: #555; white-space: nowrap; margin-top: 2px; }
+  .bar-pct { color: #999; }
+  @media (min-width: 601px) {
+    .bar-row { grid-template-columns: 170px 1fr 220px; }
+    .bar-value { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">📈</div>
+    <h1>지점 매출 분석 리포트</h1>
+    <p>관리자 PIN 번호를 입력해 주세요.</p>
+    <label>PIN 번호</label>
+    <input type="password" id="pinInput" maxlength="4" placeholder="●●●●"
+           oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+           onkeydown="if(event.key==='Enter') doLogin()" />
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login" onclick="doLogin()">로그인</button>
+    <p class="login-hint">관리자 PIN은 매출 관리자 페이지와 동일합니다.</p>
+  </div>
+</div>
+
+<!-- 메인 -->
+<div id="mainScreen">
+  <div class="top-header">
+    <div class="top-header-inner">
+      <span class="top-title">📈 지점 매출 분석 리포트</span>
+      <div class="admin-chip">🛠 관리자
+        <button class="btn-logout" onclick="doLogout()">로그아웃</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="card">
+      <h2>🏬 지점 선택</h2>
+      <p class="sub-note">분석할 지점을 선택하세요. 데이터가 업로드된 지점은 표시됩니다.</p>
+      <div class="branch-grid" id="branchGrid"></div>
+    </div>
+
+    <div id="uploadSection" style="display:none">
+      <div class="card">
+        <h2 id="uploadTitle">📂 오더판매내역 업로드</h2>
+        <p class="sub-note">CRM에서 받은 "오더판매내역및환자내역" 엑셀(.xlsx)을 업로드하면 자동으로 분석합니다. 업로드한 파일은 이 브라우저(관리자 PC)에만 저장됩니다.</p>
+        <div class="upload-wrap" id="uploadArea">
+          <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFile(this.files[0])" />
+          <div class="ico">📊</div>
+          <p><strong>클릭 또는 드래그</strong>하여 엑셀 업로드</p>
+          <p>오더별환자리스트 시트 기준으로 분석됩니다</p>
+        </div>
+        <div id="fileChipArea"></div>
+      </div>
+
+      <div id="reportArea"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const ADMIN_PIN = '0000';
+const BRANCHES = [
+  '강서발산점', '건대입구점', '광주상무점', '강남점', '안양범계점', '여의도점',
+  '영등포점', '대전둔산점', '명동점', '분당점', '인천구월점', '전주점',
+  '부산서면점', '명동2호점', '수원점', '세라미크 강남점'
+];
+
+let currentBranch = '';
+let rawRows = [];
+let monthList = [];
+
+function doLogin() {
+  const pin = document.getElementById('pinInput').value.trim();
+  if (pin !== ADMIN_PIN) {
+    document.getElementById('loginError').textContent = '❌ PIN 번호가 올바르지 않습니다.';
+    document.getElementById('pinInput').value = '';
+    return;
+  }
+  sessionStorage.setItem('report_admin_logged_in', '1');
+  showMainScreen();
+}
+function showMainScreen() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainScreen').style.display = 'block';
+  renderBranchGrid();
+}
+function doLogout() {
+  if (!confirm('로그아웃 하시겠어요?')) return;
+  sessionStorage.removeItem('report_admin_logged_in');
+  document.getElementById('mainScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('pinInput').value = '';
+}
+(function restoreSession() {
+  if (sessionStorage.getItem('report_admin_logged_in') === '1') showMainScreen();
+})();
+
+// ── IndexedDB (지점별 대용량 거래 데이터 저장) ──
+const IDB_NAME = 'report_analysis_db', IDB_STORE = 'branch_data', IDB_VER = 1;
+let idb = null;
+function openIDB() {
+  return new Promise((res, rej) => {
+    if (idb) { res(idb); return; }
+    const req = indexedDB.open(IDB_NAME, IDB_VER);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE, { keyPath: 'branch' });
+    req.onsuccess = e => { idb = e.target.result; res(idb); };
+    req.onerror = e => rej(e.target.error);
+  });
+}
+async function saveBranchData(branch, fileName, rows) {
+  const db = await openIDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put({ branch, fileName, rows, uploadedAt: new Date().toISOString() });
+    tx.oncomplete = () => res();
+    tx.onerror = e => rej(e.target.error);
+  });
+}
+async function getBranchData(branch) {
+  const db = await openIDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(branch);
+    req.onsuccess = () => res(req.result || null);
+    req.onerror = e => rej(e.target.error);
+  });
+}
+async function deleteBranchData(branch) {
+  const db = await openIDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(branch);
+    tx.oncomplete = () => res();
+    tx.onerror = e => rej(e.target.error);
+  });
+}
+async function getAllBranchSummaries() {
+  const db = await openIDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).getAll();
+    req.onsuccess = () => {
+      const map = {};
+      (req.result || []).forEach(r => { map[r.branch] = { fileName: r.fileName, count: (r.rows || []).length }; });
+      res(map);
+    };
+    req.onerror = e => rej(e.target.error);
+  });
+}
+
+// ── 지점 선택 그리드 ──
+let branchSummaries = {};
+async function renderBranchGrid() {
+  branchSummaries = await getAllBranchSummaries().catch(() => ({}));
+  const grid = document.getElementById('branchGrid');
+  grid.innerHTML = BRANCHES.map(b => {
+    const info = branchSummaries[b];
+    return `<div class="branch-tile ${b === currentBranch ? 'active' : ''}" onclick="selectBranch('${b}')">
+      <div class="bname">${b}</div>
+      <div class="bstat ${info ? 'has-data' : ''}">${info ? `📊 ${info.count.toLocaleString('ko-KR')}건 업로드됨` : '데이터 없음'}</div>
+    </div>`;
+  }).join('');
+}
+
+async function selectBranch(branch) {
+  currentBranch = branch;
+  await renderBranchGrid();
+  document.getElementById('uploadSection').style.display = 'block';
+  document.getElementById('uploadTitle').textContent = `📂 ${branch} — 오더판매내역 업로드`;
+  document.getElementById('fileInput').value = '';
+  await loadSavedData(branch);
+  document.getElementById('uploadSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function loadSavedData(branch) {
+  rawRows = []; monthList = [];
+  document.getElementById('fileChipArea').innerHTML = '';
+  try {
+    const saved = await getBranchData(branch);
+    if (saved) {
+      rawRows = saved.rows || [];
+      document.getElementById('fileChipArea').innerHTML =
+        `<div class="file-chip">📊 ${saved.fileName || '저장된 데이터'} <button onclick="clearData()">✕ 삭제</button></div>`;
+      buildMonthList();
+    }
+  } catch (e) { console.warn('데이터 로드 실패', e); }
+  renderReport();
+}
+async function clearData() {
+  if (!confirm(`${currentBranch}의 업로드 데이터를 삭제할까요?`)) return;
+  await deleteBranchData(currentBranch).catch(() => {});
+  rawRows = []; monthList = [];
+  document.getElementById('fileChipArea').innerHTML = '';
+  await renderBranchGrid();
+  renderReport();
+}
+
+// ── 드래그앤드롭 ──
+const uploadArea = document.getElementById('uploadArea');
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('over'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault(); uploadArea.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+
+// ── 엑셀 파싱 ──
+function handleFile(file) {
+  if (!file || !currentBranch) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const sheetName = wb.SheetNames.find(n => n.includes('환자')) || wb.SheetNames[wb.SheetNames.length - 1];
+      const ws = wb.Sheets[sheetName];
+      const grid = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+
+      let headerIdx = grid.findIndex(r => r.includes('차트번호') || r.includes('내원경로'));
+      if (headerIdx === -1) headerIdx = 1;
+      const headers = grid[headerIdx];
+      const col = name => headers.indexOf(name);
+
+      const idxName   = col('이름');
+      const idxOrder  = col('오더명');
+      const idxProc   = col('시술');
+      const idxField  = col('진료분야');
+      const idxDate   = col('진료일');
+      const idxAmount = col('금액');
+      const idxRoute  = col('내원경로');
+      const idxChart  = col('차트번호');
+      const idxType   = col('구분');
+
+      const rows = [];
+      for (let i = headerIdx + 1; i < grid.length; i++) {
+        const r = grid[i];
+        if (!r || r.every(c => c === '' || c === undefined)) continue;
+        if (!r[idxChart] && !r[idxOrder] && !r[idxProc]) continue; // 합계 등 요약 행 제외
+        const name = String(r[idxName] || '');
+        const m = name.match(/\((남|여)\s*\/\s*(\d+)\)/);
+        const gender = m ? m[1] : '';
+        const age = m ? parseInt(m[2], 10) : null;
+        const dateRaw = String(r[idxDate] || '');
+        const month = dateRaw.length >= 6 ? dateRaw.slice(0, 6) : '';
+        rows.push({
+          chart: r[idxChart] || '',
+          type: r[idxType] || '',
+          gender, age,
+          order: r[idxOrder] || r[idxProc] || '(미지정)',
+          proc: r[idxProc] || '',
+          field: r[idxField] || '',
+          month,
+          amount: parseFloat(r[idxAmount]) || 0,
+          route: r[idxRoute] || '미지정'
+        });
+      }
+      rawRows = rows;
+      await saveBranchData(currentBranch, file.name, rows);
+      document.getElementById('fileChipArea').innerHTML =
+        `<div class="file-chip">📊 ${file.name} <button onclick="clearData()">✕ 삭제</button></div>`;
+      buildMonthList();
+      await renderBranchGrid();
+      renderReport();
+    } catch (err) {
+      alert('엑셀 파일을 읽는 중 오류가 발생했습니다.\n시트 구성을 확인해 주세요.\n\n' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function buildMonthList() {
+  monthList = [...new Set(rawRows.map(r => r.month).filter(Boolean))].sort().reverse();
+}
+
+function ageGroup(age) {
+  if (age == null) return '미지정';
+  if (age < 20) return '10대';
+  if (age < 30) return '20대';
+  if (age < 40) return '30대';
+  if (age < 50) return '40대';
+  if (age < 60) return '50대';
+  return '60대 이상';
+}
+function fmt(n) { return Math.round(n || 0).toLocaleString('ko-KR'); }
+function monthLabel(ym) { return ym ? `${ym.slice(0,4)}년 ${ym.slice(4,6)}월` : '전체'; }
+
+function renderReport() {
+  const area = document.getElementById('reportArea');
+  if (rawRows.length === 0) {
+    area.innerHTML = `<div class="card"><div class="empty-state"><div class="ico">📭</div><p>${currentBranch}에 업로드된 데이터가 없습니다. 엑셀 파일을 업로드해 주세요.</p></div></div>`;
+    return;
+  }
+
+  area.innerHTML = `
+    <div class="card">
+      <div class="month-bar">
+        <label style="font-size:0.85rem;font-weight:600;">분석 월 선택</label>
+        <select id="monthSelect">
+          <option value="">전체 기간</option>
+          ${monthList.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('')}
+        </select>
+        <span class="month-count" id="rowCount"></span>
+      </div>
+    </div>
+    <div class="card" id="routeCard"></div>
+    <div class="card" id="topProcCard"></div>
+    <div class="card" id="categoryChartCard"></div>
+    <div class="card" id="demoCard"></div>
+  `;
+
+  const sel = document.getElementById('monthSelect');
+  sel.value = window.__selectedMonth || '';
+  sel.addEventListener('change', () => { window.__selectedMonth = sel.value; renderFiltered(); });
+  renderFiltered();
+}
+
+function renderFiltered() {
+  const sel = document.getElementById('monthSelect');
+  const month = sel ? sel.value : '';
+  const rows = month ? rawRows.filter(r => r.month === month) : rawRows;
+  document.getElementById('rowCount').textContent = `총 ${rows.length.toLocaleString('ko-KR')}건 거래 데이터`;
+  renderRouteTable(rows);
+  renderTopProcedures(rows);
+  renderCategoryChart(rows);
+  renderDemographics(rows);
+}
+
+// ── 내원경로별 집계 ──
+function renderRouteTable(rows) {
+  const map = {};
+  rows.forEach(r => {
+    const type = (r.type || '').includes('재진') ? '재진' : '초진';
+    if (!map[r.route]) map[r.route] = { '초진': { chart: new Set(), cnt: 0, amt: 0 }, '재진': { chart: new Set(), cnt: 0, amt: 0 } };
+    const g = map[r.route][type];
+    if (r.chart) g.chart.add(r.chart);
+    g.cnt += 1; g.amt += r.amount;
+  });
+  const entries = Object.entries(map).map(([route, g]) => ({
+    route,
+    newCnt: g['초진'].cnt, newAmt: g['초진'].amt,
+    reCnt: g['재진'].cnt, reAmt: g['재진'].amt,
+    totalAmt: g['초진'].amt + g['재진'].amt,
+    totalCnt: g['초진'].cnt + g['재진'].cnt
+  })).sort((a, b) => b.totalAmt - a.totalAmt);
+
+  const totalAmt = entries.reduce((s, e) => s + e.totalAmt, 0);
+  const totalCnt = entries.reduce((s, e) => s + e.totalCnt, 0);
+
+  document.getElementById('routeCard').innerHTML = `
+    <h2>🚪 내원경로별 집계</h2>
+    <p class="sub-note">매출 비중이 높은 순으로 정렬되어 있습니다.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>내원경로</th><th>초진 건수</th><th>초진 매출</th><th>재진 건수</th><th>재진 매출</th><th>합계 건수</th><th>합계 매출</th><th>비중</th></tr></thead>
+        <tbody>
+          ${entries.map((e, i) => `
+            <tr>
+              <td>${rankBadge(i)}${e.route}</td>
+              <td>${e.newCnt}</td><td>${fmt(e.newAmt)}</td>
+              <td>${e.reCnt}</td><td>${fmt(e.reAmt)}</td>
+              <td>${e.totalCnt}</td><td>${fmt(e.totalAmt)}</td>
+              <td>${totalAmt ? (e.totalAmt / totalAmt * 100).toFixed(1) : 0}%</td>
+            </tr>`).join('')}
+        </tbody>
+        <tfoot><tr><td>합계</td><td colspan="4"></td><td>${totalCnt}</td><td>${fmt(totalAmt)}</td><td>100%</td></tr></tfoot>
+      </table>
+    </div>`;
+}
+
+function rankBadge(i) {
+  if (i === 0) return '<span class="rank top1">1</span>';
+  if (i === 1) return '<span class="rank top2">2</span>';
+  if (i === 2) return '<span class="rank top3">3</span>';
+  return `<span class="rank">${i + 1}</span>`;
+}
+
+// ── 시술(오더)별 판매 TOP 10 ──
+function renderTopProcedures(rows) {
+  const map = {};
+  rows.forEach(r => {
+    if (!map[r.order]) map[r.order] = { cnt: 0, amt: 0 };
+    map[r.order].cnt += 1; map[r.order].amt += r.amount;
+  });
+  const entries = Object.entries(map).map(([name, g]) => ({ name, ...g })).sort((a, b) => b.amt - a.amt).slice(0, 10);
+  document.getElementById('topProcCard').innerHTML = `
+    <h2>💉 인기 시술/오더 TOP 10</h2>
+    <p class="sub-note">매출 기준 상위 항목입니다.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>시술/오더명</th><th>판매 건수</th><th>매출</th></tr></thead>
+        <tbody>
+          ${entries.map((e, i) => `<tr><td>${rankBadge(i)}${e.name}</td><td>${e.cnt}</td><td>${fmt(e.amt)}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ── 시술 카테고리 분류 (10종) ──
+const PROC_CATEGORIES = [
+  '보톡스&윤곽주사', '필러&실리프팅', '스킨부스터', '리프팅', '제모',
+  '체형시술', '색소(기미,잡티,홍조)', '여드름', '모공', '기타'
+];
+const CATEGORY_KEYWORDS = [
+  ['보톡스&윤곽주사', ['보톡스', '보트', '윤곽주사', '윤곽', '사각턱', '디스포트', '제오민', '나보타', '코어톡스', '승모근']],
+  ['필러&실리프팅', ['필러', '쥬비덤', '레스틸렌', '실리프팅', '실리프트', '매선', '코필러', '입술필러', '턱필러', '이마필러']],
+  ['스킨부스터', ['리쥬란', '스킨부스터', '쥬베룩', '볼뉴머', '엑소좀', 'pdrn', '연어주사', '물광']],
+  ['리프팅', ['슈링크', '울쎄라', '써마지', '인모드', '올리지오', '텐써마', '튠페이스', '덴서티', '소프웨이브', '리프팅']],
+  ['제모', ['제모', '브라질리언', '왁싱']],
+  ['체형시술', ['바디', '체형', '지방분해', '쿨소닉', '엠스컬프트', '바디라인', '인바디', '다이어트']],
+  ['색소(기미,잡티,홍조)', ['기미', '잡티', '홍조', '색소', '토닝', '피코', '리바이브']],
+  ['여드름', ['여드름', '트러블']],
+  ['모공', ['모공', '블랙헤드']]
+];
+function categorizeProc(name) {
+  const n = (name || '').toLowerCase();
+  for (const [cat, keywords] of CATEGORY_KEYWORDS) {
+    if (keywords.some(k => n.includes(k))) return cat;
+  }
+  return '기타';
+}
+
+// ── 시술 카테고리별 매출 그래프 ──
+function renderCategoryChart(rows) {
+  const map = {};
+  PROC_CATEGORIES.forEach(c => map[c] = { cnt: 0, amt: 0 });
+  rows.forEach(r => {
+    const cat = categorizeProc(`${r.field || ''} ${r.order || ''} ${r.proc || ''}`);
+    map[cat].cnt += 1; map[cat].amt += r.amount;
+  });
+  const maxAmt = Math.max(1, ...PROC_CATEGORIES.map(c => map[c].amt));
+  const totalAmt = PROC_CATEGORIES.reduce((s, c) => s + map[c].amt, 0);
+
+  document.getElementById('categoryChartCard').innerHTML = `
+    <h2>📊 시술 카테고리별 매출</h2>
+    <p class="sub-note">9개 시술군 + 기타로 분류한 매출 비교입니다.</p>
+    <div class="bar-chart">
+      ${PROC_CATEGORIES.map(c => {
+        const pct = (map[c].amt / maxAmt * 100).toFixed(1);
+        const share = totalAmt ? (map[c].amt / totalAmt * 100).toFixed(1) : 0;
+        return `
+        <div class="bar-row">
+          <div class="bar-label">${c}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <div class="bar-value">${fmt(map[c].amt)}원 <span class="bar-pct">(${share}%, ${map[c].cnt}건)</span></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── 성별 x 나이대별 인기 시술 ──
+function renderDemographics(rows) {
+  const groups = {};
+  rows.forEach(r => {
+    if (!r.gender) return;
+    const key = `${r.gender}|${ageGroup(r.age)}`;
+    if (!groups[key]) groups[key] = {};
+    if (!groups[key][r.order]) groups[key][r.order] = { cnt: 0, amt: 0 };
+    groups[key][r.order].cnt += 1; groups[key][r.order].amt += r.amount;
+  });
+
+  const order = ['10대','20대','30대','40대','50대','60대 이상'];
+  const boxes = [];
+  ['여','남'].forEach(gender => {
+    order.forEach(ag => {
+      const key = `${gender}|${ag}`;
+      if (!groups[key]) return;
+      const top3 = Object.entries(groups[key]).map(([name, g]) => ({ name, ...g }))
+        .sort((a, b) => b.amt - a.amt).slice(0, 3);
+      if (top3.length === 0) return;
+      boxes.push(`
+        <div class="group-box">
+          <h3>${gender === '여' ? '👩' : '👨'} ${gender}성 ${ag}</h3>
+          <ol>${top3.map(t => `<li><span class="nm">${t.name}</span><span class="amt">${fmt(t.amt)}원 (${t.cnt}건)</span></li>`).join('')}</ol>
+        </div>`);
+    });
+  });
+
+  document.getElementById('demoCard').innerHTML = `
+    <h2>👥 성별 · 나이대별 인기 시술</h2>
+    <p class="sub-note">각 그룹별 매출 상위 3개 시술입니다. (이름 컬럼의 성별/나이 표기를 기준으로 집계)</p>
+    <div class="group-grid">${boxes.join('') || '<p class="sub-note">성별/나이 정보를 가진 데이터가 없습니다.</p>'}</div>`;
+}
+</script>
+</body>
+</html>
