@@ -392,10 +392,16 @@ function handleFile(file) {
       const ws = wb.Sheets[sheetName];
       const grid = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
 
-      let headerIdx = grid.findIndex(r => r.includes('차트번호') || r.includes('내원경로'));
+      let headerIdx = grid.findIndex(r => r.some(c => String(c).trim() === '차트번호' || String(c).trim() === '내원경로'));
       if (headerIdx === -1) headerIdx = 1;
-      const headers = grid[headerIdx];
-      const col = name => headers.indexOf(name);
+      const headers = grid[headerIdx].map(h => String(h ?? '').trim());
+      const col = (...names) => {
+        for (const name of names) {
+          const i = headers.indexOf(name);
+          if (i >= 0) return i;
+        }
+        return -1;
+      };
 
       const idxName   = col('이름');
       const idxOrder  = col('오더명');
@@ -405,7 +411,7 @@ function handleFile(file) {
       const idxAmount = col('금액');
       const idxRoute  = col('내원경로');
       const idxChart  = col('차트번호');
-      const idxType   = col('구분');
+      const idxType   = col('구분', '초재진구분', '신구환', '환자구분');
 
       const rows = [];
       for (let i = headerIdx + 1; i < grid.length; i++) {
@@ -466,7 +472,8 @@ function computeAggregates(rows) {
   // 내원경로별
   const routeMap = {};
   rows.forEach(r => {
-    const type = (r.type || '').includes('재진') ? '재진' : '초진';
+    const tv = (r.type || '');
+    const type = (tv.includes('재진') || tv.includes('구환')) ? '재진' : '초진';
     if (!routeMap[r.route]) routeMap[r.route] = { 초진: {cnt:0,amt:0}, 재진: {cnt:0,amt:0} };
     routeMap[r.route][type].cnt++; routeMap[r.route][type].amt += r.amount;
   });
