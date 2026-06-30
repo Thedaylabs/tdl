@@ -1033,25 +1033,25 @@ async function uploadLocalFileToDrive(key, fileName, btn) {
   }
 }
 
-async function downloadFromDrive(fileId, fileName) {
+async function downloadFromDrive(fileId, fileName, btn) {
+  const origText = btn ? btn.textContent : '';
   try {
-    const btn = event.currentTarget;
-    btn.textContent = '⏳ 받는 중...';
-    btn.disabled = true;
+    if (btn) { btn.textContent = '⏳ 받는 중...'; btn.disabled = true; }
     const resp = await fetch(`/api/sync?action=get_file&fileId=${encodeURIComponent(fileId)}`);
-    const { base64 } = await resp.json();
-    if (!base64) throw new Error('파일을 찾을 수 없습니다.');
-    const bytes = atob(base64);
+    const j = await resp.json();
+    if (!j.base64) throw new Error('파일을 찾을 수 없습니다. Drive 업로드가 완료되지 않았을 수 있습니다.');
+    const bytes = atob(j.base64);
     const arr = new Uint8Array(bytes.length);
     for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
     const blob = new Blob([arr], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = fileName; a.click();
-    URL.revokeObjectURL(url);
-    btn.textContent = '⬇ 다운로드';
-    btn.disabled = false;
+    a.href = url; a.download = fileName;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (btn) { btn.textContent = origText; btn.disabled = false; }
   } catch(e) {
+    if (btn) { btn.textContent = origText; btn.disabled = false; }
     alert('다운로드 실패: ' + e.message);
   }
 }
@@ -1148,7 +1148,7 @@ function renderFileTable(localFiles, driveIdMap, srvList, localNames, wrap) {
       <td class="fm-size">—</td>
       <td style="padding:8px 12px">
         ${f.driveFileId || driveIdMap[f.fileName]
-          ? `<button class="btn-dl" onclick="downloadFromDrive('${(f.driveFileId||driveIdMap[f.fileName]).replace(/'/g,"\\'")}','${f.fileName.replace(/'/g,"\\'")}')">⬇ 다운로드</button>`
+          ? `<button class="btn-dl" onclick="downloadFromDrive('${(f.driveFileId||driveIdMap[f.fileName]).replace(/'/g,"\\'")}','${f.fileName.replace(/'/g,"\\'")}',this)">⬇ 다운로드</button>`
           : `<span style="color:#aaa;font-size:0.8rem">업로드 PC에서 파일관리 탭 열면 자동 공유됩니다</span>`}
       </td>
     </tr>`).join('');
