@@ -616,12 +616,10 @@ async function deleteFile(key, branch) {
 function renderFileChips(fileList, isServer = false) {
   const icon = isServer ? '☁️' : '📊';
   const tag  = isServer ? ' (서버)' : ' (이 PC)';
-  const chips = (fileList || []).map((f, i) =>
-    `<div class="file-chip">${icon} ${f.fileName || '파일'}${tag}${f.uploadedAt ? ' · ' + formatDate(f.uploadedAt) : ''}
-      <button onclick="removeFile(${i})">✕</button></div>`
+  const chips = (fileList || []).map(f =>
+    `<div class="file-chip">${icon} ${f.fileName || '파일'}${tag}${f.uploadedAt ? ' · ' + formatDate(f.uploadedAt) : ''}</div>`
   ).join('');
-  document.getElementById('fileChipArea').innerHTML =
-    chips + `<button class="clear-all-btn" onclick="clearData()">전체 삭제</button>`;
+  document.getElementById('fileChipArea').innerHTML = chips;
 }
 async function removeFile(idx) {
   const saved = await getBranchData(currentBranch);
