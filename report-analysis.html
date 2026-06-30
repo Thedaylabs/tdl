@@ -997,9 +997,61 @@ async function renderBranchFileManager() {
   const localFiles = await getFileRecords(currentBranch);
   const localNames = new Set(localFiles.map(f => f.fileName));
 
-  // 서버 파일 목록 (다른 PC에서 업로드한 파일 포함)
+  // 서버 메타에서 driveFileId 조회
   const srvList = serverData?.fileList || [];
-  // 로컬에 없는 서버 파일만 별도 표시
+  const driveIdMap = {};
+  srvList.forEach(f => { if (f.driveFileId) driveIdMap[f.fileName] = f.driveFileId; });
+
+  // 로컬 파일 중 Drive에 없는 것 자동 백그라운드 업로드
+  const needUpload = localFiles.filter(f => !driveIdMap[f.fileName]);
+  if (needUpload.length > 0) {
+    // 렌더링 먼저 하고 백그라운드로 업로드
+    renderFileTable(localFiles, driveIdMap, srvList, localNames, wrap);
+    autoUploadToDrive(needUpload, driveIdMap, localFiles, srvList, localNames, wrap);
+    return;
+  }
+
+  renderFileTable(localFiles, driveIdMap, srvList, localNames, wrap);
+}
+
+async function autoUploadToDrive(needUpload, driveIdMap, localFiles, srvList, localNames, wrap) {
+  const saved = await getBranchData(currentBranch);
+  let fileList = saved?.fileList || srvList;
+
+  for (const f of needUpload) {
+    try {
+      const db = await openIDB();
+      const record = await new Promise((res, rej) => {
+        const tx = db.transaction(FILE_STORE, 'readonly');
+        const req = tx.objectStore(FILE_STORE).get(f.key);
+        req.onsuccess = () => res(req.result);
+        req.onerror = e => rej(e.target.error);
+      });
+      if (!record?.buffer) continue;
+      const base64 = arrayBufferToBase64(record.buffer);
+      const resp = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save_file', branch: currentBranch, fileName: f.fileName, base64 })
+      });
+      const { fileId } = await resp.json();
+      if (fileId) {
+        driveIdMap[f.fileName] = fileId;
+        fileList = fileList.map(fl => fl.fileName === f.fileName ? { ...fl, driveFileId: fileId } : fl);
+      }
+    } catch(e) { /* 개별 파일 실패 무시 */ }
+  }
+
+  // 서버 메타 업데이트
+  try {
+    await postServerAnalysis(currentBranch, '__meta__', '', { fileList });
+  } catch(e) {}
+
+  // 완료 후 다시 렌더링
+  renderFileTable(localFiles, driveIdMap, srvList, localNames, wrap);
+}
+
+function renderFileTable(localFiles, driveIdMap, srvList, localNames, wrap) {
   const remoteFiles = srvList.filter(f => !localNames.has(f.fileName));
 
   if (!localFiles.length && !remoteFiles.length) {
@@ -1007,23 +1059,15 @@ async function renderBranchFileManager() {
     return;
   }
 
-  // 서버 메타에서 driveFileId 조회 (이미 Drive 업로드된 파일 확인)
-  const srvMeta = serverData?.fileList || [];
-  const driveIdMap = {};
-  srvMeta.forEach(f => { if (f.driveFileId) driveIdMap[f.fileName] = f.driveFileId; });
-
   const localRows = localFiles.sort((a,b) => b.uploadedAt.localeCompare(a.uploadedAt)).map(f => {
     const hasDrive = !!driveIdMap[f.fileName];
-    const driveBtn = hasDrive
-      ? `<span style="font-size:0.75rem;color:#0891b2">☁️ 공유중</span>`
-      : `<button class="btn-dl" style="background:#0891b2" onclick="uploadLocalFileToDrive('${f.key.replace(/'/g,"\\'")}','${f.fileName.replace(/'/g,"\\'")}',this)">☁️ Drive 올리기</button>`;
     return `<tr>
       <td>${f.fileName}</td>
       <td>${formatDate(f.uploadedAt)}</td>
       <td class="fm-size">${fmtSize(f.size)}</td>
-      <td style="display:flex;gap:6px;padding:8px 12px;flex-wrap:wrap">
+      <td style="display:flex;gap:6px;padding:8px 12px;align-items:center">
         <button class="btn-dl" onclick="downloadFile('${f.key.replace(/'/g,"\\'")}','${f.fileName.replace(/'/g,"\\'")}')">⬇ 다운로드</button>
-        ${driveBtn}
+        ${hasDrive ? `<span style="font-size:0.75rem;color:#0891b2">☁️ 공유중</span>` : `<span style="font-size:0.75rem;color:#aaa">☁️ 업로드중...</span>`}
         <button class="btn-del" onclick="deleteFile('${f.key.replace(/'/g,"\\'")}','${f.branch.replace(/'/g,"\\'")}')">🗑 삭제</button>
       </td>
     </tr>`;
@@ -1034,10 +1078,10 @@ async function renderBranchFileManager() {
       <td>${f.fileName} <span style="font-size:0.75rem;color:#0891b2;margin-left:4px">☁️</span></td>
       <td>${formatDate(f.uploadedAt)}</td>
       <td class="fm-size">—</td>
-      <td style="display:flex;gap:6px;padding:8px 12px">
-        ${f.driveFileId
-          ? `<button class="btn-dl" onclick="downloadFromDrive('${f.driveFileId.replace(/'/g,"\\'")}','${f.fileName.replace(/'/g,"\\'")}')">⬇ 다운로드</button>`
-          : `<span style="color:#aaa;font-size:0.8rem">원본 PC에서만 가능</span>`}
+      <td style="padding:8px 12px">
+        ${f.driveFileId || driveIdMap[f.fileName]
+          ? `<button class="btn-dl" onclick="downloadFromDrive('${(f.driveFileId||driveIdMap[f.fileName]).replace(/'/g,"\\'")}','${f.fileName.replace(/'/g,"\\'")}')">⬇ 다운로드</button>`
+          : `<span style="color:#aaa;font-size:0.8rem">업로드 PC에서 파일관리 탭 열면 자동 공유됩니다</span>`}
       </td>
     </tr>`).join('');
 
