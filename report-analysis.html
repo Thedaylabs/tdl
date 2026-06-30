@@ -488,9 +488,11 @@ async function loadSavedData(branch) {
   // 2) IDB 없으면 서버에서 집계 데이터 불러오기
   const srv = await fetchServerData(branch);
   if (srv) {
-    serverData = srv;
+    // __meta__ 안의 fileList를 serverData에 직접 노출
+    const metaFileList = srv.months?.['__meta__']?.fileList || null;
+    serverData = { ...srv, fileList: metaFileList || [{ fileName: srv.fileName || '서버 데이터', uploadedAt: srv.savedAt }] };
     monthList = Object.keys(srv.months).filter(m => m && m !== '__meta__').sort().reverse();
-    renderFileChips(srv.fileList || [{ fileName: srv.fileName || '서버 데이터', uploadedAt: srv.savedAt }], true);
+    renderFileChips(serverData.fileList, true);
   }
   renderReport();
 }
