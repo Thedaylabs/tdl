@@ -473,6 +473,26 @@ function handleFile(file) {
           route: r[idxRoute] || '미지정'
         });
       }
+      // 중복 감지: 새 파일 상위 20개 차트번호가 기존 데이터에 있는지 확인
+      const existing = await getBranchData(currentBranch);
+      const existingRows = existing ? (existing.rows || []) : [];
+      if (existingRows.length > 0) {
+        const newCharts = rows.slice(0, 20).map(r => r.chart).filter(Boolean);
+        const existingChartSet = new Set(existingRows.map(r => r.chart));
+        const dupCount = newCharts.filter(c => existingChartSet.has(c)).length;
+        if (dupCount >= 3) {
+          const overwrite = confirm(
+            `⚠️ 중복 데이터가 감지됐습니다.\n\n이미 업로드된 데이터와 같은 내용이 포함되어 있습니다.\n덮어쓰기 하시겠습니까?\n\n[확인] 덮어쓰기 (기존 전체 삭제 후 새 파일로 교체)\n[취소] 업로드 취소`
+          );
+          if (!overwrite) return;
+          // 덮어쓰기: 기존 데이터 삭제 후 새 파일만 저장
+          await deleteBranchData(currentBranch);
+          await deleteServerAnalysis(currentBranch);
+          existingRows.length = 0;
+          (existing?.fileList || []).length = 0;
+        }
+      }
+
       // IDB에 누적 저장 (기존 rows에 append)
       await saveBranchData(currentBranch, file.name, rows);
 
