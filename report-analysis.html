@@ -766,6 +766,8 @@ function handleFile(file) {
       renderFileChips(savedFileList);
       await renderBranchGrid();
       renderReport();
+      // 업로드 완료 후 파일 관리 탭으로 이동
+      switchSection('files');
     } catch (err) {
       alert('엑셀 파일을 읽는 중 오류가 발생했습니다.\n시트 구성을 확인해 주세요.\n\n' + err.message);
     }
@@ -900,12 +902,22 @@ async function renderBranchFileManager() {
   const wrap = document.getElementById('branchFileWrap');
   if (!wrap) return;
   wrap.innerHTML = '<p class="sub-note" style="text-align:center;padding:16px">불러오는 중...</p>';
-  const files = await getFileRecords(currentBranch);
-  if (!files.length) {
+
+  // 로컬 IDB 파일 목록
+  const localFiles = await getFileRecords(currentBranch);
+  const localNames = new Set(localFiles.map(f => f.fileName));
+
+  // 서버 파일 목록 (다른 PC에서 업로드한 파일 포함)
+  const srvList = serverData?.fileList || [];
+  // 로컬에 없는 서버 파일만 별도 표시
+  const remoteFiles = srvList.filter(f => !localNames.has(f.fileName));
+
+  if (!localFiles.length && !remoteFiles.length) {
     wrap.innerHTML = '<div class="fm-empty">📭 이 지점에 업로드된 파일이 없습니다.</div>';
     return;
   }
-  const rows = files.sort((a,b) => b.uploadedAt.localeCompare(a.uploadedAt)).map(f => `
+
+  const localRows = localFiles.sort((a,b) => b.uploadedAt.localeCompare(a.uploadedAt)).map(f => `
     <tr>
       <td>${f.fileName}</td>
       <td>${formatDate(f.uploadedAt)}</td>
@@ -915,9 +927,18 @@ async function renderBranchFileManager() {
         <button class="btn-del" onclick="deleteFile('${f.key.replace(/'/g,"\\'")}','${f.branch.replace(/'/g,"\\'")}')">🗑 삭제</button>
       </td>
     </tr>`).join('');
+
+  const remoteRows = remoteFiles.map(f => `
+    <tr style="opacity:0.65">
+      <td>${f.fileName} <span style="font-size:0.75rem;color:#888;margin-left:4px">☁️ 다른 PC 업로드</span></td>
+      <td>${formatDate(f.uploadedAt)}</td>
+      <td class="fm-size">—</td>
+      <td style="padding:8px 12px;color:#aaa;font-size:0.8rem">원본 PC에서 다운로드 가능</td>
+    </tr>`).join('');
+
   wrap.innerHTML = `<div class="table-scroll"><table class="fm-table">
     <thead><tr><th>파일명</th><th>업로드일</th><th>크기</th><th>작업</th></tr></thead>
-    <tbody>${rows}</tbody>
+    <tbody>${localRows}${remoteRows}</tbody>
   </table></div>`;
 }
 
