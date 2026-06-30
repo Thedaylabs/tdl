@@ -488,13 +488,30 @@ async function loadSavedData(branch) {
   } catch(e) {}
 
   // 2) IDB 없으면 서버에서 집계 데이터 불러오기
-  const srv = await fetchServerData(branch);
+  const chipArea = document.getElementById('fileChipArea');
+  chipArea.innerHTML = '<div style="color:#6b7280;font-size:13px;padding:8px 0">⏳ 서버에서 데이터 불러오는 중...</div>';
+  let srvErr = null;
+  let srv = null;
+  try {
+    const r = await fetch(`${SYNC_URL}?action=get_analysis&branch=${encodeURIComponent(branch)}`);
+    if (!r.ok) { srvErr = `HTTP ${r.status}`; }
+    else {
+      const j = await r.json();
+      if (j.result === 'error') srvErr = j.message || '서버 오류';
+      else srv = j.analysis || null;
+    }
+  } catch(e) { srvErr = e.message || '네트워크 오류'; }
+
   if (srv) {
     // __meta__ 안의 fileList를 serverData에 직접 노출
     const metaFileList = srv.months?.['__meta__']?.fileList || null;
     serverData = { ...srv, fileList: metaFileList || [{ fileName: srv.fileName || '서버 데이터', uploadedAt: srv.savedAt }] };
     monthList = Object.keys(srv.months).filter(m => m && m !== '__meta__').sort().reverse();
     renderFileChips(serverData.fileList, true);
+  } else if (srvErr) {
+    chipArea.innerHTML = `<div style="color:#ef4444;font-size:13px;padding:8px 0">❌ 서버 연결 실패: ${srvErr}</div>`;
+  } else {
+    chipArea.innerHTML = '<div style="color:#6b7280;font-size:13px;padding:8px 0">이 지점에 업로드된 데이터가 없습니다.</div>';
   }
   renderReport();
 }
