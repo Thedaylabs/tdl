@@ -656,6 +656,13 @@ async function getFilesFromIDB(submissionId){
 // ════════════════════════════════════════════════════════
 let lbImages=[], lbIdx=0;
 function openLightbox(images, startIdx){
+  // images: [{data, name}] 형식 (IDB)
+  lbImages=images.map(f=>({src:f.data||f.src, name:f.name})); lbIdx=startIdx;
+  updateLightbox();
+  document.getElementById('lightbox').classList.add('show');
+}
+function openLightboxDrive(images, startIdx){
+  // images: [{src, name}] 형식 (Drive URL)
   lbImages=images; lbIdx=startIdx;
   updateLightbox();
   document.getElementById('lightbox').classList.add('show');
@@ -667,7 +674,7 @@ function lbMove(dir){
 }
 function updateLightbox(){
   const f=lbImages[lbIdx];
-  document.getElementById('lbImg').src=f.data;
+  document.getElementById('lbImg').src=f.src||f.data||'';
   document.getElementById('lbImg').alt=f.name;
   document.getElementById('lbName').textContent=f.name;
   document.getElementById('lbCounter').textContent=`${lbIdx+1} / ${lbImages.length}`;
@@ -1076,32 +1083,47 @@ function renderReports() {
     // 첨부파일 비동기 로드
     if(row.id){
       const thumbsEl = card.querySelector(`#thumbs_${row.id}`);
-      getFilesFromIDB(row.id).then(files => {
+      const driveFiles = Array.isArray(row.fileIds) ? row.fileIds.filter(f=>f&&f.fileId) : [];
+
+      function renderFileThumbs(files, fromDrive){
         if(!files||files.length===0){
           thumbsEl.innerHTML='<div class="file-none">첨부파일 없음</div>';
           return;
         }
-        // 이미지만 라이트박스에 사용
-        const imgFiles = files.filter(f=>f.type&&f.type.startsWith('image/'));
+        // 이미지만 라이트박스
+        const imgFiles = fromDrive
+          ? files.filter(f=>f.type&&f.type.startsWith('image/')).map(f=>({name:f.name,src:`https://drive.google.com/uc?export=view&id=${f.fileId}`}))
+          : files.filter(f=>f.type&&f.type.startsWith('image/')).map(f=>({name:f.name,src:f.data}));
         thumbsEl.innerHTML='';
-        files.forEach((f,fi)=>{
+        files.forEach(f=>{
           const thumb=document.createElement('div');
           thumb.className='file-thumb';
-          if(f.type&&f.type.startsWith('image/')){
-            const imgIdx=imgFiles.indexOf(f);
-            thumb.innerHTML=`<img src="${f.data}" alt="${f.name}" /><div class="fname">${f.name}</div>`;
-            thumb.onclick=()=>openLightbox(imgFiles,imgIdx);
+          const isImg=f.type&&f.type.startsWith('image/');
+          const ext=(f.name||'').split('.').pop().toUpperCase();
+          if(isImg){
+            const src=fromDrive?`https://drive.google.com/uc?export=view&id=${f.fileId}`:f.data;
+            const imgIdx=imgFiles.findIndex(x=>x.name===f.name);
+            thumb.innerHTML=`<img src="${src}" alt="${f.name}" loading="lazy"/><div class="fname">${f.name}</div>`;
+            thumb.onclick=()=>openLightboxDrive(imgFiles,imgIdx);
           } else {
-            // PDF / 기타 → 다운로드
-            thumb.innerHTML=`<div class="pdf-icon">📄<span>${f.name.split('.').pop().toUpperCase()}</span></div><div class="fname">${f.name}</div>`;
-            thumb.onclick=()=>{
-              const a=document.createElement('a');
-              a.href=f.data; a.download=f.name; a.click();
-            };
+            const href=fromDrive?`https://drive.google.com/uc?export=download&id=${f.fileId}`:f.data;
+            const icon = ext==='XLSX'||ext==='XLS' ? '📊' : ext==='PDF' ? '📕' : '📄';
+            thumb.innerHTML=`<div class="pdf-icon">${icon}<span>${ext}</span></div><div class="fname">${f.name}</div>`;
+            thumb.onclick=()=>{ const a=document.createElement('a'); a.href=href; a.download=f.name; a.target='_blank'; document.body.appendChild(a); a.click(); a.remove(); };
           }
           thumbsEl.appendChild(thumb);
         });
-      }).catch(()=>{ thumbsEl.innerHTML='<div class="file-none">파일 로드 실패</div>'; });
+      }
+
+      if(driveFiles.length>0){
+        // Drive fileId 있는 경우 → Drive URL로 바로 표시
+        renderFileThumbs(row.fileIds.filter(f=>f&&f.fileId), true);
+      } else {
+        // 구버전 IDB fallback
+        getFilesFromIDB(row.id).then(files=>{
+          renderFileThumbs(files, false);
+        }).catch(()=>{ thumbsEl.innerHTML='<div class="file-none">파일 로드 실패</div>'; });
+      }
     }
   });
 }

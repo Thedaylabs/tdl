@@ -800,6 +800,66 @@ async function saveFilesToIDB(submissionId, allFiles){
   });
 }
 
+// 이미지 리사이즈 (Drive 업로드용)
+async function resizeImage(file, maxPx=1600){
+  return new Promise(res=>{
+    const img=new Image(); const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      let w=img.width, h=img.height;
+      if(w>maxPx||h>maxPx){ const r=Math.min(maxPx/w,maxPx/h); w=Math.round(w*r); h=Math.round(h*r); }
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      c.toBlob(b=>res(b),'image/jpeg',0.82);
+    };
+    img.src=url;
+  });
+}
+
+async function uploadFilesToDrive(submissionId, allFiles){
+  const toBase64=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(b);});
+  const results=[];
+  for(let i=0;i<allFiles.length;i++){
+    const f=allFiles[i];
+    try{
+      const blob=f.type.startsWith('image/') ? await resizeImage(f) : f;
+      const b64=await toBase64(blob);
+      const fileName=`${submissionId}_${i}_${f.name}`;
+      const resp=await fetch(SCRIPT_URL,{
+        method:'POST', mode:'no-cors',
+        headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify({action:'save_file',branch:currentBranch,fileName,base64:b64})
+      });
+      // no-cors 모드라 응답 못 읽음 → fileId 없이 fileName만 기록
+      results.push({name:f.name, type:f.type, fileName});
+    }catch(e){ console.warn('Drive 업로드 실패',f.name,e); }
+  }
+  return results;
+}
+
+// CORS 허용 시 fileId를 받는 버전 (Vercel 프록시 경유)
+async function uploadFilesToDriveViaProxy(submissionId, allFiles){
+  const PROXY='/api/sync';
+  const toBase64=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(b);});
+  const results=[];
+  for(let i=0;i<allFiles.length;i++){
+    const f=allFiles[i];
+    try{
+      const blob=f.type.startsWith('image/') ? await resizeImage(f) : f;
+      const b64=await toBase64(blob);
+      const fileName=`${submissionId}_${i}_${f.name}`;
+      const resp=await fetch(PROXY,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'save_file',branch:currentBranch,fileName,base64:b64})
+      });
+      const json=await resp.json().catch(()=>({}));
+      results.push({name:f.name, type:f.type, fileName, fileId:json.fileId||null});
+    }catch(e){ console.warn('Drive 업로드 실패',f.name,e); }
+  }
+  return results;
+}
+
 async function getFilesFromIDB(submissionId){
   try{
     const db=await openIDB();
@@ -842,9 +902,14 @@ document.getElementById('mainForm').addEventListener('submit', async function(e)
     ...(fileStore.p2||[]).filter(Boolean),
     ...(fileStore.p3||[]).filter(Boolean)
   ];
+  let uploadedFileIds = [];
   if(allFiles.length>0){
     try{ await saveFilesToIDB(submissionId, allFiles); }
-    catch(err){ console.warn('파일 저장 실패', err); }
+    catch(err){ console.warn('IDB 저장 실패', err); }
+    try{
+      const uploaded = await uploadFilesToDriveViaProxy(submissionId, allFiles);
+      uploadedFileIds = uploaded;
+    }catch(err){ console.warn('Drive 업로드 실패', err); }
   }
 
   const payload={
@@ -853,7 +918,8 @@ document.getElementById('mainForm').addEventListener('submit', async function(e)
     salesDomestic:getRawNum('salesDom'), salesOverseas:getRawNum('salesOvs'), salesTotal:getRawNum('salesTot'),
     special:collectSpecial(currentBranch), memo:document.getElementById('memo').value.trim(),
     submittedAt:new Date().toISOString(),
-    fileCount: allFiles.length
+    fileCount: allFiles.length,
+    fileIds: uploadedFileIds
   };
 
   // localStorage 저장
