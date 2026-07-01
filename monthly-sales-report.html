@@ -1087,14 +1087,14 @@ function renderHistory() {
       function renderHiThumbs(files, fromDrive) {
         if(!files||files.length===0){ thumbsEl.innerHTML='<span class="hi-file-none">첨부파일 없음</span>'; return; }
         const imgFiles = fromDrive
-          ? files.filter(f=>f.type&&f.type.startsWith('image/')).map(f=>({name:f.name,data:`https://drive.google.com/uc?export=view&id=${f.fileId}`}))
+          ? files.filter(f=>f.type&&f.type.startsWith('image/')).map(f=>({name:f.name,src:`https://drive.google.com/thumbnail?id=${f.fileId}&sz=w1200`,fileId:f.fileId}))
           : files.filter(f=>f.type&&f.type.startsWith('image/'));
         thumbsEl.innerHTML='';
         files.forEach(f=>{
           const thumb=document.createElement('div'); thumb.className='hi-thumb';
           const isImg=f.type&&f.type.startsWith('image/');
           if(isImg){
-            const src=fromDrive?`https://drive.google.com/uc?export=view&id=${f.fileId}`:f.data;
+            const src=fromDrive?`https://drive.google.com/thumbnail?id=${f.fileId}&sz=w400`:f.data;
             const imgIdx=imgFiles.findIndex(x=>x.name===f.name);
             thumb.innerHTML=`<img src="${src}" alt="${f.name}"/><div class="fname">${f.name}</div>`;
             thumb.onclick=()=>openLb(imgFiles,imgIdx);
@@ -1204,8 +1204,8 @@ function updateLb(){
 }
 function lbDownload(){
   const f=lbImages[lbIdx];
-  if(f.src&&f.src.includes('drive.google.com')){
-    window.open(f.src.replace('export=view','export=download'),'_blank');
+  if(f.fileId){
+    window.open(`https://drive.google.com/uc?export=download&id=${f.fileId}`,'_blank');
   } else {
     const a=document.createElement('a'); a.href=f.data||f.src; a.download=f.name; a.click();
   }

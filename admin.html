@@ -785,9 +785,8 @@ function updateLightbox(){
 }
 function lbDownload(){
   const f=lbImages[lbIdx];
-  if(f.src&&f.src.includes('drive.google.com')){
-    const dlUrl=f.src.replace('export=view','export=download');
-    window.open(dlUrl,'_blank');
+  if(f.fileId){
+    window.open(`https://drive.google.com/uc?export=download&id=${f.fileId}`,'_blank');
   } else {
     const a=document.createElement('a'); a.href=f.data||f.src; a.download=f.name; a.click();
   }
@@ -1210,7 +1209,7 @@ function renderReports() {
         }
         // 이미지만 라이트박스
         const imgFiles = fromDrive
-          ? files.filter(f=>f.type&&f.type.startsWith('image/')).map(f=>({name:f.name,src:`https://drive.google.com/uc?export=view&id=${f.fileId}`}))
+          ? files.filter(f=>f.type&&f.type.startsWith('image/')).map(f=>({name:f.name,src:`https://drive.google.com/thumbnail?id=${f.fileId}&sz=w1200`,fileId:f.fileId}))
           : files.filter(f=>f.type&&f.type.startsWith('image/')).map(f=>({name:f.name,src:f.data}));
         thumbsEl.innerHTML='';
         files.forEach(f=>{
@@ -1219,7 +1218,7 @@ function renderReports() {
           const isImg=f.type&&f.type.startsWith('image/');
           const ext=(f.name||'').split('.').pop().toUpperCase();
           if(isImg){
-            const src=fromDrive?`https://drive.google.com/uc?export=view&id=${f.fileId}`:f.data;
+            const src=fromDrive?`https://drive.google.com/thumbnail?id=${f.fileId}&sz=w400`:f.data;
             const imgIdx=imgFiles.findIndex(x=>x.name===f.name);
             thumb.innerHTML=`<img src="${src}" alt="${f.name}" loading="lazy"/><div class="fname">${f.name}</div>`;
             thumb.onclick=()=>openLightboxDrive(imgFiles,imgIdx);
@@ -1382,7 +1381,7 @@ function efRenderExisting() {
     div.className = 'ef-file-item';
     div.title = f.name;
     if (isImg) {
-      div.innerHTML = `<img src="https://drive.google.com/uc?export=view&id=${f.fileId}" /><div class="ef-fname">${f.name}</div>`;
+      div.innerHTML = `<img src="https://drive.google.com/thumbnail?id=${f.fileId}&sz=w400" /><div class="ef-fname">${f.name}</div>`;
     } else {
       const icon = ext==='XLSX'||ext==='XLS' ? '📊' : ext==='PDF' ? '📕' : '📄';
       div.innerHTML = `<div class="ef-ext">${icon}<span>${ext}</span></div><div class="ef-fname">${f.name}</div>`;
