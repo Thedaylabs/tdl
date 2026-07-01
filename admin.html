@@ -128,7 +128,48 @@
     .rc-special .srow { display:flex; justify-content:space-between; color:#555; margin-top:3px; }
     .rc-memo { background:#f8faff; border-radius:8px; padding:10px 12px; font-size:.8rem; color:#555; }
     .rc-memo .mlbl { font-weight:600; color:#374151; margin-bottom:3px; }
-    .rc-footer { padding:10px 20px; background:#fafafa; font-size:.74rem; color:#bbb; display:flex; justify-content:space-between; }
+    .rc-footer { padding:10px 20px; background:#fafafa; font-size:.74rem; color:#bbb; display:flex; justify-content:space-between; align-items:center; }
+    .btn-edit-card { background:#7c3aed; color:#fff; border:none; border-radius:8px; padding:5px 12px; font-size:.75rem; font-weight:600; cursor:pointer; font-family:inherit; }
+    .btn-edit-card:hover { background:#6d28d9; }
+    .btn-del-card { background:#fff; color:#dc2626; border:1.5px solid #fca5a5; border-radius:8px; padding:5px 10px; font-size:.75rem; font-weight:600; cursor:pointer; font-family:inherit; margin-left:6px; }
+    .btn-del-card:hover { background:#fef2f2; }
+
+    /* ── 수정 모달 ── */
+    .edit-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:500; align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto; }
+    .edit-overlay.show { display:flex; }
+    .edit-modal { background:#fff; border-radius:20px; width:100%; max-width:600px; padding:28px 28px 24px; box-shadow:0 8px 40px rgba(0,0,0,.18); position:relative; margin:auto; }
+    .edit-modal h2 { font-size:1.05rem; font-weight:700; margin-bottom:20px; color:#1a1a2e; }
+    .edit-close { position:absolute; top:16px; right:18px; background:none; border:none; font-size:1.4rem; cursor:pointer; color:#aaa; line-height:1; }
+    .edit-close:hover { color:#7c3aed; }
+    .ef-group { margin-bottom:16px; }
+    .ef-label { font-size:.8rem; font-weight:600; color:#374151; margin-bottom:5px; display:block; }
+    .ef-input { width:100%; padding:10px 12px; border:1.5px solid #e0e0e0; border-radius:10px; font-size:.92rem; font-family:inherit; background:#fafafa; color:#1a1a2e; }
+    .ef-input:focus { outline:none; border-color:#7c3aed; background:#fff; }
+    .ef-input[readonly] { background:#f3e8ff; color:#7c3aed; font-weight:600; cursor:default; }
+    .ef-row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .ef-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+    .ef-special { background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:14px 16px; margin-bottom:16px; }
+    .ef-special .note { font-size:.78rem; color:#92400e; margin-bottom:10px; }
+    .ef-srow { display:grid; grid-template-columns:160px 1fr 1fr; gap:8px; align-items:center; margin-bottom:8px; }
+    .ef-srow:last-child { margin-bottom:0; }
+    .ef-slabel { font-size:.82rem; font-weight:600; color:#374151; background:#fff; border-radius:7px; padding:8px 10px; border:1.5px solid #e5e7eb; }
+    .ef-stotal { margin-top:8px; font-size:.83rem; font-weight:700; color:#b45309; text-align:right; }
+    .ef-files-existing { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; min-height:20px; }
+    .ef-file-item { position:relative; width:70px; height:70px; border-radius:8px; border:1.5px solid #e5e7eb; overflow:hidden; background:#f8fafc; cursor:pointer; }
+    .ef-file-item img { width:100%; height:100%; object-fit:cover; }
+    .ef-file-item .ef-rm { position:absolute; top:2px; right:2px; background:rgba(220,38,38,.85); color:#fff; border:none; border-radius:50%; width:18px; height:18px; font-size:.65rem; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
+    .ef-file-item .ef-ext { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; font-size:1.3rem; }
+    .ef-file-item .ef-ext span { font-size:.6rem; color:#dc2626; font-weight:700; }
+    .ef-file-item .ef-fname { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,.5); color:#fff; font-size:.55rem; padding:2px 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ef-upload { border:2px dashed #d8b4fe; border-radius:10px; padding:14px; text-align:center; font-size:.8rem; color:#a78bfa; cursor:pointer; transition:background .15s; }
+    .ef-upload:hover { background:#f5f3ff; }
+    .ef-new-previews { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+    .ef-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; padding-top:16px; border-top:1px solid #f0f2f5; }
+    .btn-save-edit { background:#7c3aed; color:#fff; border:none; border-radius:10px; padding:11px 24px; font-size:.92rem; font-weight:700; cursor:pointer; font-family:inherit; }
+    .btn-save-edit:hover { background:#6d28d9; }
+    .btn-save-edit:disabled { background:#c4b5fd; cursor:not-allowed; }
+    .btn-cancel-edit { background:#fff; color:#888; border:1.5px solid #e0e0e0; border-radius:10px; padding:11px 18px; font-size:.9rem; cursor:pointer; font-family:inherit; }
+    .btn-cancel-edit:hover { background:#f5f5f5; }
     .report-empty { text-align:center; padding:60px 24px; color:#aaa; grid-column:1/-1; }
     .report-empty .ico { font-size:2.5rem; margin-bottom:12px; }
 
@@ -610,6 +651,65 @@
 
 </div>
 
+<!-- 수정 모달 -->
+<div class="edit-overlay" id="editOverlay" onclick="if(event.target===this)closeEditModal()">
+  <div class="edit-modal">
+    <button class="edit-close" onclick="closeEditModal()">✕</button>
+    <h2 id="editModalTitle">매출 데이터 수정</h2>
+
+    <div class="ef-group">
+      <label class="ef-label">지점명</label>
+      <input class="ef-input" id="ef_branch" readonly />
+    </div>
+    <div class="ef-row2" style="margin-bottom:16px">
+      <div class="ef-group" style="margin:0">
+        <label class="ef-label">보고월</label>
+        <input class="ef-input" id="ef_month" type="month" />
+      </div>
+      <div class="ef-group" style="margin:0">
+        <label class="ef-label">담당자</label>
+        <input class="ef-input" id="ef_manager" type="text" placeholder="담당자명" />
+      </div>
+    </div>
+    <div class="ef-row3" style="margin-bottom:16px">
+      <div class="ef-group" style="margin:0">
+        <label class="ef-label">국내 매출 (원)</label>
+        <input class="ef-input" id="ef_domestic" type="text" inputmode="numeric" placeholder="0" oninput="efFmt(this);efCalcTotal()" />
+      </div>
+      <div class="ef-group" style="margin:0">
+        <label class="ef-label">해외 매출 (원)</label>
+        <input class="ef-input" id="ef_overseas" type="text" inputmode="numeric" placeholder="0" oninput="efFmt(this);efCalcTotal()" />
+      </div>
+      <div class="ef-group" style="margin:0">
+        <label class="ef-label">총 매출 (자동계산)</label>
+        <input class="ef-input" id="ef_total" type="text" readonly placeholder="자동계산" style="background:#f0fdf4;color:#059669;font-weight:700" />
+      </div>
+    </div>
+
+    <div id="ef_specialWrap"></div>
+
+    <div class="ef-group">
+      <label class="ef-label">메모</label>
+      <textarea class="ef-input" id="ef_memo" rows="3" style="resize:vertical;line-height:1.5" placeholder="메모 (선택)"></textarea>
+    </div>
+
+    <div class="ef-group">
+      <label class="ef-label">📎 첨부파일</label>
+      <div class="ef-files-existing" id="ef_existingFiles"></div>
+      <div class="ef-upload" onclick="document.getElementById('ef_fileInput').click()">
+        + 파일 추가 (이미지·PDF·Excel 등)
+      </div>
+      <input type="file" id="ef_fileInput" multiple style="display:none" accept="image/*,.pdf,.xlsx,.xls" onchange="efAddFiles(this)" />
+      <div class="ef-new-previews" id="ef_newPreviews"></div>
+    </div>
+
+    <div class="ef-footer">
+      <button class="btn-cancel-edit" onclick="closeEditModal()">취소</button>
+      <button class="btn-save-edit" id="ef_saveBtn" onclick="saveEditModal()">저장</button>
+    </div>
+  </div>
+</div>
+
 <!-- 라이트박스 -->
 <div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
   <div class="lightbox-inner">
@@ -1076,7 +1176,10 @@ function renderReports() {
       </div>
       <div class="rc-footer">
         <span>제출일시 : ${formatDate(row.submittedAt)}</span>
-        <span style="color:#7c3aed;font-weight:700">수수료 ${numFmt(fees.total)}원</span>
+        <div style="display:flex;gap:0;align-items:center">
+          <button class="btn-edit-card" onclick="openEditModal(${JSON.stringify(JSON.stringify(row))})">수정</button>
+          <button class="btn-del-card" onclick="deleteReport(${JSON.stringify(row.id)})">삭제</button>
+        </div>
       </div>`;
     list.appendChild(card);
 
@@ -1144,6 +1247,249 @@ function renderReports() {
       }
     }
   });
+}
+
+// ════════════════════════════════════════════════════════
+// 수정 모달
+// ════════════════════════════════════════════════════════
+const BRANCH_SPECIAL = {
+  '강남점':    { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'울쎄라 시술 제외',id:'ef_sp_ulthera'},{label:'리쥬란 시술 제외',id:'ef_sp_rejuran'}] },
+  '명동점':    { type:'info',  note:'명동점은 마케팅 수수료 제외 지점입니다.' },
+  '분당점':    { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'화장품 판매 제외',id:'ef_sp_cosmetic'}] },
+  '부산서면점':{ type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'환불건 제외',id:'ef_sp_refund'}] }
+};
+
+let editRow = null;      // 현재 수정 중인 row 원본
+let efNewFiles = [];     // 새로 추가한 파일 [{file, data}]
+let efKeptFileIds = [];  // 기존 파일 중 유지할 것 [{name,type,fileName,fileId}]
+
+function openEditModal(rowJson) {
+  editRow = JSON.parse(rowJson);
+  efNewFiles = [];
+  efKeptFileIds = Array.isArray(editRow.fileIds) ? editRow.fileIds.filter(f=>f&&f.fileId) : [];
+
+  document.getElementById('editModalTitle').textContent = `수정 — ${editRow.branch||''}`;
+  document.getElementById('ef_branch').value   = editRow.branch   || '';
+  document.getElementById('ef_month').value    = editRow.month    || '';
+  document.getElementById('ef_manager').value  = editRow.manager  || '';
+  document.getElementById('ef_memo').value     = editRow.memo     || '';
+  document.getElementById('ef_domestic').value = (editRow.salesDomestic||0).toLocaleString('ko-KR');
+  document.getElementById('ef_overseas').value = (editRow.salesOverseas||0).toLocaleString('ko-KR');
+  document.getElementById('ef_total').value    = (editRow.salesTotal||0).toLocaleString('ko-KR');
+  document.getElementById('ef_newPreviews').innerHTML = '';
+  document.getElementById('ef_fileInput').value = '';
+
+  // 특약
+  efRenderSpecial(editRow.branch, editRow.special || {});
+
+  // 기존 첨부파일
+  efRenderExisting();
+
+  document.getElementById('editOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal() {
+  document.getElementById('editOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+  editRow = null; efNewFiles = []; efKeptFileIds = [];
+}
+
+function efFmt(input) {
+  const raw = input.value.replace(/[^0-9]/g, '');
+  input.value = raw ? Number(raw).toLocaleString('ko-KR') : '';
+}
+function efRaw(id) {
+  return parseInt((document.getElementById(id).value||'0').replace(/,/g,''), 10) || 0;
+}
+function efCalcTotal() {
+  const t = efRaw('ef_domestic') + efRaw('ef_overseas');
+  document.getElementById('ef_total').value = t ? t.toLocaleString('ko-KR') : '';
+}
+
+function efRenderSpecial(branch, existingSpecial) {
+  const wrap = document.getElementById('ef_specialWrap');
+  // branch에서 지점 기본명 추출 (예: "데이뷰의원 강남점" → "강남점")
+  const shortKey = Object.keys(BRANCH_SPECIAL).find(k => branch.includes(k)) || '';
+  const config = BRANCH_SPECIAL[shortKey];
+  if (!config) { wrap.innerHTML = ''; return; }
+  if (config.type === 'info') {
+    wrap.innerHTML = `<div class="ef-special"><div class="note">ℹ️ ${config.note}</div></div>`;
+    return;
+  }
+  let html = `<div class="ef-special"><div class="note">📌 ${config.note}</div>`;
+  config.items.forEach(item => {
+    const existing = existingSpecial[item.label] || {};
+    html += `<div class="ef-srow">
+      <div class="ef-slabel">${item.label}</div>
+      <input class="ef-input" id="${item.id}" type="text" inputmode="numeric" placeholder="금액 (원)" value="${existing.amount||''}" oninput="efFmt(this);efCalcSpTotal('${shortKey}')" />
+      <input class="ef-input" id="${item.id}_memo" type="text" placeholder="비고 (선택)" value="${existing.memo||''}" />
+    </div>`;
+  });
+  html += `<div class="ef-stotal">특약 합계: <span id="ef_stotal_${shortKey}">0 원</span></div></div>`;
+  wrap.innerHTML = html;
+  efCalcSpTotal(shortKey);
+}
+
+function efCalcSpTotal(shortKey) {
+  const config = BRANCH_SPECIAL[shortKey];
+  if (!config || config.type !== 'input') return;
+  let total = 0;
+  config.items.forEach(item => {
+    const el = document.getElementById(item.id);
+    if (el) total += parseInt((el.value||'0').replace(/,/g,''), 10) || 0;
+  });
+  const el = document.getElementById('ef_stotal_' + shortKey);
+  if (el) el.textContent = total.toLocaleString('ko-KR') + ' 원';
+}
+
+function efCollectSpecial(branch) {
+  const shortKey = Object.keys(BRANCH_SPECIAL).find(k => branch.includes(k)) || '';
+  const config = BRANCH_SPECIAL[shortKey];
+  if (!config || config.type !== 'input') return null;
+  const result = {};
+  config.items.forEach(item => {
+    const el = document.getElementById(item.id);
+    const memoEl = document.getElementById(item.id + '_memo');
+    result[item.label] = { amount: parseInt((el ? el.value||'0' : '0').replace(/,/g,''), 10)||0, memo: memoEl ? memoEl.value.trim() : '' };
+  });
+  return result;
+}
+
+function efRenderExisting() {
+  const wrap = document.getElementById('ef_existingFiles');
+  wrap.innerHTML = '';
+  if (!efKeptFileIds.length) { wrap.innerHTML = '<span style="font-size:.78rem;color:#ccc">기존 파일 없음</span>'; return; }
+  efKeptFileIds.forEach((f, i) => {
+    const isImg = f.type && f.type.startsWith('image/');
+    const ext = (f.name || '').split('.').pop().toUpperCase();
+    const div = document.createElement('div');
+    div.className = 'ef-file-item';
+    div.title = f.name;
+    if (isImg) {
+      div.innerHTML = `<img src="https://drive.google.com/uc?export=view&id=${f.fileId}" /><div class="ef-fname">${f.name}</div>`;
+    } else {
+      const icon = ext==='XLSX'||ext==='XLS' ? '📊' : ext==='PDF' ? '📕' : '📄';
+      div.innerHTML = `<div class="ef-ext">${icon}<span>${ext}</span></div><div class="ef-fname">${f.name}</div>`;
+    }
+    const rm = document.createElement('button');
+    rm.className = 'ef-rm'; rm.textContent = '✕'; rm.title = '삭제';
+    rm.onclick = (e) => { e.stopPropagation(); efKeptFileIds.splice(i, 1); efRenderExisting(); };
+    div.appendChild(rm);
+    wrap.appendChild(div);
+  });
+}
+
+function efAddFiles(input) {
+  const previews = document.getElementById('ef_newPreviews');
+  Array.from(input.files).forEach(file => {
+    const idx = efNewFiles.length;
+    const reader = new FileReader();
+    reader.onload = e => {
+      efNewFiles.push({ file, data: e.target.result });
+      const div = document.createElement('div');
+      div.className = 'ef-file-item'; div.dataset.idx = idx;
+      if (file.type.startsWith('image/')) {
+        div.innerHTML = `<img src="${e.target.result}" /><div class="ef-fname">${file.name}</div>`;
+      } else {
+        const ext = file.name.split('.').pop().toUpperCase();
+        const icon = ext==='XLSX'||ext==='XLS' ? '📊' : ext==='PDF' ? '📕' : '📄';
+        div.innerHTML = `<div class="ef-ext">${icon}<span>${ext}</span></div><div class="ef-fname">${file.name}</div>`;
+      }
+      const rm = document.createElement('button');
+      rm.className = 'ef-rm'; rm.textContent = '✕';
+      rm.onclick = (ev) => { ev.stopPropagation(); efNewFiles[idx] = null; div.remove(); };
+      div.appendChild(rm);
+      previews.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+async function saveEditModal() {
+  const btn = document.getElementById('ef_saveBtn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  try {
+    const branch   = editRow.branch;
+    const month    = document.getElementById('ef_month').value;
+    const manager  = document.getElementById('ef_manager').value.trim();
+    const domestic = efRaw('ef_domestic');
+    const overseas = efRaw('ef_overseas');
+    const total    = domestic + overseas;
+    const memo     = document.getElementById('ef_memo').value.trim();
+    const special  = efCollectSpecial(branch) || editRow.special || {};
+
+    // 새 파일 Drive 업로드
+    const toUpload = efNewFiles.filter(f => f);
+    let newFileIds = [];
+    if (toUpload.length > 0) {
+      for (let i = 0; i < toUpload.length; i++) {
+        const f = toUpload[i];
+        try {
+          const b64 = f.data.split(',')[1];
+          const fileName = `${editRow.id}_ef${Date.now()}_${i}_${f.file.name}`;
+          const resp = await fetch('/api/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'save_file', branch, fileName, base64: b64 })
+          });
+          const json = await resp.json().catch(() => ({}));
+          newFileIds.push({ name: f.file.name, type: f.file.type, fileName, fileId: json.fileId || null });
+        } catch(e) {
+          newFileIds.push({ name: f.file.name, type: f.file.type, fileName: f.file.name, fileId: null });
+        }
+      }
+    }
+
+    const allFileIds = [...efKeptFileIds, ...newFileIds];
+    const updated = Object.assign({}, editRow, {
+      month, manager, salesDomestic: domestic, salesOverseas: overseas, salesTotal: total,
+      memo, special, fileIds: allFileIds, fileCount: allFileIds.length || editRow.fileCount
+    });
+
+    const resp = await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'submit_sales', data: updated })
+    });
+    const json = await resp.json();
+    if (json.result !== 'ok') throw new Error(json.message || '저장 실패');
+
+    // localStorage 업데이트
+    const stored = JSON.parse(localStorage.getItem('sales_data') || '[]');
+    const idx = stored.findIndex(r => r.id === updated.id);
+    if (idx >= 0) stored[idx] = updated; else stored.push(updated);
+    localStorage.setItem('sales_data', JSON.stringify(stored));
+
+    closeEditModal();
+    renderReports();
+    renderOverview();
+    alert('저장됐어요!');
+  } catch(e) {
+    alert('저장 실패: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '저장';
+  }
+}
+
+async function deleteReport(id) {
+  if (!confirm('이 제출 데이터를 삭제하시겠어요?')) return;
+  try {
+    const resp = await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_sales', id })
+    });
+    const json = await resp.json();
+    if (json.result !== 'ok') throw new Error(json.message || '삭제 실패');
+    const stored = JSON.parse(localStorage.getItem('sales_data') || '[]');
+    localStorage.setItem('sales_data', JSON.stringify(stored.filter(r => r.id !== id)));
+    renderReports();
+    renderOverview();
+  } catch(e) {
+    alert('삭제 실패: ' + e.message);
+  }
 }
 
 // ════════════════════════════════════════════════════════
