@@ -1118,11 +1118,29 @@ function renderReports() {
       if(driveFiles.length>0){
         // Drive fileId 있는 경우 → Drive URL로 바로 표시
         renderFileThumbs(row.fileIds.filter(f=>f&&f.fileId), true);
+      } else if(row.fileCount>0){
+        // fileCount는 있지만 fileIds 없음 → Drive에서 직접 검색
+        thumbsEl.innerHTML='<div class="file-none" style="color:#a78bfa">파일 검색 중...</div>';
+        fetch('/api/sync?action=find_files&submissionId='+encodeURIComponent(row.id))
+          .then(r=>r.json())
+          .then(res=>{
+            if(res.result==='ok' && Array.isArray(res.files) && res.files.length>0){
+              // Drive에서 찾은 파일로 표시 + 서버 레코드 업데이트
+              renderFileThumbs(res.files, true);
+              // 백그라운드: fileIds 서버에 저장
+              const updated=Object.assign({},row,{fileIds:res.files});
+              fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({action:'submit_sales',data:updated})}).catch(()=>{});
+            } else {
+              // Drive에도 없으면 IDB fallback
+              getFilesFromIDB(row.id).then(files=>{
+                renderFileThumbs(files, false);
+              }).catch(()=>{ thumbsEl.innerHTML='<div class="file-none">첨부파일 없음</div>'; });
+            }
+          })
+          .catch(()=>{ thumbsEl.innerHTML='<div class="file-none">파일 로드 실패</div>'; });
       } else {
-        // 구버전 IDB fallback
-        getFilesFromIDB(row.id).then(files=>{
-          renderFileThumbs(files, false);
-        }).catch(()=>{ thumbsEl.innerHTML='<div class="file-none">파일 로드 실패</div>'; });
+        thumbsEl.innerHTML='<div class="file-none">첨부파일 없음</div>';
       }
     }
   });
