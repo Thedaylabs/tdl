@@ -6,6 +6,7 @@
   <title>월별 매출 보고서</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { overflow-x: hidden; max-width: 100%; }
     body {
       font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
       background: #f0f2f5; color: #1a1a2e; min-height: 100vh;
@@ -319,15 +320,18 @@
       .tab-btn { font-size: 0.82rem; padding: 11px 0; }
       .tab-content { padding: 14px 10px 60px; }
 
-      .card { padding: 16px 12px; margin-bottom: 14px; }
+      .card { padding: 16px 12px; margin-bottom: 14px; width: 100%; }
       .card h2 { font-size: 0.9rem; margin-bottom: 12px; }
-      .special-card { padding: 16px 12px; }
+      .special-card { padding: 16px 12px; width: 100%; }
 
       .amount-row { grid-template-columns: 1fr 1fr; gap: 8px; }
       .amount-box { padding: 11px 10px; }
+      .amount-box input { font-size: 0.9rem; }
 
-      .s-row { grid-template-columns: 1fr; gap: 6px; }
+      /* 특약사항 — 세로 스택 */
+      .s-row { grid-template-columns: 1fr !important; gap: 6px; }
       .s-label-cell { padding: 8px 10px; font-size: 0.8rem; }
+      .s-row input { width: 100%; }
 
       .btn-submit { width: 100%; padding: 14px; }
       .submit-wrap { padding: 0; }
@@ -343,7 +347,11 @@
       .hi-card-body { padding: 12px 14px; }
       .hi-card-footer { flex-direction: column; gap: 4px; align-items: flex-start; }
 
-      .upload-wrap { padding: 14px 12px; }
+      .upload-wrap { padding: 14px 12px; width: 100%; }
+
+      /* 수정 모달 */
+      .edit-modal { border-radius: 14px; }
+      .edit-modal-body { padding: 14px 16px; }
     }
     @media (max-width: 480px) {
       .amount-row { grid-template-columns: 1fr; }
