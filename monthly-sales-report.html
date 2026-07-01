@@ -349,6 +349,9 @@
 
       .upload-wrap { padding: 14px 12px; width: 100%; }
 
+      input[type="month"] { width: 100%; max-width: 100%; box-sizing: border-box; display: block; }
+      .form-group { width: 100%; overflow: hidden; }
+
       /* 수정 모달 */
       .edit-modal { border-radius: 14px; }
       .edit-modal-body { padding: 14px 16px; }
@@ -649,7 +652,7 @@ function showBranchScreen(branch) {
   const now = new Date();
   // 6일~다음달 5일이면 이전 달 보고
   let repY = now.getFullYear(), repM = now.getMonth() + 1;
-  if (now.getDate() >= 6) { repM -= 1; if (repM < 1) { repM = 12; repY -= 1; } }
+  if (now.getDate() <= 5) { repM -= 1; if (repM < 1) { repM = 12; repY -= 1; } }
   document.getElementById('reportMonth').value =
     `${repY}-${String(repM).padStart(2,'0')}`;
 }
