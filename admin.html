@@ -1177,11 +1177,15 @@ function renderReports() {
       <div class="rc-footer">
         <span>제출일시 : ${formatDate(row.submittedAt)}</span>
         <div style="display:flex;gap:0;align-items:center">
-          <button class="btn-edit-card" onclick="openEditModal(${JSON.stringify(JSON.stringify(row))})">수정</button>
-          <button class="btn-del-card" onclick="deleteReport(${JSON.stringify(row.id)})">삭제</button>
+          <button class="btn-edit-card" data-rowid="${row.id}">수정</button>
+          <button class="btn-del-card" data-delid="${row.id}">삭제</button>
         </div>
       </div>`;
     list.appendChild(card);
+
+    // 버튼 이벤트 (inline onclick 대신 — 따옴표 충돌 방지)
+    card.querySelector('[data-rowid]').addEventListener('click', () => openEditModal(row));
+    card.querySelector('[data-delid]').addEventListener('click', () => deleteReport(row.id));
 
     // 첨부파일 비동기 로드
     if(row.id){
@@ -1263,8 +1267,8 @@ let editRow = null;      // 현재 수정 중인 row 원본
 let efNewFiles = [];     // 새로 추가한 파일 [{file, data}]
 let efKeptFileIds = [];  // 기존 파일 중 유지할 것 [{name,type,fileName,fileId}]
 
-function openEditModal(rowJson) {
-  editRow = JSON.parse(rowJson);
+function openEditModal(row) {
+  editRow = row;
   efNewFiles = [];
   efKeptFileIds = Array.isArray(editRow.fileIds) ? editRow.fileIds.filter(f=>f&&f.fileId) : [];
 
