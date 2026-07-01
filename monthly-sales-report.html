@@ -1035,11 +1035,18 @@ function renderHistory() {
 
     list.appendChild(card);
 
-    // 파일 비동기 로드
+    // 파일 비동기 로드 + 미업로드 파일 Drive 자동 동기화
     if(row.id){
       const thumbsEl=card.querySelector(`#ht_${row.id}`);
-      getFilesFromIDB(row.id).then(files=>{
+      getFilesFromIDB(row.id).then(async files=>{
         if(!files||files.length===0){ thumbsEl.innerHTML='<span class="hi-file-none">첨부파일 없음</span>'; return; }
+
+        // Drive 미업로드 파일 백그라운드 동기화
+        const hasFileIds = Array.isArray(row.fileIds) && row.fileIds.length > 0 && row.fileIds.some(f=>f&&f.fileId);
+        if(!hasFileIds && files.length > 0){
+          syncFilesToDrive(row, files).catch(()=>{});
+        }
+
         const imgFiles=files.filter(f=>f.type&&f.type.startsWith('image/'));
         thumbsEl.innerHTML='';
         files.forEach(f=>{
@@ -1061,6 +1068,44 @@ function renderHistory() {
 
   document.getElementById('historyArea').innerHTML='';
   document.getElementById('historyArea').appendChild(list);
+}
+
+// IDB 파일 → Drive 자동 동기화 (백그라운드)
+async function syncFilesToDrive(row, idbFiles) {
+  const PROXY = '/api/sync';
+  const toBase64 = b => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=e=>res(e.target.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(b instanceof Blob ? b : new Blob([Uint8Array.from(atob(b.data.split(',')[1]),c=>c.charCodeAt(0))])); });
+
+  const results = [];
+  for(let i=0; i<idbFiles.length; i++){
+    const f = idbFiles[i];
+    try {
+      // data URL → base64 추출
+      const b64 = f.data.split(',')[1];
+      const fileName = `${row.id}_${i}_${f.name}`;
+      const resp = await fetch(PROXY, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action:'save_file', branch: row.branch, fileName, base64: b64 })
+      });
+      const json = await resp.json().catch(()=>({}));
+      results.push({ name: f.name, type: f.type, fileName, fileId: json.fileId || null });
+    } catch(e) { results.push({ name: f.name, type: f.type, fileName: `${row.id}_${i}_${f.name}`, fileId: null }); }
+  }
+
+  if(!results.length) return;
+
+  // 서버 레코드 업데이트
+  const updatedPayload = Object.assign({}, row, { fileIds: results });
+  await fetch(PROXY, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'submit_sales', data: updatedPayload })
+  }).catch(()=>{});
+
+  // localStorage도 업데이트
+  const stored = JSON.parse(localStorage.getItem('sales_data')||'[]');
+  const idx = stored.findIndex(r=>r.id===row.id);
+  if(idx>=0){ stored[idx].fileIds = results; localStorage.setItem('sales_data', JSON.stringify(stored)); }
 }
 
 // ── 라이트박스 ───────────────────────────────────────────────
