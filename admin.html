@@ -722,6 +722,7 @@
       <span id="lbCounter" style="color:#fff;align-self:center;font-size:.85rem"></span>
       <button id="lbNext" onclick="lbMove(1)">다음 ▶</button>
     </div>
+    <button id="lbDownload" onclick="lbDownload()" style="margin-top:10px;background:rgba(255,255,255,.18);color:#fff;border:1.5px solid rgba(255,255,255,.4);border-radius:8px;padding:8px 22px;font-size:.88rem;cursor:pointer;font-family:inherit;">⬇ 다운로드</button>
   </div>
 </div>
 
@@ -781,6 +782,15 @@ function updateLightbox(){
   document.getElementById('lbCounter').textContent=`${lbIdx+1} / ${lbImages.length}`;
   document.getElementById('lbPrev').disabled=lbIdx===0;
   document.getElementById('lbNext').disabled=lbIdx===lbImages.length-1;
+}
+function lbDownload(){
+  const f=lbImages[lbIdx];
+  if(f.src&&f.src.includes('drive.google.com')){
+    const dlUrl=f.src.replace('export=view','export=download');
+    window.open(dlUrl,'_blank');
+  } else {
+    const a=document.createElement('a'); a.href=f.data||f.src; a.download=f.name; a.click();
+  }
 }
 document.addEventListener('keydown',e=>{
   if(!document.getElementById('lightbox').classList.contains('show')) return;
