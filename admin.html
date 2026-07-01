@@ -365,6 +365,7 @@
       <span class="top-title">🛠️ 매출 관리자 페이지</span>
       <div style="display:flex;align-items:center;gap:12px;">
         <span id="syncIndicator" style="font-size:.78rem;color:#6b7280;"></span>
+        <button onclick="syncFromServer(()=>{renderOverview();renderReports();})" style="background:#f3e8ff;color:#7c3aed;border:1.5px solid #d8b4fe;border-radius:8px;padding:5px 12px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;">🔄 새로고침</button>
         <div class="admin-chip">
           👑 관리자
           <button class="btn-logout" onclick="doLogout()">로그아웃</button>
@@ -1189,7 +1190,7 @@ function renderReports() {
 
     // 첨부파일 비동기 로드
     if(row.id){
-      const thumbsEl = card.querySelector(`#thumbs_${row.id}`);
+      const thumbsEl = card.querySelector('.file-thumbs');
       const driveFiles = Array.isArray(row.fileIds) ? row.fileIds.filter(f=>f&&f.fileId) : [];
 
       function renderFileThumbs(files, fromDrive){
