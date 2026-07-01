@@ -1,4 +1,4 @@
-export const config = { api: { bodyParser: false, responseLimit: '20mb' } };
+export const config = { api: { bodyParser: false, responseLimit: '20mb', externalResolver: true }, maxDuration: 60 };
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgvA5ZB2ROdBTo4f_7N-GXTezd4UhH5kTWlIKInmlVrugTONgzApw5Ee4xL4orb0W_/exec';
 
