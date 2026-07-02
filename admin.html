@@ -964,7 +964,7 @@ const FEE_RULES = {
   '광주상무점':    { formula:'경영 3억 미만 면제/이상 1,000만+VAT | 마케팅 3억이하:4%/초과분:3%+VAT',
     mgmt:(t)=>t<3*E8?0:11000000,
     mkt:(t)=>t>3*E8?Math.round(((3*E8*0.04)+(t-3*E8)*0.03)*1.1):Math.round(t*0.044) },
-  '강남점':        { formula:'경영 ~26.05: 3억미만면제/3억~5억5.5%/5억~10억7.7%/10억~15억9.35%/15억+9.9% | 26.06~: 4.5%+VAT 최대9천만(특약차감) | 마케팅없음',
+  '강남점':        { formula:'경영 ~26.05: 3억미만면제/3억~5억5.5%/5억~10억7.7%/10억~15억9.35%/15억+9.9% | 26.06~: 4.5%+VAT 최대9천만 | 마케팅없음',
     mgmt:(t,ym,dom,sp)=>{let b;if(ym>='2026-06'){b=Math.min(Math.round(t*0.0495),90000000);}else{if(t<3*E8)b=0;else if(t<5*E8)b=Math.round(t*0.055);else if(t<10*E8)b=Math.round(t*0.077);else if(t<15*E8)b=Math.round(t*0.0935);else b=Math.round(t*0.099);}return Math.max(0,b-(sp||0));},
     mkt:()=>0 },
   '안양범계점':    { formula:'경영 1억 미만 면제/이상 1,000만+VAT | 마케팅 3억이하:4%/초과분:3%+VAT',
@@ -1035,7 +1035,9 @@ function calcFees(row) {
   const ym  = row.month || '';
   const dom = row.salesDomestic != null ? row.salesDomestic : tot;
   const spFromRow = row.special ? Object.values(row.special).reduce((s,v)=>s+(v.amount||0),0) : 0;
-  const sp = spFromRow || (branch === '강남점' ? (GANGNAM_SPECIAL_FALLBACK[ym] || 0) : 0);
+  const spRaw = spFromRow || (branch === '강남점' ? (GANGNAM_SPECIAL_FALLBACK[ym] || 0) : 0);
+  // 강남점은 26.06부터 특약사항 수수료 차감 없음
+  const sp = (branch === '강남점' && ym >= '2026-06') ? 0 : spRaw;
   // 분당점·명동2호점(26.06~)은 특약을 총매출에서 차감 후 수수료 계산
   const isSpecialDeduct = branch === '분당점' || (branch === '명동2호점' && ym >= '2026-06');
   const effTot = isSpecialDeduct ? Math.max(0, tot - sp) : tot;
