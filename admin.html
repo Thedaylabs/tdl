@@ -1017,6 +1017,8 @@ const FEE_RULES = {
 // 데이터 & 수수료
 // ════════════════════════════════════════════════════════
 function getData() { return JSON.parse(localStorage.getItem('sales_data')||'[]'); }
+function getSentState(branch,month){ const d=JSON.parse(localStorage.getItem('invoice_sent')||'{}'); return !!d[branch+'__'+month]; }
+function setSentState(branch,month,val){ const d=JSON.parse(localStorage.getItem('invoice_sent')||'{}'); d[branch+'__'+month]=val; localStorage.setItem('invoice_sent',JSON.stringify(d)); }
 
 function calcFees(row) {
   const tot = row.salesTotal || 0;
@@ -1730,6 +1732,7 @@ function renderInvoiceTab() {
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#0891b2;">마케팅</th>
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#888;">합계</th>
           <th style="padding:8px 6px;text-align:center;font-weight:600;color:#888;width:64px;">청구서</th>
+          <th style="padding:8px 6px;text-align:center;font-weight:600;color:#888;width:72px;">전송완료</th>
         </tr>
       </thead>
       <tbody>`;
@@ -1742,6 +1745,7 @@ function renderInvoiceTab() {
       html += `<tr style="border-bottom:1px solid #f3f4f6;">
         <td style="padding:8px 10px;font-weight:600;">${branch}</td>
         <td colspan="4" style="padding:8px 10px;color:#aaa;text-align:center;">데이터 없음</td>
+        <td style="padding:8px 10px;text-align:center;">-</td>
         <td style="padding:8px 10px;text-align:center;">-</td>
       </tr>`;
       return;
@@ -1761,6 +1765,9 @@ function renderInvoiceTab() {
         <button class="btn-purple" style="padding:2px 5px;font-size:.72rem;" onclick="previewInvoice('${branch}','${month}')">👁️</button>
         <button class="btn-outline" style="padding:2px 5px;font-size:.72rem;" onclick="printInvoice('${branch}','${month}')">🖨️</button>
       </td>
+      <td style="padding:8px 6px;text-align:center;">
+        <input type="checkbox" ${getSentState(branch,month)?'checked':''} onchange="setSentState('${branch}','${month}',this.checked);this.closest('tr').style.background=this.checked?'#f0fdf4':'';" style="width:17px;height:17px;cursor:pointer;accent-color:#16a34a;" title="청구서 전송완료" />
+      </td>
     </tr>`;
   });
 
@@ -1773,11 +1780,17 @@ function renderInvoiceTab() {
         <td style="padding:8px 10px;text-align:right;color:#0891b2;">${fmt(totalMkt)}</td>
         <td style="padding:8px 10px;text-align:right;">${fmt(totalMgmt+totalMkt)}</td>
         <td></td>
+        <td></td>
       </tr>
     </tfoot>
   </table>`;
 
   document.getElementById('invoiceListArea').innerHTML = `<div style="background:#fff;border:1px solid #ede9fe;border-radius:14px;padding:20px 24px;box-shadow:0 2px 12px rgba(0,0,0,.07);">${html}</div>`;
+  // 체크된 행 배경 색 적용
+  document.querySelectorAll('#invoiceListArea tbody tr').forEach(tr=>{
+    const cb=tr.querySelector('input[type=checkbox]');
+    if(cb&&cb.checked) tr.style.background='#f0fdf4';
+  });
   document.getElementById('invoicePreviewArea').innerHTML = '';
 }
 
