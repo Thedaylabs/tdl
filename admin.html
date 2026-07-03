@@ -1158,19 +1158,37 @@ function renderOverview() {
 // 탭2: 매출 자료 카드
 async function downloadAllFiles() {
   const rows = getReportsFiltered();
-  const allFiles = [];
-  rows.forEach(row => {
-    const files = Array.isArray(row.fileIds) ? row.fileIds.filter(f => f && f.fileId) : [];
-    files.forEach(f => allFiles.push({ ...f, branch: row.branch, month: row.month }));
-  });
-
-  if (!allFiles.length) { alert('현재 필터에서 다운로드할 증빙자료가 없습니다.'); return; }
-
   const btn = document.querySelector('button[onclick="downloadAllFiles()"]');
   const orig = btn.textContent;
   btn.disabled = true;
 
   try {
+    const allFiles = [];
+
+    // fileIds가 없는 행은 Drive에서 실시간 조회
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const driveFiles = Array.isArray(row.fileIds) ? row.fileIds.filter(f => f && f.fileId) : [];
+
+      if (driveFiles.length > 0) {
+        driveFiles.forEach(f => allFiles.push({ ...f, branch: row.branch, month: row.month }));
+      } else if (row.fileCount > 0) {
+        btn.textContent = `⏳ 파일 조회 중... (${i + 1}/${rows.length})`;
+        try {
+          const res = await fetch('/api/sync?action=find_files&submissionId=' + encodeURIComponent(row.id)).then(r => r.json());
+          if (res.result === 'ok' && Array.isArray(res.files) && res.files.length > 0) {
+            res.files.forEach(f => allFiles.push({ ...f, branch: row.branch, month: row.month }));
+            // localStorage 업데이트
+            const all = getData();
+            const lr = all.find(r => r.id === row.id);
+            if (lr) { lr.fileIds = res.files; localStorage.setItem('sales_data', JSON.stringify(all)); }
+          }
+        } catch (e) { /* 조회 실패 시 skip */ }
+      }
+    }
+
+    if (!allFiles.length) { alert('현재 필터에서 다운로드할 증빙자료가 없습니다.'); return; }
+
     const zip = new JSZip();
     for (let i = 0; i < allFiles.length; i++) {
       const f = allFiles[i];
@@ -1179,12 +1197,10 @@ async function downloadAllFiles() {
         const res = await fetch(`/api/download?fileId=${encodeURIComponent(f.fileId)}&name=${encodeURIComponent(f.name || 'file')}`);
         if (!res.ok) throw new Error('fetch failed');
         const blob = await res.blob();
-        const folder = `${f.month}_${f.branch}`;
-        zip.file(`${folder}/${f.name || f.fileId}`, blob);
-      } catch (e) {
-        console.warn('파일 다운로드 실패:', f.name, e);
-      }
+        zip.file(`${f.month}_${f.branch}/${f.name || f.fileId}`, blob);
+      } catch (e) { console.warn('파일 다운로드 실패:', f.name, e); }
     }
+
     btn.textContent = '⏳ ZIP 압축 중...';
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     const month = document.getElementById('t2Month').value;
