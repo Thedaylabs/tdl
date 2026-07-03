@@ -464,7 +464,7 @@
 
       <div class="card">
         <h2>💰 매출 입력 <span class="badge">필수</span></h2>
-        <p style="font-size:0.8rem;color:#999;margin-bottom:16px;">글로벌점이 아닌 경우 총 매출을 <strong>국내매출</strong>란에 입력해 주세요.</p>
+        <p id="salesHint" style="font-size:0.8rem;color:#999;margin-bottom:16px;">글로벌점이 아닌 경우 총 매출을 <strong>국내매출</strong>란에 입력해 주세요.</p>
         <div class="amount-row">
           <div class="amount-box form-group">
             <label>국내 매출 <span class="req">*</span></label>
@@ -472,12 +472,12 @@
             <div class="unit">원 (₩)</div>
           </div>
           <div class="amount-box form-group">
-            <label>해외 매출</label>
+            <label id="labelSalesOvs">해외 매출</label>
             <input type="text" id="salesOvs" placeholder="0" inputmode="numeric" oninput="fmtAmount(this);calcTotal()" />
             <div class="unit">원 (₩)</div>
           </div>
           <div class="amount-box total form-group">
-            <label>총 매출 (자동 합산)</label>
+            <label id="labelSalesTot">총 매출 (자동 합산)</label>
             <input type="text" id="salesTot" placeholder="0" readonly tabindex="-1" />
             <div class="unit" style="color:#4f46e5">원 (₩)</div>
           </div>
@@ -556,12 +556,12 @@
           <input type="text" id="editDom" inputmode="numeric" placeholder="0" oninput="editFmt(this);editCalcTotal()" />
         </div>
         <div class="edit-field" style="margin:0">
-          <label>해외 매출 (원)</label>
+          <label id="editLabelOvs">해외 매출 (원)</label>
           <input type="text" id="editOvs" inputmode="numeric" placeholder="0" oninput="editFmt(this);editCalcTotal()" />
         </div>
       </div>
       <div class="edit-field">
-        <label>총 매출 (자동계산)</label>
+        <label id="editLabelTotal">총 매출 (자동계산)</label>
         <input type="text" id="editTotal" readonly style="background:#f0fdf4;color:#059669;font-weight:700" />
       </div>
       <div id="editSpecialWrap"></div>
@@ -651,6 +651,7 @@ function showBranchScreen(branch) {
   document.getElementById('headerBranchName').textContent = branch;
   document.getElementById('branchDisplay').textContent    = branch;
   renderSpecial(branch);
+  setupSalesForm(branch);
   const now = new Date();
   // 6일~다음달 5일이면 이전 달 보고
   let repY = now.getFullYear(), repM = now.getMonth() + 1;
@@ -735,8 +736,34 @@ function getRawNum(id) {
   return parseInt((document.getElementById(id).value||'0').replace(/,/g,''),10)||0;
 }
 function calcTotal() {
-  const d=getRawNum('salesDom'), o=getRawNum('salesOvs'), t=d+o;
-  document.getElementById('salesTot').value=t?t.toLocaleString('ko-KR'):'';
+  if (currentBranch === '명동점') {
+    const d=getRawNum('salesDom'), t=getRawNum('salesTot');
+    const o=Math.max(0,t-d);
+    document.getElementById('salesOvs').value=o?o.toLocaleString('ko-KR'):'';
+  } else {
+    const d=getRawNum('salesDom'), o=getRawNum('salesOvs'), t=d+o;
+    document.getElementById('salesTot').value=t?t.toLocaleString('ko-KR'):'';
+  }
+}
+function setupSalesForm(branch) {
+  const isMD = branch === '명동점';
+  const totEl = document.getElementById('salesTot');
+  const ovsEl = document.getElementById('salesOvs');
+  if (isMD) {
+    totEl.readOnly = false; totEl.tabIndex = 0; totEl.style.background='';
+    totEl.oninput = function(){ fmtAmount(this); calcTotal(); };
+    ovsEl.readOnly = true; ovsEl.tabIndex = -1; ovsEl.oninput = null;
+    document.getElementById('labelSalesTot').textContent = '총 매출 (직접 입력)';
+    document.getElementById('labelSalesOvs').textContent = '해외 매출 (자동계산)';
+    document.getElementById('salesHint').style.display = 'none';
+  } else {
+    totEl.readOnly = true; totEl.tabIndex = -1;
+    ovsEl.readOnly = false; ovsEl.tabIndex = 0;
+    ovsEl.oninput = function(){ fmtAmount(this); calcTotal(); };
+    document.getElementById('labelSalesTot').textContent = '총 매출 (자동 합산)';
+    document.getElementById('labelSalesOvs').textContent = '해외 매출';
+    document.getElementById('salesHint').style.display = '';
+  }
 }
 function numFmt(n) { return Number(n||0).toLocaleString('ko-KR'); }
 
@@ -1240,8 +1267,34 @@ function editRaw(id) {
   return parseInt((document.getElementById(id).value||'0').replace(/,/g,''), 10) || 0;
 }
 function editCalcTotal() {
-  const t = editRaw('editDom') + editRaw('editOvs');
-  document.getElementById('editTotal').value = t ? t.toLocaleString('ko-KR') : '';
+  const editBranch = document.getElementById('editRowId').dataset.branch || currentBranch;
+  if (editBranch === '명동점') {
+    const d=editRaw('editDom'), t=editRaw('editTotal');
+    const o=Math.max(0,t-d);
+    document.getElementById('editOvs').value = o ? o.toLocaleString('ko-KR') : '';
+  } else {
+    const t = editRaw('editDom') + editRaw('editOvs');
+    document.getElementById('editTotal').value = t ? t.toLocaleString('ko-KR') : '';
+  }
+}
+function setupEditSalesForm(branch) {
+  const isMD = branch === '명동점';
+  const totEl = document.getElementById('editTotal');
+  const ovsEl = document.getElementById('editOvs');
+  if (isMD) {
+    totEl.readOnly = false; totEl.style.background='#fff'; totEl.style.color='#1a1a2e'; totEl.style.fontWeight='';
+    totEl.oninput = function(){ editFmt(this); editCalcTotal(); };
+    ovsEl.readOnly = true; ovsEl.oninput = null;
+    document.getElementById('editLabelOvs').textContent = '해외 매출 (자동계산)';
+    document.getElementById('editLabelTotal').textContent = '총 매출 (직접 입력)';
+  } else {
+    totEl.readOnly = true; totEl.style.background='#f0fdf4'; totEl.style.color='#059669'; totEl.style.fontWeight='700';
+    totEl.oninput = null;
+    ovsEl.readOnly = false;
+    ovsEl.oninput = function(){ editFmt(this); editCalcTotal(); };
+    document.getElementById('editLabelOvs').textContent = '해외 매출 (원)';
+    document.getElementById('editLabelTotal').textContent = '총 매출 (자동계산)';
+  }
 }
 
 function editRenderSpecial(branch, existingSpecial) {
@@ -1287,12 +1340,16 @@ function openEditModal(rowId) {
     alert('수정 가능 기한(매월 3일)이 지나 수정할 수 없습니다.');
     return;
   }
-  document.getElementById('editRowId').value = rowId;
+  const editBranch = row.branch || currentBranch;
+  const editRowIdEl = document.getElementById('editRowId');
+  editRowIdEl.value = rowId;
+  editRowIdEl.dataset.branch = editBranch;
+  setupEditSalesForm(editBranch);
   document.getElementById('editDom').value   = (row.salesDomestic||0).toLocaleString('ko-KR');
   document.getElementById('editOvs').value   = (row.salesOverseas||0).toLocaleString('ko-KR');
   document.getElementById('editTotal').value = (row.salesTotal||0).toLocaleString('ko-KR');
   document.getElementById('editMemo').value  = row.memo || '';
-  editRenderSpecial(row.branch || currentBranch, row.special || {});
+  editRenderSpecial(editBranch, row.special || {});
   document.getElementById('editOverlay').classList.add('show');
 }
 
