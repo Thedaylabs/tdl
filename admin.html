@@ -1989,7 +1989,7 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:10pt;background:#fff;color:#000;}
     .inv-wrap{display:flex;flex-direction:column;gap:6mm;padding:10mm;}
-    .inv-page{border:1px solid #000;page-break-inside:avoid;}
+    .inv-page{outline:1px solid #000;page-break-inside:avoid;}
     .inv-title{text-align:center;font-size:16pt;font-weight:700;letter-spacing:6px;padding:10px 0;border-bottom:1px solid #000;}
     .inv-hdr{width:100%;border-collapse:collapse;border-bottom:1px solid #000;}
     .inv-hdr td{vertical-align:top;padding:0;}
@@ -2000,7 +2000,7 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
     .sup-td{padding:0;}
     .sup-tbl{width:100%;border-collapse:collapse;font-size:8.5pt;table-layout:fixed;}
     .sup-tbl td{border:1px solid #000;padding:2px 5px;vertical-align:middle;line-height:1.3;overflow:hidden;}
-    .sv{writing-mode:vertical-rl;text-align:center;font-weight:700;width:22px;background:#f8f8f8;padding:2px 0;display:table-cell;vertical-align:middle;}
+    .sv{writing-mode:vertical-rl;text-align:center;font-size:7pt;font-weight:700;width:20px;background:#f8f8f8;padding:2px 0;display:table-cell;vertical-align:middle;}
     .sk{font-weight:600;white-space:nowrap;background:#fafafa;width:66px;}
     .ceo-div{display:flex;align-items:center;justify-content:flex-end;gap:6px;}
     .stamp-img{width:40px;height:40px;opacity:.82;object-fit:contain;flex-shrink:0;display:block;}
