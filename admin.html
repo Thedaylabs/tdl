@@ -1882,7 +1882,9 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
   const mkt  = fees.mkt;
   const [y, m] = month.split('-');
   const mn = parseInt(m, 10);
-  const dateStr = `${y}년 ${mn}월 5일`;
+  const invoiceM = mn === 12 ? 1 : mn + 1;
+  const invoiceY = mn === 12 ? parseInt(y, 10) + 1 : parseInt(y, 10);
+  const dateStr = `${invoiceY}년 ${invoiceM}월 5일`;
   const itemLabel = `${mn}월 매출 수수료`;
   const fmt = n => n.toLocaleString('ko-KR');
   const fw  = n => '₩' + fmt(n);
