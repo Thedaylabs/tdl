@@ -1896,9 +1896,7 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
     body{font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:10pt;background:#fff;color:#000;}
     .inv-wrap{display:flex;flex-direction:column;gap:6mm;padding:10mm;}
     .inv-page{border:1.5px solid #000;page-break-inside:avoid;}
-    .inv-title{display:flex;align-items:center;border-bottom:1.5px solid #000;}
-    .inv-title-bar{min-width:90px;padding:6px 10px;font-size:10pt;font-weight:800;letter-spacing:1px;text-align:center;display:flex;align-items:center;justify-content:center;border-right:1.5px solid #000;align-self:stretch;}
-    .inv-title-text{flex:1;text-align:center;font-size:16pt;font-weight:700;letter-spacing:8px;padding:8px 0;}
+    .inv-title{text-align:center;font-size:16pt;font-weight:700;letter-spacing:6px;padding:10px 0;border-bottom:1.5px solid #000;}
     .inv-hdr{width:100%;border-collapse:collapse;border-bottom:1px solid #000;}
     .inv-hdr td{vertical-align:top;padding:0;}
     .meta-td{width:148px;padding:8px 10px;border-right:1px solid #000;font-size:8.5pt;line-height:1.85;white-space:nowrap;}
@@ -1969,12 +1967,9 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
     </table>`;
   }
 
-  function makeInvoice(amount, feeLabel, typeLabel, barColor, supplier, bankLine1, bankLine2) {
+  function makeInvoice(amount, feeLabel, typeLabel, supplier, bankLine1, bankLine2) {
     return `<div class="inv-page">
-      <div class="inv-title">
-        <div class="inv-title-bar" style="background:${barColor};">${typeLabel}</div>
-        <div class="inv-title-text">수 수 료 청 구 서</div>
-      </div>
+      <div class="inv-title">${typeLabel}　수 수 료 청 구 서</div>
       <table class="inv-hdr">
         <tr>
           <td class="meta-td">
@@ -2019,9 +2014,7 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
         </tbody>
         <tfoot>
           <tr class="sum-row">
-            <td colspan="2" class="ctr">합 계</td>
-            <td></td>
-            <td></td>
+            <td colspan="4" class="ctr">합 계</td>
             <td>${fw(amount)}</td>
           </tr>
         </tfoot>
@@ -2036,7 +2029,7 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
   }
 
   const mgmtInv = makeInvoice(
-    mgmt, '경영컨설팅 수수료', '경영컨설팅', '#ffe066',
+    mgmt, '경영컨설팅 수수료', '경영컨설팅',
     makeSupplier('435-86-03022','더데이랩스 주식회사','이종진',
       '서울특별시 강남구 논현로 642지하 1층(논현동, 심산빌딩)',
       '전문, 과학 및 기술서비스업 외','경영 컨설팅 외','송나현','nahyun@thedaylabs.com', s1),
@@ -2045,7 +2038,7 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
   );
 
   const mktInv = mkt > 0 ? makeInvoice(
-    mkt, '마케팅 수수료', '마케팅', '#ff8fcb',
+    mkt, '마케팅 수수료', '마케팅',
     makeSupplier('591-81-02463','주식회사 데이뷰마케팅그룹','홍봉기',
       '서울특별시 구로구 디지털로34길 55, 305호(구로동, 코오롱씨이엔스밸리2차)',
       '전문, 과학 및 기술서비스업 외','광고 대행업 외','홍봉기','hotissue-medical@hotissue-medical.kr', s2),
