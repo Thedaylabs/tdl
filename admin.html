@@ -1613,6 +1613,8 @@ async function deleteReport(id) {
     localStorage.setItem('sales_data', JSON.stringify(stored.filter(r => r.id !== id)));
     renderReports();
     renderOverview();
+    // 삭제 후 GAS 동기화로 실제 삭제 반영 확인
+    syncFromServer(() => { renderOverview(); renderReports(); });
   } catch(e) {
     alert('삭제 실패: ' + e.message);
   }
