@@ -822,6 +822,12 @@ function getBrand(branch) {
 // ════════════════════════════════════════════════════════
 // ════════════════════════════════════════════════════════
 // 서버 동기화
+// 삭제 처리한 ID 목록 — localStorage에 유지해 새로고침 후에도 복원 방지
+const _deletedIds = new Set(JSON.parse(localStorage.getItem('_deletedIds') || '[]'));
+function _persistDeletedIds() {
+  localStorage.setItem('_deletedIds', JSON.stringify([..._deletedIds]));
+}
+
 // ════════════════════════════════════════════════════════
 function serverPost(payload) {
   if (!SCRIPT_URL) return;
@@ -843,10 +849,9 @@ function syncFromServer(callback) {
       if (data.result !== 'ok') return;
 
       // 매출 데이터: 서버가 정본 (서버에서 삭제된 항목은 다른 PC에서도 제거)
-      const serverRows = data.sales_data || [];
+      const serverRows = (data.sales_data || []).filter(r => !_deletedIds.has(r.id));
       const serverIds  = new Set(serverRows.map(r => r.id));
       const local      = JSON.parse(localStorage.getItem('sales_data') || '[]');
-      // 서버에 없는 로컬 항목 중 제출 성공 전 임시 항목만 유지 (서버ID 형식이 아닌 것)
       const localNew   = local.filter(r => !serverIds.has(r.id) && r._localOnly === true);
       localStorage.setItem('sales_data', JSON.stringify([...serverRows, ...localNew]));
 
@@ -1609,12 +1614,12 @@ async function deleteReport(id) {
     });
     const json = await resp.json();
     if (json.result !== 'ok') throw new Error(json.message || '삭제 실패');
+    _deletedIds.add(id);
+    _persistDeletedIds();
     const stored = JSON.parse(localStorage.getItem('sales_data') || '[]');
     localStorage.setItem('sales_data', JSON.stringify(stored.filter(r => r.id !== id)));
     renderReports();
     renderOverview();
-    // 삭제 후 GAS 동기화로 실제 삭제 반영 확인
-    syncFromServer(() => { renderOverview(); renderReports(); });
   } catch(e) {
     alert('삭제 실패: ' + e.message);
   }
