@@ -1892,20 +1892,25 @@ async function downloadAllInvoices() {
       const branch = branches[i];
       btn.textContent = `⏳ PDF 생성 중... (${i+1}/${branches.length})`;
 
-      const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;';
-      wrapper.innerHTML = buildInvoiceHTML(branch, month, true, s1, s2);
-      document.body.appendChild(wrapper);
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;top:0;left:0;width:794px;height:1123px;opacity:0;pointer-events:none;border:none;';
+      document.body.appendChild(iframe);
+
+      const fullHtml = buildInvoiceHTML(branch, month, false, s1, s2);
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(fullHtml);
+      iframe.contentDocument.close();
+      await new Promise(r => { iframe.onload = r; setTimeout(r, 1000); });
 
       const pdfBlob = await html2pdf().set({
         margin: 0,
         filename: `수수료청구서_${branch}_${month}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 794 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      }).from(wrapper).outputPdf('blob');
+      }).from(iframe.contentDocument.body).outputPdf('blob');
 
-      document.body.removeChild(wrapper);
+      document.body.removeChild(iframe);
       zip.file(`수수료청구서_${branch}_${month}.pdf`, pdfBlob);
     }
 
