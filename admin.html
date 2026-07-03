@@ -1892,27 +1892,50 @@ async function downloadAllInvoices() {
       const branch = branches[i];
       btn.textContent = `⏳ PDF 생성 중... (${i+1}/${branches.length})`;
 
-      // iframe 대신 메인 문서에 직접 렌더링 (html2canvas가 iframe 문서 컨텍스트를 지원 안 함)
       const tmpDiv = document.createElement('div');
-      tmpDiv.style.cssText = 'position:fixed;top:0;left:0;width:794px;background:#fff;z-index:9999;pointer-events:none;';
+      tmpDiv.style.cssText = 'position:fixed;top:0;left:0;width:794px;background:#fff;z-index:9999;pointer-events:none;overflow:visible;';
       tmpDiv.innerHTML = buildInvoiceHTML(branch, month, true, s1, s2);
       document.body.appendChild(tmpDiv);
 
-      await new Promise(r => setTimeout(r, 500));
-
       const invWrap = tmpDiv.querySelector('.inv-wrap');
-      const target = invWrap || tmpDiv;
-      target.style.maxWidth = '794px';
-      target.style.boxShadow = 'none';
+      if (invWrap) {
+        invWrap.style.cssText += ';width:794px;max-width:794px;box-shadow:none;margin:0;';
+      }
 
-      const pdfBlob = await html2pdf().set({
-        margin: 0,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0, windowWidth: 794 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      }).from(target).outputPdf('blob');
+      await new Promise(r => setTimeout(r, 600));
+
+      const target = invWrap || tmpDiv;
+      const canvas = await html2canvas(target, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        width: 794,
+        windowWidth: 794,
+        scrollX: 0,
+        scrollY: 0,
+        backgroundColor: '#ffffff'
+      });
 
       document.body.removeChild(tmpDiv);
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      const imgH = (canvas.height / canvas.width) * pageW;
+
+      let yPos = 0, remaining = imgH;
+      pdf.addImage(imgData, 'JPEG', 0, yPos, pageW, imgH);
+      remaining -= pageH;
+      while (remaining > 0) {
+        yPos -= pageH;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, yPos, pageW, imgH);
+        remaining -= pageH;
+      }
+
+      const pdfBlob = pdf.output('blob');
       zip.file(`수수료청구서_${branch}_${month}.pdf`, pdfBlob);
     }
 
@@ -2366,6 +2389,7 @@ if (sessionStorage.getItem('admin_logged_in') === '1') {
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </body>
 </html>
