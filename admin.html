@@ -842,12 +842,12 @@ function syncFromServer(callback) {
     .then(data => {
       if (data.result !== 'ok') return;
 
-      // 매출 데이터: 서버 우선, 로컬 신규 항목 유지
+      // 매출 데이터: 서버가 정본 (서버에서 삭제된 항목은 다른 PC에서도 제거)
       const serverRows = data.sales_data || [];
       const serverIds  = new Set(serverRows.map(r => r.id));
       const local      = JSON.parse(localStorage.getItem('sales_data') || '[]');
-      const wasEmpty   = local.length === 0;
-      const localNew   = local.filter(r => !serverIds.has(r.id));
+      // 서버에 없는 로컬 항목 중 제출 성공 전 임시 항목만 유지 (서버ID 형식이 아닌 것)
+      const localNew   = local.filter(r => !serverIds.has(r.id) && r._localOnly === true);
       localStorage.setItem('sales_data', JSON.stringify([...serverRows, ...localNew]));
 
       // 경영 확인: 서버 우선 merge
