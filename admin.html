@@ -1905,12 +1905,16 @@ async function downloadAllInvoices() {
       await new Promise(r => setTimeout(r, 600));
 
       const target = invWrap || tmpDiv;
+      const elemW = Math.max(target.scrollWidth, target.offsetWidth);
+      const elemH = Math.max(target.scrollHeight, target.offsetHeight);
       const canvas = await html2canvas(target, {
         scale: 2,
         useCORS: true,
         logging: false,
-        width: 794,
-        windowWidth: 794,
+        width: elemW,
+        height: elemH,
+        windowWidth: elemW,
+        windowHeight: elemH,
         scrollX: -window.scrollX,
         scrollY: -window.scrollY,
         backgroundColor: '#ffffff'
@@ -1923,15 +1927,17 @@ async function downloadAllInvoices() {
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      // 캔버스를 A4 너비에 맞게 스케일링
+      const imgW = pageW;
       const imgH = (canvas.height / canvas.width) * pageW;
 
       let yPos = 0, remaining = imgH;
-      pdf.addImage(imgData, 'JPEG', 0, yPos, pageW, imgH);
+      pdf.addImage(imgData, 'JPEG', 0, yPos, imgW, imgH);
       remaining -= pageH;
       while (remaining > 0) {
         yPos -= pageH;
         pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, yPos, pageW, imgH);
+        pdf.addImage(imgData, 'JPEG', 0, yPos, imgW, imgH);
         remaining -= pageH;
       }
 
