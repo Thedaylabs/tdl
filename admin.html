@@ -1911,8 +1911,8 @@ async function downloadAllInvoices() {
         logging: false,
         width: 794,
         windowWidth: 794,
-        scrollX: 0,
-        scrollY: 0,
+        scrollX: -window.scrollX,
+        scrollY: -window.scrollY,
         backgroundColor: '#ffffff'
       });
 
@@ -1979,8 +1979,8 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:10pt;background:#fff;color:#000;}
     .inv-wrap{display:flex;flex-direction:column;gap:6mm;padding:10mm;}
-    .inv-page{border:1.5px solid #000;page-break-inside:avoid;}
-    .inv-title{text-align:center;font-size:16pt;font-weight:700;letter-spacing:6px;padding:10px 0;border-bottom:1.5px solid #000;}
+    .inv-page{border:1px solid #000;page-break-inside:avoid;}
+    .inv-title{text-align:center;font-size:16pt;font-weight:700;letter-spacing:6px;padding:10px 0;border-bottom:1px solid #000;}
     .inv-hdr{width:100%;border-collapse:collapse;border-bottom:1px solid #000;}
     .inv-hdr td{vertical-align:top;padding:0;}
     .meta-td{width:148px;padding:8px 10px;border-right:1px solid #000;font-size:8.5pt;line-height:1.85;white-space:nowrap;}
