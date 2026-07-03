@@ -1892,30 +1892,39 @@ async function downloadAllInvoices() {
       const branch = branches[i];
       btn.textContent = `⏳ PDF 생성 중... (${i+1}/${branches.length})`;
 
-      const tmpDiv = document.createElement('div');
-      tmpDiv.style.cssText = 'position:absolute;top:0;left:0;width:794px;overflow:hidden;background:#fff;z-index:-9999;pointer-events:none;';
-      tmpDiv.innerHTML = buildInvoiceHTML(branch, month, true, s1, s2);
-      document.body.appendChild(tmpDiv);
+      // Blob URL 방식: 독립적인 same-origin iframe으로 어드민 CSS 간섭 없이 렌더링
+      const fullHtml = buildInvoiceHTML(branch, month, false, s1, s2);
+      const blobUrl = URL.createObjectURL(new Blob([fullHtml], { type: 'text/html' }));
 
-      const invWrap = tmpDiv.querySelector('.inv-wrap');
-      if (invWrap) {
-        invWrap.style.cssText += ';width:794px;max-width:794px;box-shadow:none;margin:0;overflow:hidden;';
-      }
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:absolute;top:0;left:0;width:794px;height:1200px;border:none;visibility:hidden;';
+      document.body.appendChild(iframe);
+      iframe.src = blobUrl;
 
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise(r => { iframe.onload = r; setTimeout(r, 2000); });
+      URL.revokeObjectURL(blobUrl);
+      await new Promise(r => setTimeout(r, 400));
 
-      const target = invWrap || tmpDiv;
-      const canvas = await html2canvas(target, {
+      const iDoc = iframe.contentDocument;
+      const iBody = iDoc.body;
+      iBody.style.margin = '0';
+      const fullH = Math.max(iBody.scrollHeight, iBody.offsetHeight);
+
+      const canvas = await html2canvas(iBody, {
         scale: 2,
         useCORS: true,
+        allowTaint: true,
         logging: false,
         width: 794,
+        height: fullH,
         windowWidth: 794,
+        windowHeight: fullH,
+        scrollX: 0,
+        scrollY: 0,
         backgroundColor: '#ffffff'
-        // scrollX/scrollY 기본값 사용 (position:absolute 요소는 자동 보정)
       });
 
-      document.body.removeChild(tmpDiv);
+      document.body.removeChild(iframe);
 
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
