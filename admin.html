@@ -1993,7 +1993,8 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
     .inv-title{text-align:center;font-size:16pt;font-weight:700;letter-spacing:6px;padding:10px 0;border-bottom:1px solid #000;}
     .inv-hdr{width:100%;border-collapse:collapse;border-bottom:1px solid #000;}
     .inv-hdr td{vertical-align:top;padding:0;}
-    .meta-td{width:168px;padding:8px 10px;border-right:1px solid #000;font-size:8.5pt;line-height:1.85;white-space:nowrap;}
+    .meta-td{width:168px;padding:0;border-right:1px solid #000;font-size:8.5pt;line-height:1.85;white-space:nowrap;}
+    .meta-row{padding:6px 10px;border-bottom:1px solid #000;}
     .total-box{display:flex;align-items:stretch;margin-top:8px;border:1px solid #000;}
     .total-lbl{padding:3px 6px;font-size:8pt;font-weight:700;border-right:1px solid #000;text-align:center;line-height:1.55;white-space:nowrap;}
     .total-val{padding:4px 8px;font-size:9.5pt;font-weight:700;white-space:nowrap;}
@@ -2068,9 +2069,9 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
       <table class="inv-hdr">
         <tr>
           <td class="meta-td">
-            <div>청구일자 : ${dateStr}</div>
-            <div>거래처명 : ${branch} 귀하</div>
-            <div class="total-box">
+            <div class="meta-row">청구일자 : ${dateStr}</div>
+            <div class="meta-row">거래처명 : ${branch} 귀하</div>
+            <div class="total-box" style="margin:0;">
               <div class="total-lbl">총 합계<br>(VAT포함)</div>
               <div class="total-val">${fw(amount)}</div>
             </div>
