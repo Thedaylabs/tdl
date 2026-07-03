@@ -983,15 +983,12 @@ document.getElementById('mainForm').addEventListener('submit', async function(e)
   stored.push(payload);
   localStorage.setItem('sales_data', JSON.stringify(stored));
 
-  // Apps Script 서버 전송
-  if (SCRIPT_URL) {
-    fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'submit_sales', data: payload })
-    }).catch(() => {});
-  }
+  // 프록시 경유 서버 전송 (fileIds 포함 보장)
+  fetch('/api/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'submit_sales', data: payload })
+  }).catch(() => {});
 
   btn.classList.remove('loading');
   const [y,m]=month.split('-');

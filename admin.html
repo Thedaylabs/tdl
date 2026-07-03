@@ -1017,6 +1017,46 @@ const FEE_RULES = {
 // 데이터 & 수수료
 // ════════════════════════════════════════════════════════
 function getData() { return JSON.parse(localStorage.getItem('sales_data')||'[]'); }
+function retryFindFiles(btn, submissionId){
+  const thumbsEl = btn.closest('.file-thumbs');
+  if(!thumbsEl) return;
+  thumbsEl.innerHTML='<div class="file-none" style="color:#a78bfa">파일 검색 중...</div>';
+  fetch('/api/sync?action=find_files&submissionId='+encodeURIComponent(submissionId))
+    .then(r=>r.json())
+    .then(res=>{
+      if(res.result==='ok'&&Array.isArray(res.files)&&res.files.length>0){
+        // 찾은 fileIds를 서버 레코드에도 업데이트
+        const all=getData(); const row=all.find(r=>r.id===submissionId);
+        if(row){
+          row.fileIds=res.files;
+          localStorage.setItem('sales_data',JSON.stringify(all));
+          fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({action:'submit_sales',data:row})}).catch(()=>{});
+        }
+        // 임시 렌더: thumbsEl 안에 직접
+        const imgFiles=res.files.filter(f=>f.type&&f.type.startsWith('image/')).map(f=>({name:f.name,src:`https://drive.google.com/thumbnail?id=${f.fileId}&sz=w1200`,fileId:f.fileId}));
+        thumbsEl.innerHTML='';
+        res.files.forEach(f=>{
+          const div=document.createElement('div'); div.className='file-thumb';
+          const isImg=f.type&&f.type.startsWith('image/');
+          const ext=(f.name||'').split('.').pop().toUpperCase();
+          if(isImg){
+            const imgIdx=imgFiles.findIndex(x=>x.name===f.name);
+            div.innerHTML=`<img src="https://drive.google.com/thumbnail?id=${f.fileId}&sz=w400" loading="lazy"/><div class="fname">${f.name}</div>`;
+            div.onclick=()=>openLightboxDrive(imgFiles,imgIdx);
+          } else {
+            const icon=ext==='XLSX'||ext==='XLS'?'📊':ext==='PDF'?'📕':'📄';
+            div.innerHTML=`<div class="pdf-icon">${icon}<span>${ext}</span></div><div class="fname">${f.name}</div>`;
+            div.onclick=()=>{ const a=document.createElement('a'); a.href=`https://drive.google.com/uc?export=download&id=${f.fileId}`; a.target='_blank'; a.click(); };
+          }
+          thumbsEl.appendChild(div);
+        });
+      } else {
+        thumbsEl.innerHTML='<div class="file-none">Drive에서 파일을 찾지 못했습니다. (GAS 폴더 확인 필요)</div>';
+      }
+    })
+    .catch(()=>{ thumbsEl.innerHTML='<div class="file-none">재검색 실패</div>'; });
+}
 function getSentState(branch,month){ const d=JSON.parse(localStorage.getItem('invoice_sent')||'{}'); return !!d[branch+'__'+month]; }
 function setSentState(branch,month,val){ const d=JSON.parse(localStorage.getItem('invoice_sent')||'{}'); d[branch+'__'+month]=val; localStorage.setItem('invoice_sent',JSON.stringify(d)); }
 
@@ -1256,11 +1296,16 @@ function renderReports() {
             } else {
               // Drive에도 없으면 IDB fallback
               getFilesFromIDB(row.id).then(files=>{
-                renderFileThumbs(files, false);
-              }).catch(()=>{ thumbsEl.innerHTML='<div class="file-none">첨부파일 없음</div>'; });
+                if(files&&files.length>0){ renderFileThumbs(files,false); }
+                else{
+                  thumbsEl.innerHTML=`<div class="file-none">첨부파일을 찾을 수 없습니다. <button onclick="retryFindFiles(this,'${row.id}')" style="margin-left:6px;font-size:.75rem;padding:2px 8px;border:1px solid #a78bfa;border-radius:6px;color:#7c3aed;background:#f5f3ff;cursor:pointer;">🔍 재검색</button></div>`;
+                }
+              }).catch(()=>{
+                thumbsEl.innerHTML=`<div class="file-none">첨부파일을 찾을 수 없습니다. <button onclick="retryFindFiles(this,'${row.id}')" style="margin-left:6px;font-size:.75rem;padding:2px 8px;border:1px solid #a78bfa;border-radius:6px;color:#7c3aed;background:#f5f3ff;cursor:pointer;">🔍 재검색</button></div>`;
+              });
             }
           })
-          .catch(()=>{ thumbsEl.innerHTML='<div class="file-none">파일 로드 실패</div>'; });
+          .catch(()=>{ thumbsEl.innerHTML=`<div class="file-none">파일 로드 실패 <button onclick="retryFindFiles(this,'${row.id}')" style="margin-left:6px;font-size:.75rem;padding:2px 8px;border:1px solid #a78bfa;border-radius:6px;color:#7c3aed;background:#f5f3ff;cursor:pointer;">🔍 재검색</button></div>`; });
       } else {
         thumbsEl.innerHTML='<div class="file-none">첨부파일 없음</div>';
       }
