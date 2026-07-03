@@ -849,7 +849,8 @@ function syncFromServer(callback) {
       if (data.result !== 'ok') return;
 
       // 매출 데이터: 서버가 정본 (서버에서 삭제된 항목은 다른 PC에서도 제거)
-      const serverRows = (data.sales_data || []).filter(r => !_deletedIds.has(r.id));
+      const gasDeletedIds = new Set(data.deleted_ids || []);
+      const serverRows = (data.sales_data || []).filter(r => !_deletedIds.has(r.id) && !gasDeletedIds.has(r.id));
       const serverIds  = new Set(serverRows.map(r => r.id));
       const local      = JSON.parse(localStorage.getItem('sales_data') || '[]');
       const localNew   = local.filter(r => !serverIds.has(r.id) && r._localOnly === true);
