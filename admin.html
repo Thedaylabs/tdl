@@ -843,7 +843,7 @@ function syncFromServer(callback) {
   const indicator = document.getElementById('syncIndicator');
   if (indicator) indicator.textContent = '🔄 서버 동기화 중...';
 
-  fetch(SCRIPT_URL + '?action=all&_t=' + Date.now())
+  fetch('/api/sync?action=all&_t=' + Date.now())
     .then(r => r.json())
     .then(data => {
       if (data.result !== 'ok') return;
