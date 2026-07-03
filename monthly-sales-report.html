@@ -1020,7 +1020,7 @@ function loadHistory() {
       const serverRows = data.sales_data || [];
       const serverIds  = new Set(serverRows.map(r => r.id));
       const stored     = JSON.parse(localStorage.getItem('sales_data')||'[]');
-      const localNew   = stored.filter(r => !serverIds.has(r.id));
+      const localNew   = stored.filter(r => !serverIds.has(r.id) && r._localOnly === true);
       const merged     = [...serverRows, ...localNew];
       localStorage.setItem('sales_data', JSON.stringify(merged));
       historyData = merged.filter(r => r.branch === currentBranch);
