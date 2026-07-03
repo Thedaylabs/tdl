@@ -1882,31 +1882,38 @@ async function downloadAllInvoices() {
 
   const btn = document.querySelector('button[onclick="downloadAllInvoices()"]');
   const orig = btn.textContent;
-  btn.textContent = '⏳ 생성 중...';
   btn.disabled = true;
 
   try {
     const [s1, s2] = await Promise.all([toDataURL('stamp_dayblabs.png'), toDataURL('stamp_dayview.png')]);
+    const zip = new JSZip();
 
-    const parts = branches.map(b => buildInvoiceHTML(b, month, true, s1, s2));
-    const cssMatch = parts[0].match(/<style>([\s\S]*?)<\/style>/);
-    const css = cssMatch ? cssMatch[1] : '';
+    for (let i = 0; i < branches.length; i++) {
+      const branch = branches[i];
+      btn.textContent = `⏳ PDF 생성 중... (${i+1}/${branches.length})`;
 
-    const bodies = parts.map((p, i) => {
-      const body = p.replace(/<style>[\s\S]*?<\/style>/, '');
-      return i > 0 ? `<div style="page-break-before:always;margin-top:12mm;"></div>${body}` : body;
-    }).join('');
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;';
+      wrapper.innerHTML = buildInvoiceHTML(branch, month, true, s1, s2);
+      document.body.appendChild(wrapper);
 
-    const combined = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
-<title>수수료청구서_${month}_전체</title>
-<style>${css}
-@media print { body { margin:0; } .inv-wrap { box-shadow:none !important; } }
-</style></head><body>${bodies}</body></html>`;
+      const pdfBlob = await html2pdf().set({
+        margin: 0,
+        filename: `수수료청구서_${branch}_${month}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).from(wrapper).outputPdf('blob');
 
-    const blob = new Blob([combined], { type: 'text/html;charset=utf-8' });
+      document.body.removeChild(wrapper);
+      zip.file(`수수료청구서_${branch}_${month}.pdf`, pdfBlob);
+    }
+
+    btn.textContent = '⏳ ZIP 압축 중...';
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `수수료청구서_${month}_전체(${branches.length}개지점).html`;
+    a.href = URL.createObjectURL(zipBlob);
+    a.download = `수수료청구서_${month}_전체(${branches.length}개지점).zip`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 10000);
   } finally {
@@ -2351,5 +2358,7 @@ if (sessionStorage.getItem('admin_logged_in') === '1') {
 }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </body>
 </html>
