@@ -1080,8 +1080,10 @@ function calcFees(row) {
   const sp = (branch === '강남점' && ym >= '2026-06') ? 0 : spRaw;
   // 분당점·명동2호점(26.06~)은 특약을 총매출에서 차감 후 수수료 계산
   const isSpecialDeduct = branch === '분당점' || (branch === '명동2호점' && ym >= '2026-06');
-  const effTot = isSpecialDeduct ? Math.max(0, tot - sp) : tot;
-  const effSp  = isSpecialDeduct ? 0 : sp;
+  // 영등포점은 여신티켓을 총매출에 합산 후 수수료 계산
+  const isSpecialAdd = branch === '영등포점';
+  const effTot = isSpecialDeduct ? Math.max(0, tot - sp) : isSpecialAdd ? tot + sp : tot;
+  const effSp  = (isSpecialDeduct || isSpecialAdd) ? 0 : sp;
   const mgmtAmt = rule.mgmt(effTot, ym, dom, effSp);
   const mktAmt  = rule.mkt(effTot, ym, dom, effSp);
   return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:rule.formula, overridden:false };
@@ -1318,7 +1320,8 @@ const BRANCH_SPECIAL = {
   '명동점':    { type:'info',  note:'명동점은 마케팅 수수료 제외 지점입니다.' },
   '분당점':    { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'화장품 판매 제외',id:'ef_sp_cosmetic'}] },
   '명동2호점': { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'소개_직원소개',id:'ef_sp_md2_intro_staff'},{label:'소개_원장님소개',id:'ef_sp_md2_intro_director'},{label:'직원',id:'ef_sp_md2_employee'},{label:'임직원할인(특가)',id:'ef_sp_md2_exec_discount'},{label:'SC임직원10%할인',id:'ef_sp_md2_sc_discount'},{label:'화장품 매출',id:'ef_sp_md2_cosmetic'}] },
-  '부산서면점':{ type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'환불건 제외',id:'ef_sp_refund'}] }
+  '부산서면점':{ type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'환불건 제외',id:'ef_sp_refund'}] },
+  '영등포점':  { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요. (여신티켓 금액은 총 매출에 합산됩니다.)', items:[{label:'여신티켓',id:'ef_sp_ydp_ticket'}] }
 };
 
 let editRow = null;      // 현재 수정 중인 row 원본
