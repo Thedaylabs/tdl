@@ -1893,31 +1893,26 @@ async function downloadAllInvoices() {
       btn.textContent = `⏳ PDF 생성 중... (${i+1}/${branches.length})`;
 
       const tmpDiv = document.createElement('div');
-      tmpDiv.style.cssText = 'position:fixed;top:0;left:0;width:794px;background:#fff;z-index:9999;pointer-events:none;overflow:visible;';
+      tmpDiv.style.cssText = 'position:absolute;top:0;left:0;width:794px;overflow:hidden;background:#fff;z-index:-9999;pointer-events:none;';
       tmpDiv.innerHTML = buildInvoiceHTML(branch, month, true, s1, s2);
       document.body.appendChild(tmpDiv);
 
       const invWrap = tmpDiv.querySelector('.inv-wrap');
       if (invWrap) {
-        invWrap.style.cssText += ';width:794px;max-width:794px;box-shadow:none;margin:0;';
+        invWrap.style.cssText += ';width:794px;max-width:794px;box-shadow:none;margin:0;overflow:hidden;';
       }
 
       await new Promise(r => setTimeout(r, 600));
 
       const target = invWrap || tmpDiv;
-      const elemW = Math.max(target.scrollWidth, target.offsetWidth);
-      const elemH = Math.max(target.scrollHeight, target.offsetHeight);
       const canvas = await html2canvas(target, {
         scale: 2,
         useCORS: true,
         logging: false,
-        width: elemW,
-        height: elemH,
-        windowWidth: elemW,
-        windowHeight: elemH,
-        scrollX: -window.scrollX,
-        scrollY: -window.scrollY,
+        width: 794,
+        windowWidth: 794,
         backgroundColor: '#ffffff'
+        // scrollX/scrollY 기본값 사용 (position:absolute 요소는 자동 보정)
       });
 
       document.body.removeChild(tmpDiv);
