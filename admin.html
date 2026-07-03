@@ -460,6 +460,7 @@
         <option value="asc">오래된순</option>
         <option value="total">매출 높은순</option>
       </select>
+      <button class="btn-outline" onclick="downloadAllFiles()" style="margin-left:6px;">⬇️ 증빙자료 전체 다운로드</button>
     </div>
     <div class="report-list" id="reportList"></div>
   </div>
@@ -1155,6 +1156,49 @@ function renderOverview() {
 
 // ════════════════════════════════════════════════════════
 // 탭2: 매출 자료 카드
+async function downloadAllFiles() {
+  const rows = getReportsFiltered();
+  const allFiles = [];
+  rows.forEach(row => {
+    const files = Array.isArray(row.fileIds) ? row.fileIds.filter(f => f && f.fileId) : [];
+    files.forEach(f => allFiles.push({ ...f, branch: row.branch, month: row.month }));
+  });
+
+  if (!allFiles.length) { alert('현재 필터에서 다운로드할 증빙자료가 없습니다.'); return; }
+
+  const btn = document.querySelector('button[onclick="downloadAllFiles()"]');
+  const orig = btn.textContent;
+  btn.disabled = true;
+
+  try {
+    const zip = new JSZip();
+    for (let i = 0; i < allFiles.length; i++) {
+      const f = allFiles[i];
+      btn.textContent = `⏳ 다운로드 중... (${i + 1}/${allFiles.length})`;
+      try {
+        const res = await fetch(`/api/download?fileId=${encodeURIComponent(f.fileId)}&name=${encodeURIComponent(f.name || 'file')}`);
+        if (!res.ok) throw new Error('fetch failed');
+        const blob = await res.blob();
+        const folder = `${f.month}_${f.branch}`;
+        zip.file(`${folder}/${f.name || f.fileId}`, blob);
+      } catch (e) {
+        console.warn('파일 다운로드 실패:', f.name, e);
+      }
+    }
+    btn.textContent = '⏳ ZIP 압축 중...';
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const month = document.getElementById('t2Month').value;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(zipBlob);
+    a.download = `증빙자료_${month || '전체'}.zip`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }
+}
+
 // ════════════════════════════════════════════════════════
 function getReportsFiltered() {
   const m   = document.getElementById('t2Month').value;
