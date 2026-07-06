@@ -875,6 +875,7 @@ function syncFromServer(callback) {
       const serverRows = (data.sales_data || []).filter(r => !_deletedIds.has(r.id) && !gasDeletedIds.has(r.id));
       const serverIds  = new Set(serverRows.map(r => r.id));
       const local      = JSON.parse(localStorage.getItem('sales_data') || '[]');
+      const wasEmpty   = local.length === 0;
       const localNew   = local.filter(r => !serverIds.has(r.id) && r._localOnly === true);
       localStorage.setItem('sales_data', JSON.stringify([...serverRows, ...localNew]));
 
