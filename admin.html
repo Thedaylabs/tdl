@@ -842,13 +842,17 @@ function _persistDeletedIds() {
 }
 
 // ════════════════════════════════════════════════════════
-function serverPost(payload) {
+function serverPost(payload, timeoutMs) {
   if (!SCRIPT_URL) return Promise.resolve(false);
   const indicator = document.getElementById('syncIndicator');
+  const controller = new AbortController();
+  const timeoutId  = setTimeout(() => controller.abort(), timeoutMs || 20000);
+
   return fetch(SCRIPT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    signal: controller.signal
   })
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json().catch(() => ({ result:'ok' })); })
     .then(data => {
@@ -857,13 +861,15 @@ function serverPost(payload) {
     })
     .catch(err => {
       // 저장 실패를 조용히 넘기지 않고 화면에 표시 — 이 편집은 다른 PC에 반영되지 않은 상태
+      const reason = err.name === 'AbortError' ? '시간 초과' : (err.message || '네트워크 오류');
       console.error('[저장 실패]', payload.action, err);
       if (indicator) {
-        indicator.textContent = `❌ 저장 실패 - 다른 PC에 반영 안 됨 (${err.message || '네트워크 오류'})`;
+        indicator.textContent = `❌ 저장 실패 - 다른 PC에 반영 안 됨 (${reason})`;
         setTimeout(() => { if (indicator.textContent.startsWith('❌')) indicator.textContent = ''; }, 8000);
       }
       return false;
-    });
+    })
+    .finally(() => clearTimeout(timeoutId));
 }
 
 function syncFromServer(callback) {
@@ -2507,7 +2513,8 @@ async function saveMgmtSnapshot() {
 
   const savedAt = new Date().toISOString();
   const mgmt = getMgmtData();
-  const ok = await serverPost({ action: 'save_mgmt_all', savedAt, mgmt });
+  // 전체 스냅샷 저장은 지점 수가 많으면 시간이 걸릴 수 있어 타임아웃을 넉넉히 둠
+  const ok = await serverPost({ action: 'save_mgmt_all', savedAt, mgmt }, 45000);
 
   if (ok) {
     localStorage.setItem('mgmt_saved_at', savedAt);
