@@ -2405,7 +2405,14 @@ function onMgmtChange(id, field, el) {
 
   if (field === 'paid') {
     d[id].paid = el.checked;
-    if (el.checked && !d[id].paidDate) d[id].paidDate = today;
+    if (el.checked) {
+      if (!d[id].paidDate) d[id].paidDate = today;
+      // 입금확인 체크 시 경영수수료 총액을 입금금액에 자동 반영 (이후 수기 수정 가능)
+      if (d[id].paidAmt === undefined || d[id].paidAmt === 0) {
+        const row = getData().find(r => (r.id || (r.branch + '_' + r.submittedAt)) === id);
+        if (row) d[id].paidAmt = calcFees(row).mgmt;
+      }
+    }
   } else if (field === 'invoice') {
     d[id].invoice = el.checked;
     if (el.checked && !d[id].invoiceDate) d[id].invoiceDate = today;
