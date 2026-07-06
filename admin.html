@@ -841,12 +841,27 @@ function _persistDeletedIds() {
 
 // ════════════════════════════════════════════════════════
 function serverPost(payload) {
-  if (!SCRIPT_URL) return;
-  fetch(SCRIPT_URL, {
+  if (!SCRIPT_URL) return Promise.resolve(false);
+  const indicator = document.getElementById('syncIndicator');
+  return fetch(SCRIPT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(payload)
-  }).catch(() => {});
+  })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json().catch(() => ({ result:'ok' })); })
+    .then(data => {
+      if (data.result !== 'ok') throw new Error(data.message || '서버 오류');
+      return true;
+    })
+    .catch(err => {
+      // 저장 실패를 조용히 넘기지 않고 화면에 표시 — 이 편집은 다른 PC에 반영되지 않은 상태
+      console.error('[저장 실패]', payload.action, err);
+      if (indicator) {
+        indicator.textContent = `❌ 저장 실패 - 다른 PC에 반영 안 됨 (${err.message || '네트워크 오류'})`;
+        setTimeout(() => { if (indicator.textContent.startsWith('❌')) indicator.textContent = ''; }, 8000);
+      }
+      return false;
+    });
 }
 
 function syncFromServer(callback) {
