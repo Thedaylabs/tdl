@@ -240,23 +240,23 @@
     /* ── 탭6: 경영팀 확인 ── */
     .mgmt-table-wrap { max-width:1280px; margin:0 auto; background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); overflow:hidden; }
     .mgmt-table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; width:100%; }
-    .mgmt-table { width:100%; border-collapse:collapse; min-width:900px; }
+    .mgmt-table { width:100%; border-collapse:collapse; min-width:0; }
     .mgmt-table thead tr { background:#059669; }
-    .mgmt-table thead th { padding:11px 10px; font-size:.76rem; font-weight:700; color:#fff; text-align:center; white-space:nowrap; }
+    .mgmt-table thead th { padding:7px 4px; font-size:.7rem; font-weight:700; color:#fff; text-align:center; white-space:nowrap; }
     .mgmt-table thead th.left { text-align:left; }
     .mgmt-table tbody tr { border-bottom:1px solid #f0f2f5; transition:background .15s; }
     .mgmt-table tbody tr:hover { background:#f0fdf4; }
-    .mgmt-table td { padding:9px 8px; font-size:.82rem; text-align:center; white-space:nowrap; vertical-align:middle; }
+    .mgmt-table td { padding:5px 4px; font-size:.76rem; text-align:center; white-space:nowrap; vertical-align:middle; }
     .mgmt-table td.left { text-align:left; }
-    .mgmt-table input[type=checkbox] { width:17px; height:17px; cursor:pointer; accent-color:#059669; }
-    .mgmt-table input[type=date] { padding:4px 6px; border:1.5px solid #e0e0e0; border-radius:7px; font-size:.78rem; font-family:inherit; background:#fafafa; }
+    .mgmt-table input[type=checkbox] { width:15px; height:15px; cursor:pointer; accent-color:#059669; }
+    .mgmt-table input[type=date] { padding:2px 3px; border:1.5px solid #e0e0e0; border-radius:6px; font-size:.7rem; font-family:inherit; background:#fafafa; width:118px; }
     .mgmt-table input[type=date]:focus { outline:none; border-color:#059669; }
-    .mgmt-table input[type=text].note-input { width:100%; padding:5px 8px; border:1.5px solid #e0e0e0; border-radius:7px; font-size:.8rem; font-family:inherit; background:#fafafa; min-width:100px; }
+    .mgmt-table input[type=text].note-input { width:100%; padding:4px 6px; border:1.5px solid #e0e0e0; border-radius:6px; font-size:.74rem; font-family:inherit; background:#fafafa; min-width:64px; }
     .mgmt-table input[type=text].note-input:focus { outline:none; border-color:#059669; }
     .paid-yes { background:#f0fdf4!important; }
     .invoice-yes { background:#eff6ff!important; }
-    .mgmt-badge-paid { display:inline-block; background:#d1fae5; color:#065f46; border-radius:6px; padding:1px 8px; font-size:.7rem; font-weight:700; }
-    .mgmt-badge-inv  { display:inline-block; background:#dbeafe; color:#1e40af; border-radius:6px; padding:1px 8px; font-size:.7rem; font-weight:700; }
+    .mgmt-badge-paid { display:inline-block; background:#d1fae5; color:#065f46; border-radius:6px; padding:1px 6px; font-size:.66rem; font-weight:700; }
+    .mgmt-badge-inv  { display:inline-block; background:#dbeafe; color:#1e40af; border-radius:6px; padding:1px 6px; font-size:.66rem; font-weight:700; }
 
     /* ── 탭5: 데이터 관리 ── */
     .data-card { background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); padding:28px; margin-bottom:20px; max-width:900px; margin-left:auto; margin-right:auto; }
@@ -821,10 +821,10 @@ function getBrand(branch) {
 // 지점별 대표원장 (고정값)
 const BRANCH_CEO = {
   '강서발산점':'하성종', '건대입구점':'서명완', '광주상무점':'진보경', '강남점':'임정욱',
-  '안양범계점':'양유성', '여의도점':'권오민', '대전둔산점':'이삭', '명동점':'김영수',
+  '안양범계점':'양윤성', '여의도점':'권오민', '대전둔산점':'이삭', '명동점':'김영수',
   '분당점':'이충연', '인천구월점':'이택규', '전주점':'박만우', '부산서면점':'이다인',
   '명동2호점':'김현지', '영등포점':'김장미', '수원점':'노성진',
-  '세라미크 강남점':'이종민',
+  '세라미크 강남점':'이종진',
 };
 
 
@@ -2318,7 +2318,7 @@ function renderMgmtCheck() {
     const fees  = calcFees(row);
     const brand = getBrand(row.branch);
     const [y,mo]= (row.month||'').split('-');
-    const mLabel= y&&mo ? `${y}년 ${mo}월` : (row.month||'-');
+    const mLabel= y&&mo ? `${y.slice(2)}년 ${mo}월` : (row.month||'-');
     const isPaid    = !!mc.paid;
     const isInvoice = !!mc.invoice;
     const extra     = Array.isArray(mc.extra) ? mc.extra : [];
@@ -2341,7 +2341,7 @@ function renderMgmtCheck() {
         <input type="text" value="${Number(p.amt||0).toLocaleString('ko-KR')}"
           oninput="this.value=this.value.replace(/[^0-9]/g,'');this.value=this.value?Number(this.value).toLocaleString('ko-KR'):'';"
           onchange="onMgmtExtraChange('${id}',${i},'amt',this)"
-          style="width:120px;padding:4px 6px;border:1.5px solid #6ee7b7;border-radius:7px;font-size:.82rem;font-family:inherit;font-weight:600;text-align:right;" />
+          style="width:92px;padding:3px 5px;border:1.5px solid #6ee7b7;border-radius:6px;font-size:.74rem;font-family:inherit;font-weight:600;text-align:right;" />
       </div>`).join('');
 
     tr.innerHTML = `
@@ -2351,7 +2351,7 @@ function renderMgmtCheck() {
       <td class="left" style="color:#374151;">${BRANCH_CEO[row.branch]||'-'}</td>
       <td style="font-weight:600;text-align:right;">${numFmt(row.salesTotal)}</td>
       <td style="font-weight:700;color:#7c3aed;text-align:right;">${numFmt(fees.mgmt)}</td>
-      <td class="left" style="font-size:.78rem;color:#b45309;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:help;" title="${buildSpecialText(row)||''}">${buildSpecialText(row)||'-'}</td>
+      <td class="left" style="font-size:.72rem;color:#b45309;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:help;" title="${buildSpecialText(row)||''}">${buildSpecialText(row)||'-'}</td>
       <td>
         <input type="checkbox" ${isPaid?'checked':''} onchange="onMgmtChange('${id}','paid',this)" />
         ${isPaid?'<span class="mgmt-badge-paid">완료</span>':''}
@@ -2367,7 +2367,7 @@ function renderMgmtCheck() {
         ${isPaid ? `<input type="text" value="${Number(mc.paidAmt !== undefined ? mc.paidAmt : fees.mgmt).toLocaleString('ko-KR')}"
           oninput="this.value=this.value.replace(/[^0-9]/g,'');this.value=this.value?Number(this.value).toLocaleString('ko-KR'):'';"
           onchange="onMgmtChange('${id}','paidAmt',this)"
-          style="width:120px;padding:4px 6px;border:1.5px solid #6ee7b7;border-radius:7px;font-size:.82rem;font-family:inherit;font-weight:600;text-align:right;" />` : ''}
+          style="width:92px;padding:3px 5px;border:1.5px solid #6ee7b7;border-radius:6px;font-size:.74rem;font-family:inherit;font-weight:600;text-align:right;" />` : ''}
         ${extraAmtRows}
       </td>
       <td>
