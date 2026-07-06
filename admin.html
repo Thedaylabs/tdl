@@ -854,10 +854,21 @@ function syncFromServer(callback) {
   const indicator = document.getElementById('syncIndicator');
   if (indicator) indicator.textContent = '🔄 서버 동기화 중...';
 
-  fetch(SCRIPT_URL + '?action=all&_t=' + Date.now())
-    .then(r => r.json())
+  const controller = new AbortController();
+  const timeoutId  = setTimeout(() => controller.abort(), 25000);
+
+  fetch(SCRIPT_URL + '?action=all&_t=' + Date.now(), { signal: controller.signal })
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
     .then(data => {
-      if (data.result !== 'ok') return;
+      if (data.result !== 'ok') {
+        console.error('[동기화] 서버가 오류를 반환함:', data);
+        if (indicator) indicator.textContent = '⚠️ 동기화 실패 (서버 오류: ' + (data.message || '알 수 없음') + ')';
+        setTimeout(() => { if (indicator) indicator.textContent = ''; }, 6000);
+        return;
+      }
 
       // 매출 데이터: 서버가 정본 (서버에서 삭제된 항목은 다른 PC에서도 제거)
       const gasDeletedIds = new Set(data.deleted_ids || []);
@@ -891,11 +902,13 @@ function syncFromServer(callback) {
       }
       setTimeout(() => { if (indicator) indicator.textContent = ''; }, 3000);
     })
-    .catch(() => {
-      if (indicator) indicator.textContent = '⚠️ 동기화 실패 (오프라인)';
-      setTimeout(() => { if (indicator) indicator.textContent = ''; }, 3000);
+    .catch(err => {
+      console.error('[동기화] 실패:', err);
+      const reason = err.name === 'AbortError' ? '시간 초과 25초' : (err.message || '네트워크 오류');
+      if (indicator) indicator.textContent = `⚠️ 동기화 실패 (${reason})`;
+      setTimeout(() => { if (indicator) indicator.textContent = ''; }, 6000);
     })
-    .finally(() => { if (callback) callback(); });
+    .finally(() => { clearTimeout(timeoutId); if (callback) callback(); });
 }
 
 function showAdminScreen() {
