@@ -7,6 +7,14 @@
   },
   "routes": [
     { "src": "/api/sync", "dest": "/api/sync.js" },
+    { "src": "/", "dest": "/월별매출/index.html" },
+    { "src": "/admin.html", "dest": "/월별매출/admin.html" },
+    { "src": "/monthly-sales-report.html", "dest": "/월별매출/monthly-sales-report.html" },
+    { "src": "/guide.html", "dest": "/월별매출/guide.html" },
+    { "src": "/stamp_dayblabs.png", "dest": "/월별매출/stamp_dayblabs.png" },
+    { "src": "/stamp_dayview.png", "dest": "/월별매출/stamp_dayview.png" },
+    { "src": "/report-analysis.html", "dest": "/매출분석리포트/report-analysis.html" },
+    { "src": "/waisely.html", "dest": "/와이즐리제안서/waisely.html" },
     { "src": "/(.*)", "dest": "/$1" }
   ]
 }
