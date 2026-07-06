@@ -562,6 +562,8 @@
         <option value="noinvoice">계산서 미발행</option>
         <option value="invoice">계산서 발행완료</option>
       </select>
+      <button id="mgmtSaveBtn" onclick="saveMgmtSnapshot()" style="background:#059669;color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;">💾 저장</button>
+      <span id="mgmtSaveInfo" style="font-size:.72rem;color:#888;"></span>
     </div>
     <div class="mgmt-table-wrap">
       <div class="mgmt-table-scroll">
@@ -894,14 +896,26 @@ function syncFromServer(callback) {
       const localNew   = local.filter(r => !serverIds.has(r.id) && r._localOnly === true);
       localStorage.setItem('sales_data', JSON.stringify([...serverRows, ...localNew]));
 
-      // 경영 확인: 필드 단위 병합 (서버에 없는 로컬 전용 필드(분할입금 등)가
-      // 통째로 덮어써져 사라지지 않도록 id별로 깊은 병합)
-      const srvMgmt  = data.mgmt_check || {};
-      const locMgmt  = JSON.parse(localStorage.getItem('mgmt_check') || '{}');
-      const mergedMgmt = {};
-      new Set([...Object.keys(locMgmt), ...Object.keys(srvMgmt)]).forEach(id => {
-        mergedMgmt[id] = { ...(locMgmt[id]||{}), ...(srvMgmt[id]||{}) };
-      });
+      // 경영 확인: "저장" 버튼을 누른 시각(mgmt_saved_at) 기준으로 최종본 결정.
+      // 어느 PC든 더 최근에 저장을 누른 쪽의 화면 전체가 그대로 채택된다.
+      const srvMgmt   = data.mgmt_check || {};
+      const srvSaved  = data.mgmt_saved_at || '';
+      const locMgmt   = JSON.parse(localStorage.getItem('mgmt_check') || '{}');
+      const locSaved  = localStorage.getItem('mgmt_saved_at') || '';
+
+      let mergedMgmt;
+      if (srvSaved && (!locSaved || new Date(srvSaved) > new Date(locSaved))) {
+        // 서버 쪽이 더 최근에 저장 버튼을 눌렀음 -> 그 스냅샷을 그대로 채택
+        mergedMgmt = srvMgmt;
+        localStorage.setItem('mgmt_saved_at', srvSaved);
+      } else {
+        // 저장 이력이 없거나 내 쪽이 더 최근 -> 필드 단위로 깊은 병합해서
+        // 저장 버튼을 누르기 전의 개별 자동저장 편집분(분할입금 등)을 보존
+        mergedMgmt = {};
+        new Set([...Object.keys(locMgmt), ...Object.keys(srvMgmt)]).forEach(id => {
+          mergedMgmt[id] = { ...(locMgmt[id]||{}), ...(srvMgmt[id]||{}) };
+        });
+      }
       localStorage.setItem('mgmt_check', JSON.stringify(mergedMgmt));
 
       // PIN: 서버에 데이터 있으면 덮어쓰기
@@ -2294,6 +2308,12 @@ function renderMgmtCheck() {
   const st  = document.getElementById('t6Status').value;
   const mgmtMap = getMgmtData();
 
+  const saveInfo = document.getElementById('mgmtSaveInfo');
+  if (saveInfo) {
+    const savedAt = localStorage.getItem('mgmt_saved_at');
+    saveInfo.textContent = savedAt ? '마지막 저장: ' + formatDate(savedAt) : '';
+  }
+
   let rows = getData().filter(r =>
     (!m || r.month === m) &&
     (!b || r.branch === b)
@@ -2474,6 +2494,29 @@ function onMgmtExtraChange(id, idx, field, el) {
   saveMgmtData(d);
   serverPost({ action: 'update_mgmt', id, data: d[id] });
   renderMgmtCheck();
+}
+
+// "저장" 버튼: 지금 이 화면(경영확인 전체)을 통째로 서버에 찍어서,
+// 어느 PC에서 저장을 눌렀든 가장 최근 저장 시각을 기준으로
+// 다른 PC에서도 그 상태 그대로 보이게 한다.
+async function saveMgmtSnapshot() {
+  const btn = document.getElementById('mgmtSaveBtn');
+  const info = document.getElementById('mgmtSaveInfo');
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ 저장 중...';
+
+  const savedAt = new Date().toISOString();
+  const mgmt = getMgmtData();
+  const ok = await serverPost({ action: 'save_mgmt_all', savedAt, mgmt });
+
+  if (ok) {
+    localStorage.setItem('mgmt_saved_at', savedAt);
+    btn.textContent = '✅ 저장 완료';
+    if (info) info.textContent = '마지막 저장: ' + formatDate(savedAt);
+  } else {
+    btn.textContent = '❌ 저장 실패';
+  }
+  setTimeout(() => { btn.disabled = false; btn.textContent = orig; }, 2500);
 }
 
 // ════════════════════════════════════════════════════════
