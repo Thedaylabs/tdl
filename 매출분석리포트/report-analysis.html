@@ -834,7 +834,7 @@ function computeAggregates(rows) {
 
   const procMap = {}, memberMap = {};
   rows.forEach(r => {
-    if (isOralMed(r.order)) return; // 먹는 약물 제외
+    if (!r.amount) return; // 매출 0원 제외
     const target = isMembership(r.order) ? memberMap : procMap;
     if (!target[r.order]) target[r.order] = {cnt:0, amt:0};
     target[r.order].cnt++; target[r.order].amt += r.amount;
