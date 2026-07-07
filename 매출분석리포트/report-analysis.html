@@ -892,7 +892,7 @@ function computeAggregates(rows) {
   });
   const routeProc = {};
   Object.entries(routeProcMap).forEach(([route, procs]) => {
-    routeProc[route] = Object.entries(procs).map(([name,v])=>({name,...v})).sort((a,b)=>b.cnt-a.cnt).slice(0,5);
+    routeProc[route] = Object.entries(procs).map(([name,v])=>({name,...v})).sort((a,b)=>b.cnt-a.cnt).slice(0,3);
   });
 
   return { routeTable, top10, membershipTop, byGender, byAge, staffTable, routeProc, totalCnt: rows.length, totalAmt: rows.reduce((s,r)=>s+r.amount,0) };
@@ -1043,7 +1043,7 @@ function renderRouteProc(routeProc) {
   }).join('');
 
   document.getElementById('nationalCard').innerHTML = `
-    <h2>🛤 내원경로별 인기 시술 TOP 5</h2>
+    <h2>🛤 내원경로별 인기 시술 TOP 3</h2>
     <p class="sub-note">각 내원경로별 판매 건수 기준 상위 5개 시술입니다. (매출 0원 제외)</p>
     ${hasData
       ? `<div class="group-grid">${boxes}</div>`
