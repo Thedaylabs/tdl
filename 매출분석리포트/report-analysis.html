@@ -842,17 +842,31 @@ function computeAggregates(rows) {
   const top10 = Object.entries(procMap).map(([name,g])=>({name,...g})).sort((a,b)=>b.cnt-a.cnt).slice(0,10);
   const membershipTop = Object.entries(memberMap).map(([name,g])=>({name,...g})).sort((a,b)=>b.cnt-a.cnt).slice(0,10);
 
-  const demoMap = {};
+  // 성별별 집계
+  const genderMap = {};
+  // 나이대별 집계
+  const ageMap = {};
   rows.forEach(r => {
-    if (!r.gender) return;
-    const key = `${r.gender}|${ageGroup(r.age)}`;
-    if (!demoMap[key]) demoMap[key] = {};
-    if (!demoMap[key][r.order]) demoMap[key][r.order]={cnt:0,amt:0};
-    demoMap[key][r.order].cnt++; demoMap[key][r.order].amt+=r.amount;
+    if (!r.amount) return;
+    if (r.gender) {
+      if (!genderMap[r.gender]) genderMap[r.gender] = {};
+      if (!genderMap[r.gender][r.order]) genderMap[r.gender][r.order] = {cnt:0,amt:0};
+      genderMap[r.gender][r.order].cnt++; genderMap[r.gender][r.order].amt += r.amount;
+    }
+    const ag = ageGroup(r.age);
+    if (ag !== '미지정') {
+      if (!ageMap[ag]) ageMap[ag] = {};
+      if (!ageMap[ag][r.order]) ageMap[ag][r.order] = {cnt:0,amt:0};
+      ageMap[ag][r.order].cnt++; ageMap[ag][r.order].amt += r.amount;
+    }
   });
-  const demographics = {};
-  Object.entries(demoMap).forEach(([key, procs]) => {
-    demographics[key] = Object.entries(procs).map(([name,g])=>({name,...g})).sort((a,b)=>b.amt-a.amt).slice(0,3);
+  const byGender = {};
+  Object.entries(genderMap).forEach(([g, procs]) => {
+    byGender[g] = Object.entries(procs).map(([name,v])=>({name,...v})).sort((a,b)=>b.cnt-a.cnt).slice(0,5);
+  });
+  const byAge = {};
+  Object.entries(ageMap).forEach(([ag, procs]) => {
+    byAge[ag] = Object.entries(procs).map(([name,v])=>({name,...v})).sort((a,b)=>b.cnt-a.cnt).slice(0,5);
   });
 
   const staffMap = {};
@@ -881,7 +895,7 @@ function computeAggregates(rows) {
     natTop3[g] = Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([proc,cnt])=>({proc,cnt}));
   });
 
-  return { routeTable, top10, membershipTop, demographics, staffTable, natTop3, totalCnt: rows.length, totalAmt: rows.reduce((s,r)=>s+r.amount,0) };
+  return { routeTable, top10, membershipTop, byGender, byAge, staffTable, natTop3, totalCnt: rows.length, totalAmt: rows.reduce((s,r)=>s+r.amount,0) };
 }
 
 function ageGroup(age) {
@@ -930,7 +944,7 @@ function renderFiltered() {
 
   renderRouteTable(agg.routeTable || []);
   renderProcedures(agg.top10 || [], agg.membershipTop || []);
-  renderGenderAge(agg.demographics || {});
+  renderGenderAge(agg.byGender || {}, agg.byAge || {});
   renderNational(agg.natTop3 || {});
   renderStaffTable(agg.staffTable || []);
 }
@@ -983,25 +997,36 @@ function renderProcedures(entries, membershipEntries) {
     ${memberSection}`;
 }
 
-function renderGenderAge(demographics) {
+function renderGenderAge(byGender, byAge) {
   const ageOrder = ['10대','20대','30대','40대','50대','60대 이상'];
-  const boxes = [];
-  ['여','남'].forEach(gender => {
-    ageOrder.forEach(ag => {
-      const key = `${gender}|${ag}`;
-      const top3 = demographics[key];
-      if (!top3 || top3.length === 0) return;
-      boxes.push(`
-        <div class="group-box">
-          <h3>${gender === '여' ? '👩' : '👨'} ${gender}성 ${ag}</h3>
-          <ol>${top3.map(t => `<li><span class="nm">${t.name}</span><span class="amt">${fmt(t.amt)}원 (${t.cnt}건)</span></li>`).join('')}</ol>
-        </div>`);
-    });
-  });
+
+  const genderBoxes = ['여','남'].map(g => {
+    const top = byGender[g];
+    if (!top?.length) return '';
+    return `<div class="group-box">
+      <h3>${g === '여' ? '👩' : '👨'} ${g}성 인기 시술 TOP 5</h3>
+      <ol>${top.map((t,i) => `<li><span class="nm">${i+1}. ${t.name}</span><span class="amt">${t.cnt}건</span></li>`).join('')}</ol>
+    </div>`;
+  }).join('');
+
+  const ageBoxes = ageOrder.map(ag => {
+    const top = byAge[ag];
+    if (!top?.length) return '';
+    return `<div class="group-box">
+      <h3>🎂 ${ag} 인기 시술 TOP 5</h3>
+      <ol>${top.map((t,i) => `<li><span class="nm">${i+1}. ${t.name}</span><span class="amt">${t.cnt}건</span></li>`).join('')}</ol>
+    </div>`;
+  }).join('');
+
+  const noData = !genderBoxes && !ageBoxes;
   document.getElementById('genderAgeCard').innerHTML = `
     <h2>👥 성별 · 나이대별 인기 시술</h2>
-    <p class="sub-note">각 그룹별 매출 상위 3개 시술입니다. (이름 컬럼의 성별/나이 표기를 기준으로 집계)</p>
-    <div class="group-grid">${boxes.join('') || '<p class="sub-note" style="padding:20px 0">성별/나이 정보를 가진 데이터가 없습니다.</p>'}</div>`;
+    <p class="sub-note">판매 건수 기준. 이름 컬럼의 성별/나이 표기를 기준으로 집계합니다.</p>
+    ${noData ? '<p class="sub-note" style="padding:20px 0">성별/나이 정보를 가진 데이터가 없습니다.</p>' : `
+    ${genderBoxes ? `<div style="margin-bottom:8px;font-size:0.85rem;font-weight:700;color:#2a7a6a">성별 구분</div>
+    <div class="group-grid" style="margin-bottom:24px">${genderBoxes}</div>` : ''}
+    ${ageBoxes ? `<div style="margin-bottom:8px;font-size:0.85rem;font-weight:700;color:#2a7a6a;border-top:1px solid #d4ede9;padding-top:20px">나이대별 구분</div>
+    <div class="group-grid">${ageBoxes}</div>` : ''}`}`;
 }
 
 function renderNational(natTop3) {
