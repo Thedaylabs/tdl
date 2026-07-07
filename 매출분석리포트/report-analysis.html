@@ -791,6 +791,7 @@ function renderAllBranchCard() {
     </div>`;
   }).join('');
 
+  if (wrap.dataset.open === undefined || wrap.dataset.open === '') wrap.dataset.open = 'false';
   const isOpen = wrap.dataset.open !== 'false';
 
   wrap.innerHTML = `
