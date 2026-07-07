@@ -192,7 +192,7 @@
         <button onclick="switchSection('route')"     id="snRoute">🚪 내원경로</button>
         <button onclick="switchSection('procedure')" id="snProcedure">💉 오더별 인기시술</button>
         <button onclick="switchSection('genderage')" id="snGenderAge">👥 성별&amp;나이대별</button>
-        <button onclick="switchSection('national')"  id="snNational">🌏 국가별 인기시술</button>
+        <button onclick="switchSection('national')"  id="snNational">🛤 내원경로별 인기시술</button>
         <button onclick="switchSection('staff')"     id="snStaff">👤 실장별 객단가</button>
         <button onclick="exportPDF()"                class="btn-pdf">📄 PDF 리포트</button>
       </nav>
@@ -882,20 +882,20 @@ function computeAggregates(rows) {
     perPatient: g.charts.size > 0 ? Math.round(g.amt / g.charts.size) : 0
   })).sort((a,b) => b.perPatient - a.perPatient);
 
-  const natProcMap = {};
+  const routeProcMap = {};
   rows.forEach(r => {
-    const g = getNationalityGroup(r.nationality);
-    if (!g) return;
-    const proc = r.order || r.proc || '기타';
-    if (!natProcMap[g]) natProcMap[g] = {};
-    natProcMap[g][proc] = (natProcMap[g][proc] || 0) + 1;
+    if (!r.amount) return;
+    const route = r.route || '미지정';
+    if (!routeProcMap[route]) routeProcMap[route] = {};
+    if (!routeProcMap[route][r.order]) routeProcMap[route][r.order] = {cnt:0, amt:0};
+    routeProcMap[route][r.order].cnt++; routeProcMap[route][r.order].amt += r.amount;
   });
-  const natTop3 = {};
-  Object.entries(natProcMap).forEach(([g, m]) => {
-    natTop3[g] = Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([proc,cnt])=>({proc,cnt}));
+  const routeProc = {};
+  Object.entries(routeProcMap).forEach(([route, procs]) => {
+    routeProc[route] = Object.entries(procs).map(([name,v])=>({name,...v})).sort((a,b)=>b.cnt-a.cnt).slice(0,5);
   });
 
-  return { routeTable, top10, membershipTop, byGender, byAge, staffTable, natTop3, totalCnt: rows.length, totalAmt: rows.reduce((s,r)=>s+r.amount,0) };
+  return { routeTable, top10, membershipTop, byGender, byAge, staffTable, routeProc, totalCnt: rows.length, totalAmt: rows.reduce((s,r)=>s+r.amount,0) };
 }
 
 function ageGroup(age) {
@@ -945,7 +945,7 @@ function renderFiltered() {
   renderRouteTable(agg.routeTable || []);
   renderProcedures(agg.top10 || [], agg.membershipTop || []);
   renderGenderAge(agg.byGender || {}, agg.byAge || {});
-  renderNational(agg.natTop3 || {});
+  renderRouteProc(agg.routeProc || {});
   renderStaffTable(agg.staffTable || []);
 }
 
@@ -1029,30 +1029,25 @@ function renderGenderAge(byGender, byAge) {
     <div class="group-grid">${ageBoxes}</div>` : ''}`}`;
 }
 
-function renderNational(natTop3) {
-  const natGroups = Object.keys(NATIONALITY_MAP);
-  const hasData = Object.keys(natTop3).length > 0;
-  const rows = hasData
-    ? natGroups.filter(g => natTop3[g]?.length).map(g => {
-        const top = natTop3[g];
-        return `<tr>
-          <td><span class="nat-badge">${g}</span></td>
-          <td>${top[0] ? `${top[0].proc} <span style="color:#888;font-size:0.8rem">(${top[0].cnt}건)</span>` : '—'}</td>
-          <td>${top[1] ? `${top[1].proc} <span style="color:#888;font-size:0.8rem">(${top[1].cnt}건)</span>` : '—'}</td>
-          <td>${top[2] ? `${top[2].proc} <span style="color:#888;font-size:0.8rem">(${top[2].cnt}건)</span>` : '—'}</td>
-        </tr>`;
-      }).join('')
-    : '';
+function renderRouteProc(routeProc) {
+  const routes = Object.keys(routeProc).sort();
+  const hasData = routes.length > 0;
+
+  const boxes = routes.map(route => {
+    const top = routeProc[route];
+    if (!top?.length) return '';
+    return `<div class="group-box">
+      <h3>🚪 ${route}</h3>
+      <ol>${top.map((t, i) => `<li><span class="nm">${i+1}. ${t.name}</span><span class="amt">${t.cnt}건</span></li>`).join('')}</ol>
+    </div>`;
+  }).join('');
 
   document.getElementById('nationalCard').innerHTML = `
-    <h2>🌏 국가별 인기 시술 TOP 3</h2>
-    <p class="sub-note">국적 정보가 기록된 고객 기준입니다. (건대입구점·강남점·명동점·부산서면점·명동2호점·세라미크 강남점)</p>
-    ${hasData && rows
-      ? `<div class="table-scroll"><table>
-          <thead><tr><th>국적</th><th>1위</th><th>2위</th><th>3위</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table></div>`
-      : '<div class="empty-state"><div class="ico">🌏</div><p>이 지점/기간에는 국적 데이터가 없습니다.<br>국적 컬럼이 있는 지점을 선택하거나 파일을 재업로드해 주세요.</p></div>'}`;
+    <h2>🛤 내원경로별 인기 시술 TOP 5</h2>
+    <p class="sub-note">각 내원경로별 판매 건수 기준 상위 5개 시술입니다. (매출 0원 제외)</p>
+    ${hasData
+      ? `<div class="group-grid">${boxes}</div>`
+      : '<div class="empty-state"><div class="ico">🛤</div><p>내원경로 데이터가 없습니다.</p></div>'}`;
 }
 
 function renderStaffTable(entries) {
