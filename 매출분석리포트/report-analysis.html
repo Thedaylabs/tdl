@@ -159,6 +159,9 @@
 
   <div class="wrap">
 
+    <!-- 전지점 월 매출 현황 -->
+    <div class="card" id="allBranchCard" style="display:none"></div>
+
     <!-- 지점 선택 -->
     <div class="card">
       <div class="branch-header">
@@ -194,6 +197,7 @@
         <button onclick="switchSection('genderage')" id="snGenderAge">👥 성별&amp;나이대별</button>
         <button onclick="switchSection('national')"  id="snNational">🛤 내원경로별 인기시술</button>
         <button onclick="switchSection('staff')"     id="snStaff">👤 실장별 객단가</button>
+        <button onclick="switchSection('trend')"     id="snTrend">📈 매출추이</button>
         <button onclick="exportPDF()"                class="btn-pdf">📄 PDF 리포트</button>
       </nav>
 
@@ -212,6 +216,7 @@
       <div id="secGenderAge" class="sec-panel" style="display:none"><div class="card" id="genderAgeCard"></div></div>
       <div id="secNational"  class="sec-panel" style="display:none"><div class="card" id="nationalCard"></div></div>
       <div id="secStaff"     class="sec-panel" style="display:none"><div class="card" id="staffCard"></div></div>
+      <div id="secTrend"     class="sec-panel" style="display:none"><div class="card" id="trendCard"></div></div>
     </div>
 
   </div>
@@ -230,6 +235,9 @@ let currentBranch = '';
 let rawRows = [];
 let serverData = null;
 let monthList = [];
+let allSalesData = [];
+let trendChartInstance = null;
+let allBranchChartInstance = null;
 
 // ── 인증 ──
 function doLogin() {
@@ -246,6 +254,7 @@ function showMainScreen() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainScreen').style.display = 'block';
   renderBranchGrid();
+  fetchAllSalesData();
 }
 function doLogout() {
   if (!confirm('로그아웃 하시겠어요?')) return;
@@ -684,8 +693,8 @@ uploadArea.addEventListener('drop', e => {
 
 // ── 탭 전환 ──
 let currentSection = 'route';
-const SECTION_IDS  = { route:'secRoute', procedure:'secProcedure', genderage:'secGenderAge', national:'secNational', staff:'secStaff' };
-const SECTION_BTNS = { route:'snRoute', procedure:'snProcedure', genderage:'snGenderAge', national:'snNational', staff:'snStaff' };
+const SECTION_IDS  = { route:'secRoute', procedure:'secProcedure', genderage:'secGenderAge', national:'secNational', staff:'secStaff', trend:'secTrend' };
+const SECTION_BTNS = { route:'snRoute', procedure:'snProcedure', genderage:'snGenderAge', national:'snNational', staff:'snStaff', trend:'snTrend' };
 
 function switchSection(name) {
   currentSection = name;
@@ -695,8 +704,241 @@ function switchSection(name) {
     if (panel) panel.style.display = k === name ? '' : 'none';
     if (btn)   btn.classList.toggle('active', k === name);
   });
+  // 매출추이 탭은 월 선택 불필요
   const monthCard = document.getElementById('monthCard');
-  if (monthCard) monthCard.style.display = '';
+  if (monthCard) monthCard.style.display = name === 'trend' ? 'none' : '';
+  if (name === 'trend') renderTrend();
+}
+
+// ── 매출 데이터 로드 (서버) ──
+async function fetchAllSalesData() {
+  try {
+    const r = await fetch(SYNC_URL);
+    const j = await r.json();
+    allSalesData = j.sales_data || [];
+    renderAllBranchCard();
+  } catch(e) { allSalesData = []; }
+}
+
+function numFmtShort(n) {
+  if (!n) return '0';
+  if (Math.abs(n) >= 100000000) return (n/100000000).toFixed(1) + '억';
+  if (Math.abs(n) >= 10000) return (n/10000).toFixed(0) + '만';
+  return n.toLocaleString('ko-KR');
+}
+
+// ── 전지점 월 매출 카드 (상단 고정) ──
+function renderAllBranchCard() {
+  const wrap = document.getElementById('allBranchCard');
+  if (!wrap) return;
+  const years = [...new Set(allSalesData.map(r => (r.month||'').slice(0,4)).filter(Boolean))].sort().reverse();
+  if (!years.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const yr = wrap.dataset.year || years[0];
+  wrap.dataset.year = yr;
+
+  const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const labels = months.map(m => `${parseInt(m)}월`);
+
+  // 월별 전체 합산
+  const totals = months.map(m => {
+    const key = `${yr}-${m}`;
+    return allSalesData.filter(r => r.month === key).reduce((s,r) => s+(r.salesTotal||0), 0) || null;
+  });
+
+  // 지점별 월 매출 행
+  const branchRows = BRANCHES.map(b => {
+    const vals = months.map(m => {
+      const r = allSalesData.find(d => d.branch === b && d.month === `${yr}-${m}`);
+      return r ? (r.salesTotal||0) : null;
+    });
+    const total = vals.reduce((s,v) => s+(v||0), 0);
+    return { branch: b, vals, total };
+  }).filter(r => r.total > 0).sort((a,b) => b.total - a.total);
+
+  const maxTotal = Math.max(1, ...totals.filter(v=>v!==null));
+
+  const yearBtns = years.map(y =>
+    `<button onclick="setAllBranchYear('${y}')" style="padding:4px 12px;border:1.5px solid #b8ddd8;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600;background:${y===yr?'#3d9e8c':'#fff'};color:${y===yr?'#fff':'#3d9e8c'};font-family:inherit">${y}년</button>`
+  ).join('');
+
+  const tableRows = branchRows.map((br,i) => {
+    const cells = br.vals.map(v =>
+      v !== null ? `<td style="text-align:right;padding:7px 8px;color:#333">${numFmtShort(v)}</td>`
+                 : `<td style="text-align:right;padding:7px 8px;color:#ddd">—</td>`
+    ).join('');
+    return `<tr style="border-bottom:1px solid #f0f9f7">
+      <td style="padding:7px 10px;font-weight:600;white-space:nowrap">${i+1}. ${br.branch}</td>
+      ${cells}
+      <td style="text-align:right;padding:7px 10px;font-weight:700;color:#3d9e8c">${numFmtShort(br.total)}</td>
+    </tr>`;
+  }).join('');
+
+  const totalRow = `<tr style="background:#f0f9f7;font-weight:700">
+    <td style="padding:8px 10px">전체 합계</td>
+    ${totals.map(v => `<td style="text-align:right;padding:8px">${v!==null?numFmtShort(v):'—'}</td>`).join('')}
+    <td style="text-align:right;padding:8px;color:#3d9e8c">${numFmtShort(branchRows.reduce((s,r)=>s+r.total,0))}</td>
+  </tr>`;
+
+  // 미니 바 차트 (CSS only)
+  const barChart = totals.map((v,i) => {
+    if (v === null) return `<div style="display:flex;flex-direction:column;align-items:center;flex:1"><div style="flex:1"></div><div style="font-size:0.7rem;color:#ccc;margin-top:4px">${labels[i]}</div></div>`;
+    const h = Math.round((v/maxTotal)*80);
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;justify-content:flex-end">
+      <div style="font-size:0.65rem;color:#3d9e8c;font-weight:700;margin-bottom:2px">${numFmtShort(v)}</div>
+      <div style="width:100%;background:#3d9e8c;border-radius:4px 4px 0 0;height:${h}px;opacity:0.75;min-height:2px"></div>
+      <div style="font-size:0.7rem;color:#888;margin-top:4px">${labels[i]}</div>
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <h2 style="margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #f0f9f7;display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap">
+      <span>🏢 전지점 월 매출 현황</span>
+      <div style="display:flex;gap:6px">${yearBtns}</div>
+    </h2>
+    <div style="display:flex;align-items:flex-end;gap:4px;height:110px;padding:0 4px;margin-bottom:20px;border-bottom:2px solid #e8f7f4">
+      ${barChart}
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:0.78rem;min-width:900px">
+        <thead>
+          <tr style="border-bottom:2px solid #d4ede9">
+            <th style="padding:8px 10px;text-align:left;color:#555;white-space:nowrap">지점</th>
+            ${labels.map(l=>`<th style="padding:8px;text-align:right;color:#555">${l}</th>`).join('')}
+            <th style="padding:8px 10px;text-align:right;color:#3d9e8c">연간 합계</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+        <tfoot>${totalRow}</tfoot>
+      </table>
+    </div>`;
+}
+
+function setAllBranchYear(yr) {
+  const wrap = document.getElementById('allBranchCard');
+  if (wrap) { wrap.dataset.year = yr; renderAllBranchCard(); }
+}
+
+// ── 지점별 매출 추이 ──
+function renderTrend() {
+  const card = document.getElementById('trendCard');
+  if (!card || !currentBranch) return;
+
+  const years = [...new Set(allSalesData.map(r => (r.month||'').slice(0,4)).filter(Boolean))].sort().reverse();
+  const yr = card.dataset.year || (years[0] || new Date().getFullYear().toString());
+  card.dataset.year = yr;
+
+  const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const labels = months.map(m => `${parseInt(m)}월`);
+  const rows   = months.map(m => allSalesData.find(r => r.branch === currentBranch && r.month === `${yr}-${m}`) || null);
+  const sales  = rows.map(r => r ? (r.salesTotal||0) : null);
+
+  const pct = sales.map((v,i) => {
+    if (v === null) return null;
+    const prev = i > 0 ? sales[i-1]
+      : (allSalesData.find(r => r.branch === currentBranch && r.month === `${parseInt(yr)-1}-12`)?.salesTotal ?? null);
+    if (prev === null || prev === 0) return null;
+    return Math.round((v-prev)/prev*1000)/10;
+  });
+
+  const validSales = sales.filter(v=>v!==null);
+  const lastIdx  = [...sales].reverse().findIndex(v=>v!==null);
+  const lastSale = lastIdx>=0 ? sales[11-lastIdx] : null;
+  const lastPct  = lastIdx>=0 ? pct[11-lastIdx] : null;
+  const avg      = validSales.length ? Math.round(validSales.reduce((a,b)=>a+b,0)/validSales.length) : 0;
+  const maxSale  = validSales.length ? Math.max(...validSales) : 0;
+  const maxMonth = maxSale ? labels[sales.indexOf(maxSale)] : '-';
+  const pctColor = lastPct===null?'#888':lastPct>0?'#059669':lastPct<0?'#dc2626':'#888';
+  const pctStr   = lastPct===null?'-':(lastPct>0?'+':'')+lastPct.toFixed(1)+'%';
+
+  const yearBtns = years.map(y =>
+    `<button onclick="setTrendYear('${y}')" style="padding:4px 12px;border:1.5px solid #b8ddd8;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600;background:${y===yr?'#3d9e8c':'#fff'};color:${y===yr?'#fff':'#3d9e8c'};font-family:inherit">${y}년</button>`
+  ).join('');
+
+  card.innerHTML = `
+    <h2 style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span>📈 ${currentBranch} 매출 추이</span>
+      <div style="display:flex;gap:6px">${yearBtns}</div>
+    </h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0">
+      <div style="background:#f0f9f7;border-radius:10px;padding:12px 14px">
+        <div style="font-size:.74rem;color:#3d9e8c;margin-bottom:4px">최근월 매출</div>
+        <div style="font-size:1.2rem;font-weight:700;color:#1a1a2e">${lastSale!==null?numFmtShort(lastSale)+'원':'-'}</div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:10px;padding:12px 14px">
+        <div style="font-size:.74rem;color:#059669;margin-bottom:4px">전월 대비</div>
+        <div style="font-size:1.2rem;font-weight:700;color:${pctColor}">${pctStr}</div>
+      </div>
+      <div style="background:#fafafa;border-radius:10px;padding:12px 14px">
+        <div style="font-size:.74rem;color:#888;margin-bottom:4px">${yr}년 월평균</div>
+        <div style="font-size:1.2rem;font-weight:700;color:#1a1a2e">${avg?numFmtShort(avg)+'원':'-'}</div>
+      </div>
+      <div style="background:#fafafa;border-radius:10px;padding:12px 14px">
+        <div style="font-size:.74rem;color:#888;margin-bottom:4px">최고월</div>
+        <div style="font-size:1.2rem;font-weight:700;color:#1a1a2e">${maxSale?numFmtShort(maxSale)+'원':'-'}</div>
+        <div style="font-size:.7rem;color:#aaa;margin-top:2px">${maxMonth}</div>
+      </div>
+    </div>
+    <div style="position:relative;width:100%;height:260px;margin-bottom:20px">
+      <canvas id="trendChartCanvas"></canvas>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;font-size:0.82rem;border-collapse:collapse">
+        <thead><tr style="border-bottom:2px solid #d4ede9">
+          <th style="padding:8px 10px;text-align:left;color:#555">월</th>
+          <th style="padding:8px;text-align:right;color:#555">매출</th>
+          <th style="padding:8px;text-align:right;color:#555">전월 대비</th>
+        </tr></thead>
+        <tbody>${[...months].reverse().map((m,i)=>{
+          const ri=11-i;
+          if(sales[ri]===null) return '';
+          const p=pct[ri];
+          const pS=p===null?'-':(p>0?'+':'')+p.toFixed(1)+'%';
+          const pC=p===null?'#aaa':p>0?'#059669':p<0?'#dc2626':'#aaa';
+          return `<tr style="border-bottom:1px solid #f0f9f7">
+            <td style="padding:8px 10px">${yr}년 ${parseInt(m)}월</td>
+            <td style="padding:8px;text-align:right;font-weight:600">${sales[ri].toLocaleString('ko-KR')}원</td>
+            <td style="padding:8px;text-align:right;font-weight:700;color:${pC}">${pS}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+
+  // Chart.js 그래프
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('trendChartCanvas');
+    if (!canvas || typeof Chart === 'undefined') return;
+    if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
+    trendChartInstance = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { type:'bar', label:'월 매출', data:sales, backgroundColor:'rgba(61,158,140,0.7)', borderRadius:4, yAxisID:'y1', order:2 },
+          { type:'line', label:'전월 대비 %', data:pct, borderColor:'#f97316', backgroundColor:'transparent',
+            borderWidth:2, pointRadius:4, pointBackgroundColor:'#f97316', tension:0.3, yAxisID:'y2', order:1, spanGaps:true }
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        interaction:{ mode:'index', intersect:false },
+        plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => {
+          if(ctx.datasetIndex===0) return ` 매출: ${ctx.parsed.y!==null?(ctx.parsed.y).toLocaleString('ko-KR')+'원':'-'}`;
+          return ` 전월 대비: ${ctx.parsed.y!==null?(ctx.parsed.y>0?'+':'')+ctx.parsed.y.toFixed(1)+'%':'-'}`;
+        }}}},
+        scales:{
+          x:{ ticks:{ color:'#999', font:{size:11} }, grid:{ display:false } },
+          y1:{ type:'linear', position:'left', ticks:{ color:'#999', font:{size:11}, callback:v=>numFmtShort(v) }, grid:{ color:'rgba(0,0,0,0.05)' } },
+          y2:{ type:'linear', position:'right', ticks:{ color:'#f97316', font:{size:11}, callback:v=>v+'%' }, grid:{ display:false } }
+        }
+      }
+    });
+  });
+}
+
+function setTrendYear(yr) {
+  const card = document.getElementById('trendCard');
+  if (card) { card.dataset.year = yr; renderTrend(); }
 }
 
 // ── 엑셀 파싱 ──
@@ -1327,5 +1569,6 @@ function categorizeProc(name) {
   return '기타';
 }
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </body>
 </html>
