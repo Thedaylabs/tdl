@@ -834,6 +834,7 @@ function computeAggregates(rows) {
 
   const procMap = {}, memberMap = {};
   rows.forEach(r => {
+    if (isOralMed(r.order)) return; // 먹는 약물 제외
     const target = isMembership(r.order) ? memberMap : procMap;
     if (!target[r.order]) target[r.order] = {cnt:0, amt:0};
     target[r.order].cnt++; target[r.order].amt += r.amount;
@@ -1250,6 +1251,17 @@ const MEMBERSHIP_KEYWORDS = ['멤버십', '회원권', '정기권', '패키지�
 function isMembership(name) {
   const n = (name || '').toLowerCase();
   return MEMBERSHIP_KEYWORDS.some(k => n.includes(k));
+}
+
+const ORAL_MED_KEYWORDS = [
+  '경구', '정제', '캡슐', '알약', '먹는약', '복용약', '처방약', '약물',
+  '트라넥삼산', '미녹시딜', '독시사이클린', '이트라코나졸', '클린다마이신',
+  '아지트로마이신', '세티리진', '항생제', '소염제', '진통제', '피임약',
+  '영양제 (경구)', '콜라겐 파우더', '유산균'
+];
+function isOralMed(name) {
+  const n = (name || '').toLowerCase();
+  return ORAL_MED_KEYWORDS.some(k => n.includes(k));
 }
 
 // ── 국적 분류 ──
