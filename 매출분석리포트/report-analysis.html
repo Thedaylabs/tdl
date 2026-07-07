@@ -207,6 +207,7 @@
           <label style="font-size:0.85rem;font-weight:600;">분석 월 선택</label>
           <select id="monthSelect"><option value="">전체 기간</option></select>
           <span class="month-count" id="rowCount"></span>
+          <span id="adminSalesAmt" style="margin-left:auto;font-size:0.85rem;font-weight:700;color:#3d9e8c;"></span>
         </div>
       </div>
 
@@ -1185,6 +1186,18 @@ function renderReport() {
   renderFiltered();
 }
 
+function getAdminSalesTotal(branch, month) {
+  if (!allSalesData.length) return null;
+  if (month) {
+    const r = allSalesData.find(d => d.branch === branch && d.month === month);
+    return r ? (r.salesTotal || 0) : null;
+  }
+  // 전체 기간: 해당 지점 합산
+  const rows = allSalesData.filter(d => d.branch === branch);
+  if (!rows.length) return null;
+  return rows.reduce((s, d) => s + (d.salesTotal || 0), 0);
+}
+
 function renderFiltered() {
   const sel = document.getElementById('monthSelect');
   const month = sel ? sel.value : '';
@@ -1198,6 +1211,13 @@ function renderFiltered() {
     document.getElementById('rowCount').textContent =
       `☁️ 서버 데이터 · ${agg.totalCnt ? agg.totalCnt.toLocaleString('ko-KR') + '건' : '-'}`;
   } else return;
+
+  // 관리자 페이지 총매출 표시
+  const adminAmt = getAdminSalesTotal(currentBranch, month);
+  const amtEl = document.getElementById('adminSalesAmt');
+  if (amtEl) {
+    amtEl.textContent = adminAmt !== null ? `💰 총매출 ${fmt(adminAmt)}원` : '';
+  }
 
   renderRouteTable(agg.routeTable || []);
   renderProcedures(agg.top10 || [], agg.membershipTop || []);
@@ -1356,6 +1376,9 @@ function exportPDF() {
   const today = new Date();
   const dateStr = `${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
 
+  const adminSalesTotal = getAdminSalesTotal(branch, month);
+  const displayAmt = adminSalesTotal !== null ? adminSalesTotal : (agg.totalAmt || 0);
+
   const routeRows = (agg.routeTable || []).map((e,i) => `
     <tr>
       <td>${i+1}. ${e.route}</td>
@@ -1452,7 +1475,7 @@ function exportPDF() {
     <div class="report-meta">
       <span>📅 분석 기간: <strong>${monthText}</strong></span>
       <span>📊 총 거래: <strong>${(agg.totalCnt||0).toLocaleString('ko-KR')}건</strong></span>
-      <span>💰 총 매출: <strong>${fmt(agg.totalAmt||0)}원</strong></span>
+      <span>💰 총 매출: <strong>${fmt(displayAmt)}원</strong></span>
       <span>🗓 생성일: ${dateStr}</span>
     </div>
   </div>
@@ -1463,8 +1486,8 @@ function exportPDF() {
       <div class="lbl">총 거래 건수</div>
     </div>
     <div class="summary-item">
-      <div class="val">${fmt(agg.totalAmt||0)}원</div>
-      <div class="lbl">총 매출</div>
+      <div class="val">${fmt(displayAmt)}원</div>
+      <div class="lbl">총 매출${adminSalesTotal !== null ? '' : ' <span style="font-size:9px;color:#aaa">(엑셀 계산)</span>'}</div>
     </div>
   </div>
 
