@@ -791,32 +791,46 @@ function renderAllBranchCard() {
     </div>`;
   }).join('');
 
+  const isOpen = wrap.dataset.open !== 'false';
+
   wrap.innerHTML = `
-    <h2 style="margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #f0f9f7;display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap">
-      <span>🏢 전지점 월 매출 현황</span>
-      <div style="display:flex;gap:6px">${yearBtns}</div>
+    <h2 onclick="toggleAllBranchCard()" style="margin:0;padding-bottom:${isOpen?'10px':'0'};border-bottom:${isOpen?'2px solid #f0f9f7':'none'};display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap;cursor:pointer;user-select:none">
+      <span style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:1rem;transition:transform .25s;display:inline-block;transform:rotate(${isOpen?'0':'180'}deg)" id="allBranchChevron">▲</span>
+        🏢 전지점 월 매출 현황
+      </span>
+      <div style="display:flex;gap:6px" onclick="event.stopPropagation()">${yearBtns}</div>
     </h2>
-    <div style="display:flex;align-items:flex-end;gap:4px;height:110px;padding:0 4px;margin-bottom:20px;border-bottom:2px solid #e8f7f4">
-      ${barChart}
-    </div>
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:0.78rem;min-width:900px">
-        <thead>
-          <tr style="border-bottom:2px solid #d4ede9">
-            <th style="padding:8px 10px;text-align:left;color:#555;white-space:nowrap">지점</th>
-            ${labels.map(l=>`<th style="padding:8px;text-align:right;color:#555">${l}</th>`).join('')}
-            <th style="padding:8px 10px;text-align:right;color:#3d9e8c">연간 합계</th>
-          </tr>
-        </thead>
-        <tbody>${tableRows}</tbody>
-        <tfoot>${totalRow}</tfoot>
-      </table>
+    <div id="allBranchBody" style="overflow:hidden;transition:max-height .3s ease;max-height:${isOpen?'2000px':'0'}">
+      <div style="display:flex;align-items:flex-end;gap:4px;height:110px;padding:0 4px;margin:14px 0 20px;border-bottom:2px solid #e8f7f4">
+        ${barChart}
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:0.78rem;min-width:900px">
+          <thead>
+            <tr style="border-bottom:2px solid #d4ede9">
+              <th style="padding:8px 10px;text-align:left;color:#555;white-space:nowrap">지점</th>
+              ${labels.map(l=>`<th style="padding:8px;text-align:right;color:#555">${l}</th>`).join('')}
+              <th style="padding:8px 10px;text-align:right;color:#3d9e8c">연간 합계</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+          <tfoot>${totalRow}</tfoot>
+        </table>
+      </div>
     </div>`;
 }
 
 function setAllBranchYear(yr) {
   const wrap = document.getElementById('allBranchCard');
   if (wrap) { wrap.dataset.year = yr; renderAllBranchCard(); }
+}
+
+function toggleAllBranchCard() {
+  const wrap = document.getElementById('allBranchCard');
+  if (!wrap) return;
+  wrap.dataset.open = wrap.dataset.open === 'false' ? 'true' : 'false';
+  renderAllBranchCard();
 }
 
 // ── 지점별 매출 추이 ──
