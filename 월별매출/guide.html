@@ -161,9 +161,9 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="salesInputCard">
       <h2>💰 매출 입력 방법</h2>
-      <div class="step-list">
+      <div class="step-list" id="salesInputSteps">
         <div class="step">
           <div class="num">1</div>
           <div class="txt"><b>국내 매출</b>과 <b>해외 매출</b>을 구분하여 입력합니다.</div>
@@ -173,7 +173,7 @@
           <div class="txt"><b>총 매출</b>이 자동으로 합산되니, 제출 전 합계가 맞는지 확인합니다.</div>
         </div>
       </div>
-      <div class="info-box">글로벌점이 아닌 경우, 총 매출 전체를 <b>국내매출</b>란에 입력해 주세요.</div>
+      <div class="info-box" id="salesInputNote">글로벌점이 아닌 경우, 총 매출 전체를 <b>국내매출</b>란에 입력해 주세요.</div>
     </div>
 
     <div class="card">
@@ -234,6 +234,22 @@
         document.getElementById('branchSpecialItems').innerHTML =
           config.items.map(item => `<li>${item}</li>`).join('');
         document.getElementById('branchSpecialCard').style.display = 'block';
+      }
+
+      // 명동점은 매출 입력란 자체가 다른 지점과 반대로 동작함
+      // (국내매출 + 총매출을 입력하면 해외매출이 자동 계산됨) — 안내 문구도 다르게 표시
+      if (branch === '명동점') {
+        document.getElementById('salesInputSteps').innerHTML = `
+          <div class="step">
+            <div class="num">1</div>
+            <div class="txt"><b>국내 매출</b>과 <b>총 매출</b>을 직접 입력합니다.</div>
+          </div>
+          <div class="step">
+            <div class="num">2</div>
+            <div class="txt"><b>해외 매출</b>은 <u>총 매출 − 국내 매출</u>로 자동 계산되어 채워지므로 따로 입력하지 않습니다.</div>
+          </div>`;
+        document.getElementById('salesInputNote').innerHTML =
+          '명동점은 다른 지점과 입력 방식이 다릅니다 — <b>국내매출</b>과 <b>총매출</b>란에 직접 입력해 주시면, <b>해외매출</b>란은 자동으로 계산되어 채워집니다 (직접 입력 불가).';
       }
     })();
   </script>
