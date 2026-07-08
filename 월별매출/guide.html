@@ -97,8 +97,14 @@
 
     <div class="hero">
       <div class="ico">📋</div>
-      <h1>월별 매출 보고서 작성 가이드</h1>
-      <p>각 지점 원장님들께서는 매월 매출 보고서를 아래 안내에 따라<br>작성·제출해 주시기 바랍니다.</p>
+      <h1 id="heroTitle">월별 매출 보고서 작성 가이드</h1>
+      <p id="heroDesc">각 지점 원장님들께서는 매월 매출 보고서를 아래 안내에 따라<br>작성·제출해 주시기 바랍니다.</p>
+    </div>
+
+    <div class="card" id="branchSpecialCard" style="display:none;">
+      <h2>📌 <span id="branchSpecialTitle"></span> 특약사항 안내</h2>
+      <div class="info-box" id="branchSpecialNote" style="margin-top:0;"></div>
+      <ul id="branchSpecialItems" style="margin-top:10px;"></ul>
     </div>
 
     <div class="card">
@@ -120,7 +126,7 @@
       <h2>📎 첨부 서류 안내</h2>
       <ul>
         <li><b>CRM 매출집계 캡처본</b> <span class="badge req">필수</span></li>
-        <li><b>내원경로별 캡처본</b> <span class="badge req">필수</span></li>
+        <li><b>내원경로별 캡처본</b> <span class="badge opt">선택</span></li>
         <li><b>월 매출 집계 자료</b> (엑셀·PDF 등) <span class="badge opt">선택</span></li>
       </ul>
       <div class="info-box">월 매출 집계 자료는 <b>원내에서 매출을 추가로 확인할 수 있는 별도 자료가 있을 경우에만</b> 첨부해 주시면 됩니다.</div>
@@ -201,5 +207,35 @@
     </div>
 
   </div>
+
+  <script>
+    // monthly-sales-report.html의 BRANCH_SPECIAL과 동일한 지점별 특약사항 —
+    // 여기서는 표시 전용으로만 사용 (계산 로직 없음)
+    const BRANCH_SPECIAL = {
+      '강남점':    { note:'아래 특약 항목은 매출 집계 시 제외하고 보고서를 작성해 주세요.', items:['울쎄라 시술 제외','리쥬란 시술 제외'] },
+      '분당점':    { note:'아래 특약 항목은 매출 집계 시 제외하고 보고서를 작성해 주세요.', items:['화장품 판매 제외'] },
+      '부산서면점':{ note:'아래 특약 항목은 매출 집계 시 제외하고 보고서를 작성해 주세요.', items:['환불건 제외'] },
+      '명동2호점': { note:'아래 특약 항목은 매출 집계 시 제외하고 보고서를 작성해 주세요.', items:['소개_직원소개','소개_원장님소개','직원','임직원할인(특가)','SC임직원10%할인','화장품 매출'] },
+      '영등포점':  { note:'아래 특약 항목의 해당 금액을 입력해 주세요. (여신티켓 금액은 총 매출에 합산됩니다.)', items:['여신티켓'] }
+    };
+
+    (function personalize() {
+      const branch = sessionStorage.getItem('branch_logged_in');
+      if (!branch) return; // 지점 로그인 없이 직접 열람 시 일반 가이드 표시
+
+      document.getElementById('heroTitle').textContent = `${branch} 매출 보고서 작성 가이드`;
+      document.getElementById('heroDesc').innerHTML = `<b>${branch}</b> 원장님께서는 매월 매출 보고서를 아래 안내에 따라<br>작성·제출해 주시기 바랍니다.`;
+
+      const shortKey = Object.keys(BRANCH_SPECIAL).find(k => branch.includes(k));
+      const config = shortKey ? BRANCH_SPECIAL[shortKey] : null;
+      if (config) {
+        document.getElementById('branchSpecialTitle').textContent = branch;
+        document.getElementById('branchSpecialNote').textContent = config.note;
+        document.getElementById('branchSpecialItems').innerHTML =
+          config.items.map(item => `<li>${item}</li>`).join('');
+        document.getElementById('branchSpecialCard').style.display = 'block';
+      }
+    })();
+  </script>
 </body>
 </html>

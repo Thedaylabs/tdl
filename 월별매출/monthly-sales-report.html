@@ -441,7 +441,7 @@
           <div class="preview-grid" id="p1"></div>
         </div>
         <div class="form-group">
-          <label>내원경로별 캡쳐본 <span class="req">*</span><span class="hint">내원경로별 통계 화면</span></label>
+          <label>내원경로별 캡쳐본 <span class="hint">내원경로별 통계 화면 (선택)</span></label>
           <div class="upload-wrap" id="ua2">
             <input type="file" id="f2" accept="image/*" multiple onchange="addFiles(this,'p2')" />
             <div class="ico">🖼️</div>
@@ -938,13 +938,11 @@ document.getElementById('mainForm').addEventListener('submit', async function(e)
   const manager  = document.getElementById('managerName').value.trim();
   const domestic = getRawNum('salesDom');
   const hasP1    = (fileStore.p1||[]).filter(Boolean).length > 0;
-  const hasP2    = (fileStore.p2||[]).filter(Boolean).length > 0;
 
   const errors = [];
   if (!month)    { errors.push('보고 기간을 선택해 주세요.'); document.getElementById('reportMonth').classList.add('input-error'); }
   if (!manager)  { errors.push('담당자명을 입력해 주세요.'); document.getElementById('managerName').classList.add('input-error'); }
   if (!hasP1)    { errors.push('베가스 CRM 매출 집계 캡쳐본을 첨부해 주세요.'); document.getElementById('ua1').classList.add('upload-error'); }
-  if (!hasP2)    { errors.push('내원경로별 캡쳐본을 첨부해 주세요.'); document.getElementById('ua2').classList.add('upload-error'); }
   if (!domestic) { errors.push('국내 매출을 입력해 주세요.'); document.getElementById('salesDom').classList.add('input-error'); }
 
   if (errors.length > 0) { showWarn(errors); return; }
