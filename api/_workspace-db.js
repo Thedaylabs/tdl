@@ -1,4 +1,4 @@
-import { createPool } from '@vercel/postgres';
+import { neon } from '@neondatabase/serverless';
 import jwt from 'jsonwebtoken';
 
 const connectionString =
@@ -8,8 +8,14 @@ const connectionString =
   process.env.POSTGRES_URL_NON_POOLING ||
   process.env.DATABASE_URL_UNPOOLED;
 
-const pool = createPool({ connectionString });
-const sql = pool.sql;
+const rawSql = neon(connectionString);
+
+// neon()'s tag function resolves to a plain rows array; wrap it so the
+// rest of the codebase can keep using the familiar `{ rows }` shape.
+const sql = async (strings, ...values) => {
+  const rows = await rawSql(strings, ...values);
+  return { rows };
+};
 
 const TEAM_SEED = [
   { division: '클리닉사업본부', teams: ['국내사업팀', '디자인팀'] },
