@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>홈 - 더데이랩스 워크스페이스</title>
+<link rel="stylesheet" href="/사내워크스페이스/shared.css">
+</head>
+<body>
+<div class="navbar" id="navbar"></div>
+<div class="container">
+  <h1 class="page-title">홈</h1>
+  <p class="page-sub">전체 공지사항과 사내 일정, 각 팀 게시판으로 바로 이동할 수 있어요.</p>
+
+  <div class="section">
+    <div class="section-head">
+      <h2>📌 공지사항</h2>
+      <button class="btn btn-sm btn-primary" id="newNoticeBtn">+ 공지 작성</button>
+    </div>
+    <div class="card" id="noticeForm" style="display:none; margin-bottom:12px;">
+      <div class="form-row"><label>제목</label><input class="input" id="noticeTitle"></div>
+      <div class="form-row"><label>내용</label><textarea class="textarea" id="noticeContent"></textarea></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button class="btn" id="noticeCancel">취소</button>
+        <button class="btn btn-primary" id="noticeSubmit">등록</button>
+      </div>
+    </div>
+    <div class="card"><div id="noticeList"></div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <h2>🗓 사내 일정</h2>
+      <button class="btn btn-sm btn-primary" id="newEventBtn">+ 일정 추가</button>
+    </div>
+    <div class="card" id="eventForm" style="display:none; margin-bottom:12px;">
+      <div class="form-inline">
+        <div class="form-row" style="flex:2"><label>제목</label><input class="input" id="eventTitle"></div>
+        <div class="form-row"><label>날짜</label><input class="input" type="date" id="eventDate"></div>
+      </div>
+      <div class="form-row"><label>내용</label><textarea class="textarea" id="eventContent"></textarea></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button class="btn" id="eventCancel">취소</button>
+        <button class="btn btn-primary" id="eventSubmit">등록</button>
+      </div>
+    </div>
+    <div class="card"><div id="eventList"></div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2>🏢 팀 바로가기</h2></div>
+    <div class="grid-cards" id="teamGrid"></div>
+  </div>
+</div>
+
+<script src="/사내워크스페이스/shared.js"></script>
+<script>
+let user, teams = [], busyPeriods = [];
+
+(async () => {
+  user = await requireAuth();
+  if (!user) return;
+  const [teamsRes, busyRes] = await Promise.all([
+    fetchJSON(`${API_WS}?action=list_teams`),
+    fetchJSON(`${API_WS}?action=list_busy`)
+  ]);
+  teams = teamsRes.teams;
+  busyPeriods = busyRes.busy_periods;
+  renderNav(user, 'home', teams);
+  renderTeamGrid();
+  await loadNotices();
+  await loadEvents();
+})();
+
+function renderTeamGrid() {
+  const visibleTeams = user.role === 'admin' ? teams : teams.filter(t => t.id === user.team_id);
+  const grid = document.getElementById('teamGrid');
+  if (visibleTeams.length === 0) {
+    grid.innerHTML = '<div class="empty">아직 배정된 팀이 없어요. 관리자에게 문의해주세요.</div>';
+    return;
+  }
+  grid.innerHTML = visibleTeams.map(t => {
+    const busy = findBusyToday(busyPeriods, t.id);
+    return `
+      <a class="team-card" href="${WS_BASE}/team.html?team=${t.id}">
+        <div class="division">${escapeHtml(t.division_name || '')}</div>
+        <div class="team-name">${escapeHtml(t.name)}</div>
+        ${busy ? `<span class="busy-tag">🔥 ${escapeHtml(busy.title)}</span>` : ''}
+      </a>
+    `;
+  }).join('');
+}
+
+async function loadNotices() {
+  const { posts } = await fetchJSON(`${API_WS}?action=list_notices`);
+  const list = document.getElementById('noticeList');
+  if (posts.length === 0) { list.innerHTML = '<div class="empty">등록된 공지사항이 없어요.</div>'; return; }
+  list.innerHTML = posts.map(p => `
+    <div class="post-item">
+      <div class="post-head">
+        <div class="post-title">${escapeHtml(p.title)}</div>
+        ${(user.role === 'admin' || p.author_id === user.id) ? `<button class="btn btn-sm btn-ghost" onclick="deleteNotice(${p.id})">삭제</button>` : ''}
+      </div>
+      ${p.content ? `<div class="post-content">${escapeHtml(p.content)}</div>` : ''}
+      <div class="post-meta"><span>${escapeHtml(p.author_name)}</span><span>${fmtDateTime(p.created_at)}</span></div>
+    </div>
+  `).join('');
+}
+
+async function loadEvents() {
+  const { posts } = await fetchJSON(`${API_WS}?action=list_events`);
+  const list = document.getElementById('eventList');
+  if (posts.length === 0) { list.innerHTML = '<div class="empty">등록된 일정이 없어요.</div>'; return; }
+  list.innerHTML = posts.map(p => `
+    <div class="post-item">
+      <div class="post-head">
+        <div class="post-title">${escapeHtml(p.title)} ${p.due_date ? `<span class="muted" style="font-weight:500;">· ${fmtDate(p.due_date)}</span>` : ''}</div>
+        ${(user.role === 'admin' || p.author_id === user.id) ? `<button class="btn btn-sm btn-ghost" onclick="deleteEvent(${p.id})">삭제</button>` : ''}
+      </div>
+      ${p.content ? `<div class="post-content">${escapeHtml(p.content)}</div>` : ''}
+      <div class="post-meta"><span>${escapeHtml(p.author_name)}</span></div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('newNoticeBtn').onclick = () => {
+  document.getElementById('noticeForm').style.display = 'block';
+};
+document.getElementById('noticeCancel').onclick = () => {
+  document.getElementById('noticeForm').style.display = 'none';
+};
+document.getElementById('noticeSubmit').onclick = async () => {
+  const title = document.getElementById('noticeTitle').value.trim();
+  const content = document.getElementById('noticeContent').value.trim();
+  if (!title) return toast('제목을 입력해주세요.', 'error');
+  try {
+    await fetchJSON(`${API_WS}?action=create_notice`, { method: 'POST', body: { action: 'create_notice', title, content } });
+    document.getElementById('noticeTitle').value = '';
+    document.getElementById('noticeContent').value = '';
+    document.getElementById('noticeForm').style.display = 'none';
+    await loadNotices();
+    toast('공지사항을 등록했어요.');
+  } catch (e) { toast(e.message, 'error'); }
+};
+
+document.getElementById('newEventBtn').onclick = () => {
+  document.getElementById('eventForm').style.display = 'block';
+};
+document.getElementById('eventCancel').onclick = () => {
+  document.getElementById('eventForm').style.display = 'none';
+};
+document.getElementById('eventSubmit').onclick = async () => {
+  const title = document.getElementById('eventTitle').value.trim();
+  const content = document.getElementById('eventContent').value.trim();
+  const due_date = document.getElementById('eventDate').value;
+  if (!title) return toast('제목을 입력해주세요.', 'error');
+  try {
+    await fetchJSON(`${API_WS}?action=create_event`, { method: 'POST', body: { action: 'create_event', title, content, due_date } });
+    document.getElementById('eventTitle').value = '';
+    document.getElementById('eventContent').value = '';
+    document.getElementById('eventDate').value = '';
+    document.getElementById('eventForm').style.display = 'none';
+    await loadEvents();
+    toast('일정을 등록했어요.');
+  } catch (e) { toast(e.message, 'error'); }
+};
+
+async function deleteNotice(id) {
+  const ok = await confirmModal({ title: '공지 삭제', body: '이 공지사항을 삭제할까요?', confirmText: '삭제', danger: true });
+  if (!ok) return;
+  await fetchJSON(`${API_WS}?action=delete_notice`, { method: 'POST', body: { action: 'delete_notice', id } });
+  await loadNotices();
+}
+
+async function deleteEvent(id) {
+  const ok = await confirmModal({ title: '일정 삭제', body: '이 일정을 삭제할까요?', confirmText: '삭제', danger: true });
+  if (!ok) return;
+  await fetchJSON(`${API_WS}?action=delete_event`, { method: 'POST', body: { action: 'delete_event', id } });
+  await loadEvents();
+}
+</script>
+</body>
+</html>

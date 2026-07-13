@@ -7,6 +7,12 @@
   },
   "routes": [
     { "src": "/api/sync", "dest": "/api/sync.js" },
+    { "src": "/api/auth", "dest": "/api/auth.js" },
+    { "src": "/api/workspace", "dest": "/api/workspace.js" },
+    { "src": "/workspace", "dest": "/사내워크스페이스/index.html" },
+    { "src": "/workspace/login", "dest": "/사내워크스페이스/login.html" },
+    { "src": "/workspace/team", "dest": "/사내워크스페이스/team.html" },
+    { "src": "/workspace/admin", "dest": "/사내워크스페이스/admin.html" },
     { "src": "/", "dest": "/월별매출/index.html" },
     { "src": "/admin.html", "dest": "/월별매출/admin.html" },
     { "src": "/monthly-sales-report.html", "dest": "/월별매출/monthly-sales-report.html" },
