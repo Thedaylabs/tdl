@@ -30,8 +30,11 @@
 
   <div class="section">
     <div class="section-head">
-      <h2>🗓 사내 일정</h2>
-      <button class="btn btn-sm btn-primary" id="newEventBtn">+ 일정 추가</button>
+      <h2>🗓 사내 일정 <span class="muted" id="eventCount" style="font-weight:500; font-size:13px;"></span></h2>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-sm" id="eventToggleBtn">펼치기</button>
+        <button class="btn btn-sm btn-primary" id="newEventBtn">+ 일정 추가</button>
+      </div>
     </div>
     <div class="card" id="eventForm" style="display:none; margin-bottom:12px;">
       <div class="form-inline">
@@ -44,7 +47,7 @@
         <button class="btn btn-primary" id="eventSubmit">등록</button>
       </div>
     </div>
-    <div class="card"><div id="eventList"></div></div>
+    <div class="card" id="eventCardWrap" style="display:none;"><div id="eventList"></div></div>
   </div>
 
   <div class="section">
@@ -110,6 +113,7 @@ async function loadNotices() {
 async function loadEvents() {
   const { posts } = await fetchJSON(`${API_WS}?action=list_events`);
   const list = document.getElementById('eventList');
+  document.getElementById('eventCount').textContent = posts.length ? `(${posts.length})` : '';
   if (posts.length === 0) { list.innerHTML = '<div class="empty">등록된 일정이 없어요.</div>'; return; }
   list.innerHTML = posts.map(p => `
     <div class="post-item">
@@ -143,8 +147,18 @@ document.getElementById('noticeSubmit').onclick = async () => {
   } catch (e) { toast(e.message, 'error'); }
 };
 
+document.getElementById('eventToggleBtn').onclick = () => {
+  const wrap = document.getElementById('eventCardWrap');
+  const btn = document.getElementById('eventToggleBtn');
+  const collapsed = wrap.style.display === 'none';
+  wrap.style.display = collapsed ? 'block' : 'none';
+  btn.textContent = collapsed ? '접기' : '펼치기';
+};
+
 document.getElementById('newEventBtn').onclick = () => {
   document.getElementById('eventForm').style.display = 'block';
+  document.getElementById('eventCardWrap').style.display = 'block';
+  document.getElementById('eventToggleBtn').textContent = '접기';
 };
 document.getElementById('eventCancel').onclick = () => {
   document.getElementById('eventForm').style.display = 'none';
