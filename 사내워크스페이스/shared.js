@@ -81,6 +81,16 @@ function closeModal() {
   if (el) el.remove();
 }
 
+function showModal(innerHtml) {
+  closeModal();
+  const root = document.createElement('div');
+  root.id = 'modalRoot';
+  root.className = 'modal-overlay';
+  root.innerHTML = `<div class="modal" style="max-width:480px;">${innerHtml}</div>`;
+  document.body.appendChild(root);
+  root.addEventListener('click', e => { if (e.target === root) closeModal(); });
+}
+
 function confirmModal({ title, body, confirmText = '등록', cancelText = '취소', danger = false }) {
   return new Promise(resolve => {
     closeModal();

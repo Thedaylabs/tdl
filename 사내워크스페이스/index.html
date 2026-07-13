@@ -47,7 +47,16 @@
         <button class="btn btn-primary" id="eventSubmit">등록</button>
       </div>
     </div>
-    <div class="card" id="eventCardWrap" style="display:none;"><div id="eventList"></div></div>
+    <div class="card" id="eventCardWrap" style="display:none;">
+      <div class="cal-header">
+        <button class="btn btn-sm" id="calPrevBtn">‹</button>
+        <div class="cal-month-label" id="calMonthLabel"></div>
+        <button class="btn btn-sm" id="calNextBtn">›</button>
+        <button class="btn btn-sm btn-ghost" id="calTodayBtn">오늘</button>
+      </div>
+      <div id="calendarGrid"></div>
+      <div class="no-date-events" id="noDateEvents"></div>
+    </div>
   </div>
 
   <div class="section">
@@ -110,15 +119,69 @@ async function loadNotices() {
   `).join('');
 }
 
+let eventsCache = [];
+let calDate = new Date();
+
 async function loadEvents() {
   const { posts } = await fetchJSON(`${API_WS}?action=list_events`);
-  const list = document.getElementById('eventList');
+  eventsCache = posts;
   document.getElementById('eventCount').textContent = posts.length ? `(${posts.length})` : '';
-  if (posts.length === 0) { list.innerHTML = '<div class="empty">등록된 일정이 없어요.</div>'; return; }
-  list.innerHTML = posts.map(p => `
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const year = calDate.getFullYear();
+  const month = calDate.getMonth();
+  document.getElementById('calMonthLabel').textContent = `${year}년 ${month + 1}월`;
+
+  const firstDay = new Date(year, month, 1);
+  const startWeekday = firstDay.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const eventsByDate = {};
+  eventsCache.forEach(ev => {
+    if (!ev.due_date) return;
+    const d = ev.due_date.slice(0, 10);
+    (eventsByDate[d] = eventsByDate[d] || []).push(ev);
+  });
+
+  let html = '<div class="cal-weekdays">' + ['일', '월', '화', '수', '목', '금', '토'].map(d => `<div>${d}</div>`).join('') + '</div>';
+  html += '<div class="cal-days">';
+  for (let i = 0; i < startWeekday; i++) html += '<div class="cal-day empty"></div>';
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayEvents = eventsByDate[dateStr] || [];
+    const isToday = dateStr === todayStr;
+    html += `<div class="cal-day${isToday ? ' today' : ''}" data-date="${dateStr}">
+      <div class="cal-day-num">${day}</div>
+      ${dayEvents.slice(0, 3).map(ev => `<div class="cal-event-pill">${escapeHtml(ev.title)}</div>`).join('')}
+      ${dayEvents.length > 3 ? `<div class="cal-event-more">+${dayEvents.length - 3}</div>` : ''}
+    </div>`;
+  }
+  html += '</div>';
+  document.getElementById('calendarGrid').innerHTML = html;
+
+  document.querySelectorAll('.cal-day[data-date]').forEach(cell => {
+    cell.addEventListener('click', () => {
+      const date = cell.dataset.date;
+      showDayEvents(date, eventsByDate[date] || []);
+    });
+  });
+
+  const noDate = eventsCache.filter(ev => !ev.due_date);
+  const noDateEl = document.getElementById('noDateEvents');
+  noDateEl.innerHTML = noDate.length === 0 ? '' : `
+    <div class="section-head"><h2 style="font-size:13px;">날짜 미정 (${noDate.length})</h2></div>
+    ${renderEventListHtml(noDate)}
+  `;
+}
+
+function renderEventListHtml(posts) {
+  return posts.map(p => `
     <div class="post-item">
       <div class="post-head">
-        <div class="post-title">${escapeHtml(p.title)} ${p.due_date ? `<span class="muted" style="font-weight:500;">· ${fmtDate(p.due_date)}</span>` : ''}</div>
+        <div class="post-title">${escapeHtml(p.title)}</div>
         ${(user.role === 'admin' || p.author_id === user.id) ? `<button class="btn btn-sm btn-ghost" onclick="deleteEvent(${p.id})">삭제</button>` : ''}
       </div>
       ${p.content ? `<div class="post-content">${escapeHtml(p.content)}</div>` : ''}
@@ -126,6 +189,30 @@ async function loadEvents() {
     </div>
   `).join('');
 }
+
+function showDayEvents(date, dayEvents) {
+  const body = dayEvents.length === 0
+    ? '<div class="empty">등록된 일정이 없어요.</div>'
+    : renderEventListHtml(dayEvents);
+  showModal(`
+    <div class="modal-title">${escapeHtml(date)}</div>
+    <div class="modal-body" style="max-height:400px; overflow-y:auto;">${body}</div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">닫기</button></div>
+  `);
+}
+
+document.getElementById('calPrevBtn').onclick = () => {
+  calDate.setMonth(calDate.getMonth() - 1);
+  renderCalendar();
+};
+document.getElementById('calNextBtn').onclick = () => {
+  calDate.setMonth(calDate.getMonth() + 1);
+  renderCalendar();
+};
+document.getElementById('calTodayBtn').onclick = () => {
+  calDate = new Date();
+  renderCalendar();
+};
 
 document.getElementById('newNoticeBtn').onclick = () => {
   document.getElementById('noticeForm').style.display = 'block';
