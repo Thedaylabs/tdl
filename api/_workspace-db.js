@@ -1,5 +1,15 @@
-import { sql } from '@vercel/postgres';
+import { createPool } from '@vercel/postgres';
 import jwt from 'jsonwebtoken';
+
+const connectionString =
+  process.env.POSTGRES_URL ||
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_PRISMA_URL ||
+  process.env.POSTGRES_URL_NON_POOLING ||
+  process.env.DATABASE_URL_UNPOOLED;
+
+const pool = createPool({ connectionString });
+const sql = pool.sql;
 
 const TEAM_SEED = [
   { division: '클리닉사업본부', teams: ['국내사업팀', '디자인팀'] },
