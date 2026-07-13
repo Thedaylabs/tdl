@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       const { rows } = await sql`
         INSERT INTO users (username, password_hash, name, role, team_id)
         VALUES (${username}, ${hash}, ${name}, 'admin', NULL)
-        ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = 'admin'
+        ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = 'admin', name = EXCLUDED.name
         RETURNING id, username, name, role, team_id
       `;
       return sendJson(res, 200, { user: rows[0] });
@@ -63,11 +63,12 @@ export default async function handler(req, res) {
 }
 
 async function userWithTeam(user) {
-  if (!user.team_id) return { ...user, team_name: null, division_name: null };
+  const { password_hash, ...safeUser } = user;
+  if (!user.team_id) return { ...safeUser, team_name: null, division_name: null };
   const { rows } = await sql`
     SELECT t.name AS team_name, d.name AS division_name
     FROM teams t LEFT JOIN divisions d ON d.id = t.division_id
     WHERE t.id = ${user.team_id}
   `;
-  return { ...user, team_name: rows[0]?.team_name || null, division_name: rows[0]?.division_name || null };
+  return { ...safeUser, team_name: rows[0]?.team_name || null, division_name: rows[0]?.division_name || null };
 }
