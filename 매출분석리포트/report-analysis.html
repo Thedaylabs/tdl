@@ -195,7 +195,6 @@
         <button onclick="switchSection('route')"     id="snRoute">🚪 내원경로</button>
         <button onclick="switchSection('procedure')" id="snProcedure">💉 오더별 인기시술</button>
         <button onclick="switchSection('genderage')" id="snGenderAge">👥 성별&amp;나이대별</button>
-        <button onclick="switchSection('national')"  id="snNational">🛤 내원경로별 인기시술</button>
         <button onclick="switchSection('staff')"     id="snStaff">👤 실장별 객단가</button>
         <button onclick="switchSection('trend')"     id="snTrend">📈 매출추이</button>
         <button onclick="exportPDF()"                class="btn-pdf">📄 PDF 리포트</button>
@@ -212,10 +211,14 @@
       </div>
 
       <!-- 섹션 패널들 -->
-      <div id="secRoute"     class="sec-panel" style="display:none"><div class="card" id="routeCard"></div></div>
+      <div id="secRoute" class="sec-panel" style="display:none">
+        <div style="display:flex;gap:16px;align-items:flex-start">
+          <div class="card" id="routeCard" style="flex:1.5;min-width:0"></div>
+          <div class="card" id="nationalCard" style="flex:1;min-width:0"></div>
+        </div>
+      </div>
       <div id="secProcedure" class="sec-panel" style="display:none"><div class="card" id="procCard"></div></div>
       <div id="secGenderAge" class="sec-panel" style="display:none"><div class="card" id="genderAgeCard"></div></div>
-      <div id="secNational"  class="sec-panel" style="display:none"><div class="card" id="nationalCard"></div></div>
       <div id="secStaff"     class="sec-panel" style="display:none"><div class="card" id="staffCard"></div></div>
       <div id="secTrend"     class="sec-panel" style="display:none"><div class="card" id="trendCard"></div></div>
     </div>
@@ -694,8 +697,8 @@ uploadArea.addEventListener('drop', e => {
 
 // ── 탭 전환 ──
 let currentSection = 'route';
-const SECTION_IDS  = { route:'secRoute', procedure:'secProcedure', genderage:'secGenderAge', national:'secNational', staff:'secStaff', trend:'secTrend' };
-const SECTION_BTNS = { route:'snRoute', procedure:'snProcedure', genderage:'snGenderAge', national:'snNational', staff:'snStaff', trend:'snTrend' };
+const SECTION_IDS  = { route:'secRoute', procedure:'secProcedure', genderage:'secGenderAge', staff:'secStaff', trend:'secTrend' };
+const SECTION_BTNS = { route:'snRoute', procedure:'snProcedure', genderage:'snGenderAge', staff:'snStaff', trend:'snTrend' };
 
 function switchSection(name) {
   currentSection = name;
