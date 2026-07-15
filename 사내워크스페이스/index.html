@@ -121,11 +121,31 @@ async function loadNotices() {
 
 let eventsCache = [];
 let calDate = new Date();
+let calDateAutoPicked = false;
 
 async function loadEvents() {
   const { posts } = await fetchJSON(`${API_WS}?action=list_events`);
   eventsCache = posts;
   document.getElementById('eventCount').textContent = posts.length ? `(${posts.length})` : '';
+
+  if (!calDateAutoPicked) {
+    calDateAutoPicked = true;
+    const thisMonthKey = calDate.toISOString().slice(0, 7);
+    const hasThisMonth = posts.some(ev => ev.due_date && ev.due_date.slice(0, 7) === thisMonthKey);
+    if (!hasThisMonth) {
+      const monthsWithEvents = [...new Set(posts.filter(ev => ev.due_date).map(ev => ev.due_date.slice(0, 7)))];
+      if (monthsWithEvents.length > 0) {
+        const todayTime = calDate.getTime();
+        monthsWithEvents.sort((a, b) => {
+          const da = Math.abs(new Date(a + '-01').getTime() - todayTime);
+          const db = Math.abs(new Date(b + '-01').getTime() - todayTime);
+          return da - db;
+        });
+        const [y, m] = monthsWithEvents[0].split('-').map(Number);
+        calDate = new Date(y, m - 1, 1);
+      }
+    }
+  }
   renderCalendar();
 }
 
@@ -153,15 +173,29 @@ function renderCalendar() {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const dayEvents = eventsByDate[dateStr] || [];
     const isToday = dateStr === todayStr;
+    const visibleCount = 4;
     html += `<div class="cal-day${isToday ? ' today' : ''}" data-date="${dateStr}">
       <div class="cal-day-num">${day}</div>
-      ${dayEvents.slice(0, 3).map(ev => `<div class="cal-event-pill">${escapeHtml(ev.title)}</div>`).join('')}
-      ${dayEvents.length > 3 ? `<div class="cal-event-more">+${dayEvents.length - 3}</div>` : ''}
+      ${dayEvents.slice(0, visibleCount).map(ev => `<div class="cal-event-pill" data-event-id="${ev.id}">${escapeHtml(ev.title)}</div>`).join('')}
+      ${dayEvents.length > visibleCount ? `<div class="cal-event-more" data-date="${dateStr}">+${dayEvents.length - visibleCount}개 더보기</div>` : ''}
     </div>`;
   }
   html += '</div>';
   document.getElementById('calendarGrid').innerHTML = html;
 
+  document.querySelectorAll('.cal-event-pill').forEach(pill => {
+    pill.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const ev = eventsCache.find(x => x.id === Number(pill.dataset.eventId));
+      if (ev) showEventDetail(ev);
+    });
+  });
+  document.querySelectorAll('.cal-event-more').forEach(more => {
+    more.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showDayEvents(more.dataset.date, eventsByDate[more.dataset.date] || []);
+    });
+  });
   document.querySelectorAll('.cal-day[data-date]').forEach(cell => {
     cell.addEventListener('click', () => {
       const date = cell.dataset.date;
@@ -188,6 +222,22 @@ function renderEventListHtml(posts) {
       <div class="post-meta"><span>${escapeHtml(p.author_name)}</span></div>
     </div>
   `).join('');
+}
+
+function showEventDetail(ev) {
+  const canManage = user.role === 'admin' || ev.author_id === user.id;
+  showModal(`
+    <div class="modal-title">${escapeHtml(ev.title)}</div>
+    <div class="modal-body">
+      ${ev.due_date ? `<div class="muted" style="margin-bottom:8px;">${fmtDate(ev.due_date)}</div>` : ''}
+      ${ev.content ? `<div class="post-content" style="margin:0 0 10px;">${escapeHtml(ev.content)}</div>` : ''}
+      <div class="post-meta"><span>${escapeHtml(ev.author_name)}</span></div>
+    </div>
+    <div class="modal-actions">
+      ${canManage ? `<button class="btn btn-danger" onclick="deleteEvent(${ev.id})">삭제</button>` : ''}
+      <button class="btn" onclick="closeModal()">닫기</button>
+    </div>
+  `);
 }
 
 function showDayEvents(date, dayEvents) {
