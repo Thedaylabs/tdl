@@ -1096,6 +1096,7 @@ function computeAggregates(rows) {
   const procMap = {}, memberMap = {};
   rows.forEach(r => {
     if (!r.amount) return; // 매출 0원 제외
+    if (isNonProcedure(r.order)) return; // 비시술 항목 제외
     const target = isMembership(r.order) ? memberMap : procMap;
     if (!target[r.order]) target[r.order] = {cnt:0, amt:0};
     target[r.order].cnt++; target[r.order].amt += r.amount;
@@ -1482,7 +1483,7 @@ function exportPDF() {
     </tr>`;
   }).join('');
 
-  const procRows = (agg.top10||[]).slice(0,15).map((e,i) => {
+  const procRows = (agg.top10||[]).slice(0,10).map((e,i) => {
     const pct = (agg.top10||[]).reduce((s,x)=>s+x.cnt,0);
     return `<tr>
       <td>${i<3?['🥇','🥈','🥉'][i]:i+1+'. '} ${e.name}</td>
@@ -1658,7 +1659,7 @@ function exportPDF() {
     <div class="sec-title">💉 오더별 인기시술 현황 <span class="sec-badge">Procedure</span></div>
     <div class="two-col">
       <div>
-        <div style="font-size:11px;font-weight:700;color:#3d9e8c;margin-bottom:8px">▸ 일반 시술 TOP 15</div>
+        <div style="font-size:11px;font-weight:700;color:#3d9e8c;margin-bottom:8px">▸ 일반 시술 TOP 10</div>
         ${procRows ? `<table>
           <thead><tr><th>시술명</th><th>건수</th><th>매출</th><th>비율</th></tr></thead>
           <tbody>${procRows}</tbody>
@@ -1727,6 +1728,18 @@ const MEMBERSHIP_KEYWORDS = ['멤버십', '회원권', '정기권', '패키지�
 function isMembership(name) {
   const n = (name || '').toLowerCase();
   return MEMBERSHIP_KEYWORDS.some(k => n.includes(k));
+}
+
+const NON_PROC_KEYWORDS = [
+  '면도기', '마취 스프레이', '마취스프레이', '마취 크림', '마취크림', '마취연고',
+  '마취젤', '리도카인', '엠라크림', '엠라', '테이프', '거즈', '소독',
+  '주사침', '바늘', '밴드', '드레싱', '스티커', '쿨링', '아이스팩',
+  '소모품', '재료비', '처치비', '진료비', '상담료', '제증명',
+  '추가옵션', '(추가옵션)', '옵션', '서비스', '취소', '환불'
+];
+function isNonProcedure(name) {
+  const n = (name || '').toLowerCase();
+  return NON_PROC_KEYWORDS.some(k => n.includes(k.toLowerCase()));
 }
 
 const ORAL_MED_KEYWORDS = [
