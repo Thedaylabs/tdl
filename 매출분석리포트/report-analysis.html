@@ -1510,30 +1510,30 @@ function exportPDF() {
     </tr>`;
   }).join('');
 
-  // 내원경로별 인기시술
-  const routeProc = agg.routeProc || {};
-  const routeProcRows = Object.entries(routeProc).map(([route, procs]) => {
-    const top = procs.slice(0,3);
+  // 내원경로별 인기시술 — routeProc[route] = [{name, cnt, amt}]
+  const routeProcData = agg.routeProc || {};
+  const routeProcRows = Object.entries(routeProcData).map(([route, arr]) => {
     return `<tr>
       <td style="font-weight:700">${route}</td>
-      ${[0,1,2].map(i => top[i]
-        ? `<td>${top[i].proc} <span style="color:#3d9e8c;font-size:10px">(${top[i].cnt}건)</span></td>`
+      ${[0,1,2].map(i => arr[i]
+        ? `<td>${arr[i].name} <span style="color:#3d9e8c;font-size:10px">(${arr[i].cnt}건)</span></td>`
         : '<td style="color:#ddd">—</td>').join('')}
     </tr>`;
   }).join('');
 
-  // 성별&나이대
+  // 성별&나이대 — byGender[g] = [{name,cnt,amt}], byAge[ag] = [{name,cnt,amt}]
   const ageOrder = ['10대','20대','30대','40대','50대','60대 이상'];
   const byGender = agg.byGender || {};
   const byAge    = agg.byAge    || {};
-  const genderRows = Object.entries(byGender).sort((a,b)=>b[1].cnt-a[1].cnt).slice(0,2).map(([g,d]) => `
-    <tr><td>${g}성</td>
-      ${d.top.slice(0,3).map(t=>`<td>${t.name} <span style="color:#3d9e8c;font-size:10px">(${t.cnt}건)</span></td>`).join('')}
+  const genderRows = Object.entries(byGender)
+    .filter(([,arr]) => arr?.length)
+    .map(([g, arr]) => `<tr><td>${g}성</td>
+      ${arr.slice(0,3).map(t=>`<td>${t.name} <span style="color:#3d9e8c;font-size:10px">(${t.cnt}건)</span></td>`).join('')}
     </tr>`).join('');
-  const ageRows = ageOrder.filter(a=>byAge[a]).map(a => {
-    const d = byAge[a];
+  const ageRows = ageOrder.filter(a => byAge[a]?.length).map(a => {
+    const arr = byAge[a];
     return `<tr><td>${a}</td>
-      ${d.top.slice(0,3).map(t=>`<td>${t.name} <span style="color:#3d9e8c;font-size:10px">(${t.cnt}건)</span></td>`).join('')}
+      ${arr.slice(0,3).map(t=>`<td>${t.name} <span style="color:#3d9e8c;font-size:10px">(${t.cnt}건)</span></td>`).join('')}
     </tr>`;
   }).join('');
 
