@@ -1359,6 +1359,61 @@ function rankBadge(i) {
 }
 
 // ── PDF 리포트 내보내기 ──
+function autoInsight(agg, displayAmt) {
+  const lines = [];
+  const rt = agg.routeTable || [];
+  const top10 = agg.top10 || [];
+  const mem = agg.membershipTop || [];
+  const staff = agg.staffTable || [];
+  const totalCnt = agg.totalCnt || 0;
+
+  // 내원경로 인사이트
+  if (rt.length) {
+    const top = rt[0];
+    const pct = totalCnt ? (top.totalCnt / totalCnt * 100).toFixed(1) : 0;
+    lines.push(`🔍 주요 내원경로는 <b>${top.route}</b>로 전체 거래의 <b>${pct}%</b>를 차지합니다.`);
+    const reRate = top.totalCnt ? (top.reCnt / top.totalCnt * 100).toFixed(1) : 0;
+    lines.push(`↪ 해당 경로의 재진율은 <b>${reRate}%</b>입니다.`);
+    if (rt.length >= 2) {
+      const sec = rt[1];
+      const pct2 = totalCnt ? (sec.totalCnt / totalCnt * 100).toFixed(1) : 0;
+      lines.push(`📌 2위 경로는 <b>${sec.route}</b> (${pct2}%)입니다.`);
+    }
+  }
+
+  // 시술 인사이트
+  if (top10.length) {
+    const t = top10[0];
+    lines.push(`💉 가장 많이 판매된 시술은 <b>${t.name}</b> (${t.cnt}건)입니다.`);
+    const top3names = top10.slice(0,3).map(e=>e.name).join(', ');
+    lines.push(`📋 TOP 3 인기시술: ${top3names}`);
+  }
+  if (mem.length) {
+    const mTotal = mem.reduce((s,e)=>s+e.cnt,0);
+    lines.push(`🏷 멤버십/회원권 판매 건수: <b>${mTotal}건</b> (${mem[0]?.name} 외 ${mem.length-1}종)`);
+  }
+
+  // 스태프 인사이트
+  if (staff.length) {
+    const top = staff[0];
+    lines.push(`👑 객단가 1위: <b>${top.name}</b> 실장 (${fmt(top.perPatient)}원 / 환자 ${top.patients}명)`);
+    if (staff.length >= 2) {
+      const avg = Math.round(staff.reduce((s,e)=>s+e.perPatient,0) / staff.length);
+      lines.push(`📊 전체 평균 객단가: <b>${fmt(avg)}원</b>`);
+      const above = staff.filter(e=>e.perPatient >= avg).map(e=>e.name).join(', ');
+      if (above) lines.push(`✅ 평균 이상 실장: ${above}`);
+    }
+  }
+
+  // 총매출 인사이트
+  if (displayAmt) {
+    const perVisit = totalCnt ? Math.round(displayAmt / totalCnt) : 0;
+    lines.push(`💰 총 매출 기준 거래 건당 평균 금액: <b>${fmt(perVisit)}원</b>`);
+  }
+
+  return lines;
+}
+
 function exportPDF() {
   const branch = currentBranch || '지점 미선택';
   const sel = document.getElementById('monthSelect');
@@ -1382,50 +1437,108 @@ function exportPDF() {
   const adminSalesTotal = getAdminSalesTotal(branch, month);
   const displayAmt = adminSalesTotal !== null ? adminSalesTotal : (agg.totalAmt || 0);
 
-  const routeRows = (agg.routeTable || []).map((e,i) => `
-    <tr>
-      <td>${i+1}. ${e.route}</td>
-      <td>${e.newCnt}건 / ${fmt(e.newAmt)}원</td>
-      <td>${e.reCnt}건 / ${fmt(e.reAmt)}원</td>
-      <td><strong>${e.totalCnt}건 / ${fmt(e.totalAmt)}원</strong></td>
-    </tr>`).join('');
+  const rt = agg.routeTable || [];
+  const totalCnt = agg.totalCnt || 0;
+  const newCnt  = rt.reduce((s,e)=>s+e.newCnt, 0);
+  const reCnt   = rt.reduce((s,e)=>s+e.reCnt,  0);
+  const topRoute = rt[0]?.route || '—';
+  const topProc  = agg.top10?.[0]?.name || '—';
+  const avgPerPt = agg.staffTable?.length
+    ? Math.round(agg.staffTable.reduce((s,e)=>s+e.perPatient,0)/agg.staffTable.length) : 0;
+  const memCnt  = (agg.membershipTop||[]).reduce((s,e)=>s+e.cnt,0);
 
-  const procRows = (agg.top10 || []).slice(0,10).map((e,i) => `
-    <tr><td>${i+1}. ${e.name}</td><td>${e.cnt}건</td><td>${fmt(e.amt)}원</td></tr>`).join('');
+  // KPI 카드 데이터
+  const kpi1 = [
+    { label:'총 거래건수',  val: `${totalCnt.toLocaleString('ko-KR')}건`, grad:'linear-gradient(135deg,#f97316,#fb923c)' },
+    { label:'총 매출',      val: fmt(displayAmt)+'원', grad:'linear-gradient(135deg,#8b5cf6,#a78bfa)' },
+    { label:'신환 건수',    val: `${newCnt.toLocaleString('ko-KR')}건`, grad:'linear-gradient(135deg,#0ea5e9,#38bdf8)' },
+    { label:'재진 건수',    val: `${reCnt.toLocaleString('ko-KR')}건`, grad:'linear-gradient(135deg,#10b981,#34d399)' },
+  ];
+  const kpi2 = [
+    { label:'주요 내원경로', val: topRoute, grad:'linear-gradient(135deg,#f59e0b,#fbbf24)' },
+    { label:'인기시술 1위',  val: topProc.length > 12 ? topProc.slice(0,12)+'…' : topProc, grad:'linear-gradient(135deg,#ec4899,#f472b6)' },
+    { label:'평균 객단가',   val: avgPerPt ? fmt(avgPerPt)+'원' : '—', grad:'linear-gradient(135deg,#3d9e8c,#5bc4b0)' },
+    { label:'멤버십 판매',   val: `${memCnt}건`, grad:'linear-gradient(135deg,#6366f1,#818cf8)' },
+  ];
 
-  const natGroups = Object.keys(NATIONALITY_MAP).filter(g => (agg.natTop3||{})[g]?.length);
-  const natRows = natGroups.map(g => {
-    const top = (agg.natTop3||{})[g] || [];
+  function kpiCard(k) {
+    return `<div style="background:${k.grad};border-radius:12px;padding:16px 14px;color:#fff;min-height:72px;">
+      <div style="font-size:10px;opacity:.85;margin-bottom:6px;">${k.label}</div>
+      <div style="font-size:16px;font-weight:800;line-height:1.2;">${k.val}</div>
+    </div>`;
+  }
+
+  // 테이블 데이터
+  const routeRows = rt.map((e,i) => {
+    const pct = totalCnt ? (e.totalCnt/totalCnt*100).toFixed(1) : 0;
+    const reRate = e.totalCnt ? (e.reCnt/e.totalCnt*100).toFixed(1) : 0;
     return `<tr>
-      <td><strong>${g}</strong></td>
-      <td>${top[0] ? `${top[0].proc}(${top[0].cnt}건)` : '—'}</td>
-      <td>${top[1] ? `${top[1].proc}(${top[1].cnt}건)` : '—'}</td>
-      <td>${top[2] ? `${top[2].proc}(${top[2].cnt}건)` : '—'}</td>
+      <td>${i+1}. ${e.route}</td>
+      <td style="text-align:right">${e.newCnt}건</td><td style="text-align:right">${fmt(e.newAmt)}원</td>
+      <td style="text-align:right">${e.reCnt}건</td><td style="text-align:right">${fmt(e.reAmt)}원</td>
+      <td style="text-align:right;font-weight:700">${e.totalCnt}건</td><td style="text-align:right;font-weight:700">${fmt(e.totalAmt)}원</td>
+      <td style="text-align:right"><span style="background:#f0fdf4;color:#16a34a;border-radius:10px;padding:2px 7px;font-size:10px;font-weight:700">${pct}%</span></td>
+      <td style="text-align:right;color:#888">${reRate}%</td>
     </tr>`;
   }).join('');
 
-  const ageOrder = ['10대','20대','30대','40대','50대','60대 이상'];
-  const demoBoxes = [];
-  ['여','남'].forEach(gender => {
-    ageOrder.forEach(ag => {
-      const key = `${gender}|${ag}`;
-      const top3 = (agg.demographics||{})[key];
-      if (!top3?.length) return;
-      demoBoxes.push(`<div class="pdf-group">
-        <div class="pdf-group-title">${gender}성 ${ag}</div>
-        ${top3.map((t,i) => `<div>${i+1}. ${t.name} (${t.cnt}건)</div>`).join('')}
-      </div>`);
-    });
-  });
+  const procRows = (agg.top10||[]).slice(0,15).map((e,i) => {
+    const pct = (agg.top10||[]).reduce((s,x)=>s+x.cnt,0);
+    return `<tr>
+      <td>${i<3?['🥇','🥈','🥉'][i]:i+1+'. '} ${e.name}</td>
+      <td style="text-align:right;font-weight:700">${e.cnt}건</td>
+      <td style="text-align:right">${fmt(e.amt)}원</td>
+      <td style="text-align:right"><div style="background:#e8f5e9;border-radius:3px;height:6px;width:100%;overflow:hidden"><div style="background:#3d9e8c;height:100%;width:${pct?Math.round(e.cnt/pct*100):0}%"></div></div></td>
+    </tr>`;
+  }).join('');
 
-  const staffRows = (agg.staffTable || []).map((e,i) => `
-    <tr>
-      <td>${i+1}. ${e.name}</td>
-      <td>${e.patients}명</td>
-      <td>${e.cnt}건</td>
-      <td>${fmt(e.amt)}원</td>
-      <td><strong>${fmt(e.perPatient)}원</strong></td>
+  const memRows = (agg.membershipTop||[]).slice(0,8).map((e,i) => `
+    <tr><td>${i+1}. ${e.name}</td><td style="text-align:right;font-weight:700">${e.cnt}건</td><td style="text-align:right">${fmt(e.amt)}원</td></tr>`).join('');
+
+  const staffRows = (agg.staffTable||[]).map((e,i) => {
+    const totalStaffAmt = (agg.staffTable||[]).reduce((s,x)=>s+x.amt,0);
+    const pct = totalStaffAmt ? (e.amt/totalStaffAmt*100).toFixed(1) : 0;
+    const colors = ['#f97316','#8b5cf6','#0ea5e9','#10b981','#f59e0b','#ec4899','#6366f1','#3d9e8c'];
+    const c = colors[i % colors.length];
+    return `<tr>
+      <td><span style="display:inline-block;width:18px;height:18px;border-radius:50%;background:${c};color:#fff;font-size:9px;font-weight:800;text-align:center;line-height:18px;margin-right:5px">${i+1}</span>${e.name}</td>
+      <td style="text-align:right">${e.patients}명</td>
+      <td style="text-align:right">${e.cnt}건</td>
+      <td style="text-align:right">${fmt(e.amt)}원</td>
+      <td style="text-align:right;font-weight:700;color:${c}">${fmt(e.perPatient)}원</td>
+      <td style="text-align:right"><span style="background:#fef3f2;color:#dc2626;border-radius:10px;padding:2px 7px;font-size:10px;font-weight:700">${pct}%</span></td>
+    </tr>`;
+  }).join('');
+
+  // 내원경로별 인기시술
+  const routeProc = agg.routeProc || {};
+  const routeProcRows = Object.entries(routeProc).map(([route, procs]) => {
+    const top = procs.slice(0,3);
+    return `<tr>
+      <td style="font-weight:700">${route}</td>
+      ${[0,1,2].map(i => top[i]
+        ? `<td>${top[i].proc} <span style="color:#3d9e8c;font-size:10px">(${top[i].cnt}건)</span></td>`
+        : '<td style="color:#ddd">—</td>').join('')}
+    </tr>`;
+  }).join('');
+
+  // 성별&나이대
+  const ageOrder = ['10대','20대','30대','40대','50대','60대 이상'];
+  const byGender = agg.byGender || {};
+  const byAge    = agg.byAge    || {};
+  const genderRows = Object.entries(byGender).sort((a,b)=>b[1].cnt-a[1].cnt).slice(0,2).map(([g,d]) => `
+    <tr><td>${g}성</td>
+      ${d.top.slice(0,3).map(t=>`<td>${t.name} <span style="color:#3d9e8c;font-size:10px">(${t.cnt}건)</span></td>`).join('')}
     </tr>`).join('');
+  const ageRows = ageOrder.filter(a=>byAge[a]).map(a => {
+    const d = byAge[a];
+    return `<tr><td>${a}</td>
+      ${d.top.slice(0,3).map(t=>`<td>${t.name} <span style="color:#3d9e8c;font-size:10px">(${t.cnt}건)</span></td>`).join('')}
+    </tr>`;
+  }).join('');
+
+  // 자동 인사이트
+  const insights = autoInsight(agg, displayAmt);
 
   const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -1433,113 +1546,173 @@ function exportPDF() {
 <meta charset="UTF-8">
 <title>${branch} 매출 분석 리포트 - ${monthText}</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Apple SD Gothic Neo','Noto Sans KR',sans-serif; color: #1a1a2e; font-size: 12px; line-height: 1.6; }
-  .report-wrap { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
-  .report-header { border-bottom: 3px solid #3d9e8c; padding-bottom: 20px; margin-bottom: 28px; }
-  .report-title { font-size: 22px; font-weight: 800; color: #3d9e8c; margin-bottom: 6px; }
-  .report-meta { font-size: 12px; color: #666; display: flex; gap: 24px; flex-wrap: wrap; margin-top: 10px; }
-  .report-meta span { display: flex; align-items: center; gap: 4px; }
-  .section { margin-bottom: 32px; break-inside: avoid; }
-  .section-title { font-size: 14px; font-weight: 800; color: #2a7a6a; border-left: 4px solid #3d9e8c; padding-left: 10px; margin-bottom: 12px; }
-  .comment-box { border: 1px dashed #8ec9be; border-radius: 8px; padding: 12px; min-height: 60px; color: #666; font-size: 11px; margin-bottom: 12px; background: #f5fcfa; outline: none; }
-  .comment-box:focus { border-color: #3d9e8c; background: #fff; }
-  .comment-box:empty:before { content: attr(data-placeholder); color: #bbb; }
-  table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
-  th, td { padding: 7px 10px; border-bottom: 1px solid #d4ede9; text-align: right; }
-  th:first-child, td:first-child { text-align: left; }
-  th { background: #f0f9f7; font-weight: 700; color: #555; }
-  .pdf-demo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .pdf-group { background: #f0f9f7; border-radius: 8px; padding: 10px 12px; }
-  .pdf-group-title { font-weight: 700; font-size: 11px; color: #2a7a6a; margin-bottom: 6px; }
-  .nat-badge { display: inline-block; background: #d4f0ea; color: #2a7a6a; border-radius: 12px; padding: 2px 8px; font-size: 10px; font-weight: 700; }
-  .print-hint { background: #d4f0ea; border-radius: 8px; padding: 10px 14px; font-size: 11px; color: #3d9e8c; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
-  .summary-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-  .summary-item { background: #f0f9f7; border-radius: 10px; padding: 12px 16px; text-align: center; }
-  .summary-item .val { font-size: 18px; font-weight: 800; color: #3d9e8c; }
-  .summary-item .lbl { font-size: 10px; color: #888; margin-top: 2px; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif; color:#1a1a2e; font-size:12px; line-height:1.65; background:#f8fafc; }
+  .wrap { max-width:860px; margin:0 auto; padding:32px 24px; }
+  .print-hint { background:#d4f0ea; border-radius:8px; padding:10px 16px; font-size:11px; color:#2a7a6a; margin-bottom:22px; display:flex; align-items:center; gap:8px; }
+
+  /* 헤더 */
+  .rpt-header { background:linear-gradient(135deg,#1a1a2e,#2a7a6a); border-radius:16px; padding:28px 32px; color:#fff; margin-bottom:24px; }
+  .rpt-brand { font-size:11px; opacity:.7; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
+  .rpt-title { font-size:24px; font-weight:800; margin-bottom:4px; }
+  .rpt-sub   { font-size:14px; opacity:.8; font-weight:600; }
+  .rpt-meta  { display:flex; gap:20px; flex-wrap:wrap; margin-top:16px; font-size:11px; opacity:.75; }
+
+  /* KPI 그리드 */
+  .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px; }
+
+  /* 섹션 */
+  .section { background:#fff; border-radius:14px; padding:22px 24px; margin-bottom:18px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  .sec-title { font-size:13px; font-weight:800; color:#1a1a2e; display:flex; align-items:center; gap:8px; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid #f0f9f7; }
+  .sec-badge { background:#3d9e8c; color:#fff; border-radius:6px; padding:2px 8px; font-size:10px; font-weight:700; }
+
+  /* 인사이트 박스 */
+  .insight-box { background:#f0f9f7; border-left:3px solid #3d9e8c; border-radius:0 8px 8px 0; padding:10px 14px; margin-bottom:14px; font-size:11px; color:#1a3a35; }
+  .insight-box ul { padding-left:14px; }
+  .insight-box li { margin-bottom:3px; }
+
+  /* 코멘트 박스 */
+  .comment-box { border:1px dashed #8ec9be; border-radius:8px; padding:10px 14px; min-height:52px; color:#666; font-size:11px; margin-top:14px; background:#fafffe; outline:none; }
+  .comment-box:focus { border-color:#3d9e8c; background:#fff; }
+  .comment-box:empty:before { content:attr(data-placeholder); color:#bbb; }
+
+  /* 테이블 */
+  table { width:100%; border-collapse:collapse; font-size:11px; }
+  th { background:#f8fafc; font-weight:700; color:#555; padding:8px 10px; border-bottom:2px solid #e2e8f0; text-align:right; white-space:nowrap; }
+  th:first-child { text-align:left; }
+  td { padding:8px 10px; border-bottom:1px solid #f1f5f9; text-align:right; }
+  td:first-child { text-align:left; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:#fafffe; }
+
+  /* 2열 레이아웃 */
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+  /* 종합 피드백 */
+  .summary-section { background:linear-gradient(135deg,#f0fdf4,#f0f9f7); border:1px solid #a7f3d0; border-radius:14px; padding:22px 24px; margin-bottom:18px; }
+  .summary-title { font-size:13px; font-weight:800; color:#065f46; margin-bottom:12px; }
+  .summary-item-box { background:#fff; border-radius:8px; padding:10px 14px; margin-bottom:8px; font-size:11px; line-height:1.7; border-left:3px solid #3d9e8c; }
+
   @media print {
-    .print-hint { display: none; }
-    .comment-box { border-color: #ddd; background: #fafafa; }
-    body { font-size: 11px; }
-    .report-wrap { padding: 0; }
+    body { background:#fff; }
+    .print-hint { display:none; }
+    .comment-box { border-color:#ddd; background:#fafafa; }
+    .wrap { padding:0; }
+    .section, .summary-section { box-shadow:none; border:1px solid #e2e8f0; }
   }
 </style>
 </head>
 <body>
-<div class="report-wrap">
-  <div class="print-hint">
-    💡 각 섹션 회색 박스에 코멘트를 입력한 후 <strong>Ctrl+P (Mac: Cmd+P)</strong> → PDF로 저장
-  </div>
+<div class="wrap">
+  <div class="print-hint">💡 코멘트 박스 클릭 후 내용 입력 → <strong>Ctrl+P (Mac: Cmd+P)</strong> → PDF 저장</div>
 
-  <div class="report-header">
-    <div class="report-title">📊 지점 매출 분석 리포트</div>
-    <div style="font-size:18px;font-weight:700;margin-top:4px;">${branch}</div>
-    <div class="report-meta">
-      <span>📅 분석 기간: <strong>${monthText}</strong></span>
-      <span>📊 총 거래: <strong>${(agg.totalCnt||0).toLocaleString('ko-KR')}건</strong></span>
-      <span>💰 총 매출: <strong>${fmt(displayAmt)}원</strong></span>
+  <!-- 헤더 -->
+  <div class="rpt-header">
+    <div class="rpt-brand">데이뷰의원 · 매출 분석 리포트</div>
+    <div class="rpt-title">${branch}</div>
+    <div class="rpt-sub">▸ ${monthText} 분석</div>
+    <div class="rpt-meta">
+      <span>📅 분석 기간: ${monthText}</span>
       <span>🗓 생성일: ${dateStr}</span>
+      <span>📊 총 거래: ${totalCnt.toLocaleString('ko-KR')}건</span>
+      <span>💰 총 매출: ${fmt(displayAmt)}원</span>
     </div>
   </div>
 
-  <div class="summary-bar">
-    <div class="summary-item">
-      <div class="val">${(agg.totalCnt||0).toLocaleString('ko-KR')}건</div>
-      <div class="lbl">총 거래 건수</div>
-    </div>
-    <div class="summary-item">
-      <div class="val">${fmt(displayAmt)}원</div>
-      <div class="lbl">총 매출${adminSalesTotal !== null ? '' : ' <span style="font-size:9px;color:#aaa">(엑셀 계산)</span>'}</div>
-    </div>
+  <!-- KPI 카드 -->
+  <div class="kpi-grid">${kpi1.map(kpiCard).join('')}</div>
+  <div class="kpi-grid" style="margin-bottom:20px">${kpi2.map(kpiCard).join('')}</div>
+
+  <!-- 자동 종합 인사이트 -->
+  <div class="summary-section">
+    <div class="summary-title">🤖 자동 분석 인사이트</div>
+    ${insights.map(l=>`<div class="summary-item-box">${l}</div>`).join('')}
+    <div class="comment-box" contenteditable="true" data-placeholder="추가 종합 코멘트를 입력하세요..."></div>
   </div>
 
-  <!-- 내원경로 -->
+  <!-- 내원경로별 집계 -->
   <div class="section">
-    <div class="section-title">🚪 내원경로별 집계</div>
-    <div class="comment-box" contenteditable="true" data-placeholder="이 섹션에 대한 분석 코멘트를 입력하세요..."></div>
+    <div class="sec-title">🚪 내원경로별 집계 <span class="sec-badge">Route</span></div>
+    <div class="insight-box">
+      ${rt.length ? `<b>${rt[0].route}</b>이 전체의 <b>${totalCnt?(rt[0].totalCnt/totalCnt*100).toFixed(1):0}%</b>로 1위 · 재진율 <b>${rt[0].totalCnt?(rt[0].reCnt/rt[0].totalCnt*100).toFixed(1):0}%</b>` : '데이터 없음'}
+    </div>
     ${routeRows ? `<table>
-      <thead><tr><th>내원경로</th><th>초진</th><th>재진</th><th>합계</th></tr></thead>
+      <thead><tr><th>내원경로</th><th>신환</th><th>신환매출</th><th>재진</th><th>재진매출</th><th>합계건수</th><th>합계매출</th><th>비중</th><th>재진율</th></tr></thead>
       <tbody>${routeRows}</tbody>
-    </table>` : '<p style="color:#aaa;font-size:11px">데이터 없음</p>'}
+    </table>` : '<p style="color:#aaa">데이터 없음</p>'}
+    <div class="comment-box" contenteditable="true" data-placeholder="내원경로 분석 코멘트 입력..."></div>
   </div>
 
-  <!-- 오더별 인기시술 -->
+  <!-- 내원경로별 인기시술 -->
+  ${routeProcRows ? `<div class="section">
+    <div class="sec-title">🛤 내원경로별 인기시술 TOP 3 <span class="sec-badge">Route × Procedure</span></div>
+    <table>
+      <thead><tr><th>내원경로</th><th>1위</th><th>2위</th><th>3위</th></tr></thead>
+      <tbody>${routeProcRows}</tbody>
+    </table>
+    <div class="comment-box" contenteditable="true" data-placeholder="내원경로별 시술 코멘트 입력..."></div>
+  </div>` : ''}
+
+  <!-- 오더별 인기시술 + 멤버십 -->
   <div class="section">
-    <div class="section-title">💉 오더별 인기 시술 TOP 10</div>
-    <div class="comment-box" contenteditable="true" data-placeholder="이 섹션에 대한 분석 코멘트를 입력하세요..."></div>
-    ${procRows ? `<table>
-      <thead><tr><th>시술/오더명</th><th>판매 건수</th><th>매출</th></tr></thead>
-      <tbody>${procRows}</tbody>
-    </table>` : '<p style="color:#aaa;font-size:11px">데이터 없음</p>'}
+    <div class="sec-title">💉 오더별 인기시술 현황 <span class="sec-badge">Procedure</span></div>
+    <div class="two-col">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#3d9e8c;margin-bottom:8px">▸ 일반 시술 TOP 15</div>
+        ${procRows ? `<table>
+          <thead><tr><th>시술명</th><th>건수</th><th>매출</th><th>비율</th></tr></thead>
+          <tbody>${procRows}</tbody>
+        </table>` : '<p style="color:#aaa">데이터 없음</p>'}
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#8b5cf6;margin-bottom:8px">▸ 멤버십 / 회원권</div>
+        ${memRows ? `<table>
+          <thead><tr><th>상품명</th><th>건수</th><th>매출</th></tr></thead>
+          <tbody>${memRows}</tbody>
+        </table>` : '<p style="color:#aaa;font-size:11px">멤버십 데이터 없음</p>'}
+      </div>
+    </div>
+    <div class="comment-box" contenteditable="true" data-placeholder="시술 분석 코멘트 입력..."></div>
   </div>
 
   <!-- 성별·나이대별 -->
   <div class="section">
-    <div class="section-title">👥 성별 · 나이대별 인기 시술</div>
-    <div class="comment-box" contenteditable="true" data-placeholder="이 섹션에 대한 분석 코멘트를 입력하세요..."></div>
-    ${demoBoxes.length ? `<div class="pdf-demo-grid">${demoBoxes.join('')}</div>` : '<p style="color:#aaa;font-size:11px">성별/나이 데이터 없음</p>'}
+    <div class="sec-title">👥 성별 · 나이대별 인기시술 <span class="sec-badge">Demographics</span></div>
+    <div class="two-col">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#3d9e8c;margin-bottom:8px">▸ 성별 TOP 3 시술</div>
+        ${genderRows ? `<table>
+          <thead><tr><th>성별</th><th>1위</th><th>2위</th><th>3위</th></tr></thead>
+          <tbody>${genderRows}</tbody>
+        </table>` : '<p style="color:#aaa;font-size:11px">데이터 없음</p>'}
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#8b5cf6;margin-bottom:8px">▸ 나이대별 TOP 3 시술</div>
+        ${ageRows ? `<table>
+          <thead><tr><th>나이대</th><th>1위</th><th>2위</th><th>3위</th></tr></thead>
+          <tbody>${ageRows}</tbody>
+        </table>` : '<p style="color:#aaa;font-size:11px">데이터 없음</p>'}
+      </div>
+    </div>
+    <div class="comment-box" contenteditable="true" data-placeholder="성별/나이대 분석 코멘트 입력..."></div>
   </div>
 
-  <!-- 국가별 인기시술 -->
+  <!-- 실장별 매출 현황 -->
   <div class="section">
-    <div class="section-title">🌏 국가별 인기 시술 TOP 3</div>
-    <div class="comment-box" contenteditable="true" data-placeholder="이 섹션에 대한 분석 코멘트를 입력하세요..."></div>
-    ${natRows ? `<table>
-      <thead><tr><th>국적</th><th>1위</th><th>2위</th><th>3위</th></tr></thead>
-      <tbody>${natRows}</tbody>
-    </table>` : '<p style="color:#aaa;font-size:11px">국적 데이터 없음</p>'}
-  </div>
-
-  <!-- 실장별 객단가 -->
-  <div class="section">
-    <div class="section-title">👤 실장별 객단가</div>
-    <div class="comment-box" contenteditable="true" data-placeholder="이 섹션에 대한 분석 코멘트를 입력하세요..."></div>
+    <div class="sec-title">👤 스태프별 매출 현황 <span class="sec-badge">Staff</span></div>
+    <div class="insight-box">
+      ${agg.staffTable?.length
+        ? `객단가 1위: <b>${agg.staffTable[0].name}</b> (${fmt(agg.staffTable[0].perPatient)}원) · 전체 평균: <b>${fmt(avgPerPt)}원</b>`
+        : '스태프 데이터 없음'}
+    </div>
     ${staffRows ? `<table>
-      <thead><tr><th>담당 실장</th><th>환자 수</th><th>거래 건수</th><th>총 매출</th><th>객단가</th></tr></thead>
+      <thead><tr><th>담당 실장</th><th>환자수</th><th>거래건수</th><th>총 매출</th><th>객단가</th><th>비중</th></tr></thead>
       <tbody>${staffRows}</tbody>
-    </table>` : '<p style="color:#aaa;font-size:11px">담당직원 데이터 없음</p>'}
+    </table>` : '<p style="color:#aaa">데이터 없음</p>'}
+    <p style="font-size:10px;color:#aaa;margin-top:8px">* 객단가 = 총 매출 ÷ 담당 환자 수(차트번호 기준)</p>
+    <div class="comment-box" contenteditable="true" data-placeholder="스태프 분석 코멘트 입력..."></div>
   </div>
+
 </div>
 </body>
 </html>`;
