@@ -1415,7 +1415,7 @@ function autoInsight(agg, displayAmt) {
   return lines;
 }
 
-function exportPDF() {
+async function exportPDF() {
   const branch = currentBranch || '지점 미선택';
   const sel = document.getElementById('monthSelect');
   const month = sel ? sel.value : '';
@@ -1431,6 +1431,9 @@ function exportPDF() {
     alert('리포트를 생성할 데이터가 없습니다.');
     return;
   }
+
+  // 매출추이 데이터 미로드 시 서버에서 가져오기
+  if (!allSalesData.length) await fetchAllSalesData();
 
   const today = new Date();
   const dateStr = `${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
