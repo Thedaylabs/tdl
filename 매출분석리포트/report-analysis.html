@@ -1214,19 +1214,36 @@ function getAdminSalesTotal(branch, month) {
   return rows.reduce((s, d) => s + (d.salesTotal || 0), 0);
 }
 
-// 캐시된 agg에서 멤버십/비시술이 top10에 섞인 경우 재분리
+// 캐시된 agg에서 멤버십/비시술이 섞인 경우 재분리 (전 섹션)
+function shouldExclude(name) {
+  return isNonProcedure(name);
+}
 function cleanAgg(agg) {
-  if (!agg || !agg.top10) return agg;
-  const rescued = agg.top10.filter(e => isMembership(e.name));
-  agg.top10 = agg.top10.filter(e => !isMembership(e.name) && !isNonProcedure(e.name));
-  if (rescued.length) {
-    agg.membershipTop = [...(agg.membershipTop || []), ...rescued]
-      .sort((a,b) => b.cnt - a.cnt).slice(0, 10);
+  if (!agg) return agg;
+
+  // top10: 비시술·멤버십 제거, 멤버십은 membershipTop으로 구조
+  if (agg.top10) {
+    const rescued = agg.top10.filter(e => isMembership(e.name));
+    agg.top10 = agg.top10.filter(e => !isMembership(e.name) && !shouldExclude(e.name));
+    if (rescued.length) {
+      agg.membershipTop = [...(agg.membershipTop || []), ...rescued]
+        .sort((a,b) => b.cnt - a.cnt).slice(0, 10);
+    }
   }
-  // membershipTop에서도 비시술 제거
+  // membershipTop: 비시술 제거
   if (agg.membershipTop) {
-    agg.membershipTop = agg.membershipTop.filter(e => !isNonProcedure(e.name));
+    agg.membershipTop = agg.membershipTop.filter(e => !shouldExclude(e.name));
   }
+  // routeProc: 각 경로별로 비시술·멤버십 제거
+  if (agg.routeProc) {
+    const cleaned = {};
+    Object.entries(agg.routeProc).forEach(([route, procs]) => {
+      const filtered = (procs || []).filter(e => !shouldExclude(e.name) && !isMembership(e.name));
+      if (filtered.length) cleaned[route] = filtered.slice(0, 3);
+    });
+    agg.routeProc = cleaned;
+  }
+  // routeTable: 정렬 기준만 (데이터 자체는 건드리지 않음)
   return agg;
 }
 
