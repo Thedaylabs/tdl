@@ -1214,6 +1214,22 @@ function getAdminSalesTotal(branch, month) {
   return rows.reduce((s, d) => s + (d.salesTotal || 0), 0);
 }
 
+// 캐시된 agg에서 멤버십/비시술이 top10에 섞인 경우 재분리
+function cleanAgg(agg) {
+  if (!agg || !agg.top10) return agg;
+  const rescued = agg.top10.filter(e => isMembership(e.name));
+  agg.top10 = agg.top10.filter(e => !isMembership(e.name) && !isNonProcedure(e.name));
+  if (rescued.length) {
+    agg.membershipTop = [...(agg.membershipTop || []), ...rescued]
+      .sort((a,b) => b.cnt - a.cnt).slice(0, 10);
+  }
+  // membershipTop에서도 비시술 제거
+  if (agg.membershipTop) {
+    agg.membershipTop = agg.membershipTop.filter(e => !isNonProcedure(e.name));
+  }
+  return agg;
+}
+
 function renderFiltered() {
   const sel = document.getElementById('monthSelect');
   const month = sel ? sel.value : '';
@@ -1224,6 +1240,7 @@ function renderFiltered() {
     agg = computeAggregates(rows);
   } else if (serverData) {
     agg = serverData.months[month] || serverData.months[''] || {};
+    agg = cleanAgg({...agg}); // 구버전 캐시 재필터링
     document.getElementById('rowCount').textContent =
       `☁️ 서버 데이터 · ${agg.totalCnt ? agg.totalCnt.toLocaleString('ko-KR') + '건' : '-'}`;
   } else return;
@@ -1461,7 +1478,7 @@ async function exportPDF() {
     const rows = month ? rawRows.filter(r => r.month === month) : rawRows;
     agg = computeAggregates(rows);
   } else if (serverData) {
-    agg = serverData.months[month] || serverData.months[''] || {};
+    agg = cleanAgg({...(serverData.months[month] || serverData.months[''] || {})});
   } else {
     alert('리포트를 생성할 데이터가 없습니다.');
     return;
