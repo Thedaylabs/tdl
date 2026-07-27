@@ -1237,12 +1237,26 @@ function renderFiltered() {
 
   renderRouteTable(agg.routeTable || []);
   renderProcedures(agg.top10 || [], agg.membershipTop || []);
-  renderGenderAge(
-    agg.byGenderProc || agg.byGender || {},
-    agg.byAgeProc    || agg.byAge    || {},
-    agg.byGenderMem  || {},
-    agg.byAgeMem     || {}
-  );
+  // 구버전 서버 데이터 호환: byGender/byAge에서 멤버십 분리
+  function splitDemo(byMap, procLimit, memLimit) {
+    const proc = {}, mem = {};
+    Object.entries(byMap || {}).forEach(([key, arr]) => {
+      proc[key] = arr.filter(t => !isMembership(t.name)).slice(0, procLimit);
+      mem[key]  = arr.filter(t =>  isMembership(t.name)).slice(0, memLimit);
+    });
+    return { proc, mem };
+  }
+  let gProc, gMem, aProc, aMem;
+  if (agg.byGenderProc) {
+    gProc = agg.byGenderProc; gMem = agg.byGenderMem || {};
+    aProc = agg.byAgeProc;    aMem = agg.byAgeMem    || {};
+  } else {
+    const gs = splitDemo(agg.byGender, 5, 3);
+    const as = splitDemo(agg.byAge,    3, 3);
+    gProc = gs.proc; gMem = gs.mem;
+    aProc = as.proc; aMem = as.mem;
+  }
+  renderGenderAge(gProc, aProc, gMem, aMem);
   renderRouteProc(agg.routeProc || {});
   renderStaffTable(agg.staffTable || []);
 }
