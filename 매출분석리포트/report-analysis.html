@@ -1290,7 +1290,7 @@ function renderFiltered() {
     gProc = gs.proc; gMem = gs.mem;
     aProc = as.proc; aMem = as.mem;
   }
-  renderGenderAge(gProc, aProc, gMem, aMem);
+  renderGenderAge(gProc, aProc, gMem, aMem, agg.membershipTop || []);
   renderRouteProc(agg.routeProc || {});
   renderStaffTable(agg.staffTable || []);
 }
@@ -1343,7 +1343,7 @@ function renderProcedures(entries, membershipEntries) {
     ${memberSection}`;
 }
 
-function renderGenderAge(byGenderProc, byAgeProc, byGenderMem, byAgeMem) {
+function renderGenderAge(byGenderProc, byAgeProc, byGenderMem, byAgeMem, membershipTop) {
   const ageOrder = ['10대','20대','30대','40대','50대','60대 이상'];
 
   function makeBox(icon, label, top, limit) {
@@ -1368,7 +1368,19 @@ function renderGenderAge(byGenderProc, byAgeProc, byGenderMem, byAgeMem) {
     return `<div style="display:flex;gap:10px;flex-wrap:wrap">${proc}${mem}</div>`;
   }).filter(Boolean).join('<hr style="border:none;border-top:1px solid #e8f7f4;margin:12px 0">');
 
-  const noData = !genderBoxes && !ageBoxes;
+  // 전체 멤버십 현황 (성별/나이별 분리 불가한 구버전 데이터 보완 — 항상 표시)
+  const memOverall = (membershipTop || []).slice(0, 5);
+  const memOverallHtml = memOverall.length ? `
+    <div style="border-top:1px solid #d4ede9;margin-top:20px;padding-top:20px">
+      <div style="margin-bottom:8px;font-size:0.85rem;font-weight:700;color:#2a7a6a">🏷 전체 멤버십·회원권 현황 TOP 5</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div class="group-box">
+          <ol>${memOverall.map((t,i)=>`<li><span class="nm">${i+1}. ${t.name}</span><span class="amt">${t.cnt}건</span></li>`).join('')}</ol>
+        </div>
+      </div>
+    </div>` : '';
+
+  const noData = !genderBoxes && !ageBoxes && !memOverallHtml;
   document.getElementById('genderAgeCard').innerHTML = `
     <h2>👥 성별 · 나이대별 인기 시술</h2>
     <p class="sub-note">판매 건수 기준. 이름 컬럼의 성별/나이 표기를 기준으로 집계합니다.</p>
@@ -1376,7 +1388,8 @@ function renderGenderAge(byGenderProc, byAgeProc, byGenderMem, byAgeMem) {
     ${genderBoxes ? `<div style="margin-bottom:8px;font-size:0.85rem;font-weight:700;color:#2a7a6a">성별 구분</div>
     <div style="margin-bottom:24px">${genderBoxes}</div>` : ''}
     ${ageBoxes ? `<div style="margin-bottom:8px;font-size:0.85rem;font-weight:700;color:#2a7a6a;border-top:1px solid #d4ede9;padding-top:20px">나이대별 구분</div>
-    <div>${ageBoxes}</div>` : ''}`}`;
+    <div>${ageBoxes}</div>` : ''}
+    ${memOverallHtml}`}`;
 }
 
 function renderRouteProc(routeProc) {
