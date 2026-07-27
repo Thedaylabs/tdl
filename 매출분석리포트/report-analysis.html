@@ -1572,7 +1572,7 @@ async function exportPDF() {
   ];
 
   function kpiCard(k) {
-    return `<div style="background:${k.grad};border-radius:12px;padding:16px 14px;color:#fff;min-height:72px;">
+    return `<div class="kpi-card" style="background:${k.grad};border-radius:12px;padding:16px 14px;color:#fff;min-height:72px;">
       <div style="font-size:10px;opacity:.85;margin-bottom:6px;">${k.label}</div>
       <div style="font-size:16px;font-weight:800;line-height:1.2;">${k.val}</div>
     </div>`;
@@ -1594,18 +1594,20 @@ async function exportPDF() {
     </tr>`;
   }).join('');
 
-  const procRows = (agg.top10||[]).slice(0,10).map((e,i) => {
-    const pct = (agg.top10||[]).reduce((s,x)=>s+x.cnt,0);
+  const top10List = agg.top10 || [];
+  const top10Total = top10List.reduce((s,x)=>s+x.cnt,0);
+  const procRows = top10List.slice(0,10).map((e,i) => {
+    const barW = top10Total ? Math.round(e.cnt/top10List[0].cnt*100) : 0;
     return `<tr>
-      <td>${i<3?['🥇','🥈','🥉'][i]:i+1+'. '} ${e.name}</td>
+      <td>${i<3?['🥇','🥈','🥉'][i]:(i+1)+'. '} ${e.name}</td>
       <td style="text-align:right;font-weight:700">${e.cnt}건</td>
-      <td style="text-align:right">${fmt(e.amt)}원</td>
-      <td style="text-align:right"><div style="background:#e8f5e9;border-radius:3px;height:6px;width:100%;overflow:hidden"><div style="background:#3d9e8c;height:100%;width:${pct?Math.round(e.cnt/pct*100):0}%"></div></div></td>
+      <td style="text-align:right;color:#555">${fmt(e.amt)}원</td>
+      <td style="width:80px;padding-right:6px"><div style="background:#e8f5e9;border-radius:3px;height:7px;overflow:hidden"><div style="background:#3d9e8c;height:100%;width:${barW}%"></div></div></td>
     </tr>`;
   }).join('');
 
   const memRows = (agg.membershipTop||[]).slice(0,8).map((e,i) => `
-    <tr><td>${i+1}. ${e.name}</td><td style="text-align:right;font-weight:700">${e.cnt}건</td><td style="text-align:right">${fmt(e.amt)}원</td></tr>`).join('');
+    <tr><td>${i+1}. ${e.name}</td><td style="text-align:right;font-weight:700">${e.cnt}건</td><td style="text-align:right;color:#555">${fmt(e.amt)}원</td></tr>`).join('');
 
   const staffRows = (agg.staffTable||[]).map((e,i) => {
     const totalStaffAmt = (agg.staffTable||[]).reduce((s,x)=>s+x.amt,0);
@@ -1650,8 +1652,26 @@ async function exportPDF() {
     `<tr><td>${g}성</td>${pdfDemoCell(pdfGenderMem[g],3)}</tr>`).join('');
   const ageProcRows = ageOrder.filter(a=>pdfAgeProc[a]?.length).map(a=>
     `<tr><td>${a}</td>${pdfDemoCell(pdfAgeProc[a],3)}</tr>`).join('');
-  const ageMemRows  = ageOrder.filter(a=>pdfAgeMem[a]?.length).map(a=>
-    `<tr><td>${a}</td>${pdfDemoCell(pdfAgeMem[a],3)}</tr>`).join('');
+
+  // 나이대별 회원권 → 텍스트 인사이트로 변환
+  const ageMemText = (() => {
+    const entries = ageOrder.filter(a => pdfAgeMem[a]?.length);
+    // 전체 membershipTop fallback
+    const fallbackMem = (agg.membershipTop||[]).slice(0,3);
+    if (!entries.length && !fallbackMem.length) return null;
+    if (!entries.length && fallbackMem.length) {
+      const names = fallbackMem.map(e=>e.name).join(' > ');
+      return `회원권 판매 현황: ${names} 순으로 선호도가 높습니다.`;
+    }
+    const ranked = entries
+      .map(a => ({ age: a, total: pdfAgeMem[a].reduce((s,e)=>s+e.cnt,0), top: pdfAgeMem[a][0]?.name }))
+      .sort((a,b) => b.total - a.total);
+    const topAges = ranked.slice(0,2).map(e=>e.age).join('·');
+    const allMem = {};
+    entries.forEach(a => (pdfAgeMem[a]||[]).forEach(e => { allMem[e.name]=(allMem[e.name]||0)+e.cnt; }));
+    const topMem = Object.entries(allMem).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([n])=>n).join(' > ');
+    return `${topAges} 연령대의 회원권 비중이 가장 높으며, ${topMem} 순으로 선호도가 높습니다.`;
+  })();
 
   // 자동 인사이트
   const insights = autoInsight(agg, displayAmt);
@@ -1676,6 +1696,7 @@ async function exportPDF() {
 
   /* KPI 그리드 */
   .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px; }
+  .kpi-card { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
 
   /* 섹션 */
   .section { background:#fff; border-radius:14px; padding:22px 24px; margin-bottom:18px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
@@ -1785,22 +1806,20 @@ window.addEventListener('afterprint', () => {
   <!-- 오더별 인기시술 + 멤버십 -->
   <div class="section">
     <div class="sec-title">💉 오더별 인기시술 현황 <span class="sec-badge">Procedure</span></div>
-    <div class="two-col">
-      <div>
-        <div style="font-size:11px;font-weight:700;color:#3d9e8c;margin-bottom:8px">▸ 일반 시술 TOP 10</div>
-        ${procRows ? `<table>
-          <thead><tr><th>시술명</th><th>건수</th><th>매출</th><th>비율</th></tr></thead>
-          <tbody>${procRows}</tbody>
-        </table>` : '<p style="color:#aaa">데이터 없음</p>'}
-      </div>
-      <div>
-        <div style="font-size:11px;font-weight:700;color:#8b5cf6;margin-bottom:8px">▸ 멤버십 / 회원권</div>
-        ${memRows ? `<table>
-          <thead><tr><th>상품명</th><th>건수</th><th>매출</th></tr></thead>
-          <tbody>${memRows}</tbody>
-        </table>` : '<p style="color:#aaa;font-size:11px">멤버십 데이터 없음</p>'}
-      </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:#3d9e8c;margin-bottom:8px">▸ 일반 시술 TOP 10</div>
+      ${procRows ? `<table>
+        <thead><tr><th>시술명</th><th>건수</th><th>매출</th><th style="width:80px"></th></tr></thead>
+        <tbody>${procRows}</tbody>
+      </table>` : '<p style="color:#aaa">데이터 없음</p>'}
     </div>
+    ${memRows ? `<div style="border-top:1px solid #f0f9f7;padding-top:14px">
+      <div style="font-size:11px;font-weight:700;color:#8b5cf6;margin-bottom:8px">▸ 멤버십 / 회원권</div>
+      <table>
+        <thead><tr><th>상품명</th><th>건수</th><th>매출</th></tr></thead>
+        <tbody>${memRows}</tbody>
+      </table>
+    </div>` : ''}
     <div class="comment-box" contenteditable="true" data-placeholder="시술 분석 코멘트 입력..."></div>
   </div>
 
@@ -1827,22 +1846,13 @@ window.addEventListener('afterprint', () => {
     </div>
 
     <div style="font-size:11px;font-weight:700;color:#1a1a2e;margin:0 0 6px;padding-top:12px;border-top:1px solid #f0f9f7">▸ 나이대별 인기시술</div>
-    <div class="two-col">
-      <div>
-        <div style="font-size:10px;color:#3d9e8c;font-weight:700;margin-bottom:5px">💉 인기시술 TOP 3</div>
-        ${ageProcRows ? `<table>
-          <thead><tr><th>나이대</th><th>1위</th><th>2위</th><th>3위</th></tr></thead>
-          <tbody>${ageProcRows}</tbody>
-        </table>` : '<p style="color:#aaa;font-size:11px">데이터 없음</p>'}
-      </div>
-      <div>
-        <div style="font-size:10px;color:#8b5cf6;font-weight:700;margin-bottom:5px">🏷 회원권 TOP 3</div>
-        ${ageMemRows ? `<table>
-          <thead><tr><th>나이대</th><th>1위</th><th>2위</th><th>3위</th></tr></thead>
-          <tbody>${ageMemRows}</tbody>
-        </table>` : '<p style="color:#aaa;font-size:11px">데이터 없음</p>'}
-      </div>
-    </div>
+    ${ageProcRows ? `<table style="margin-bottom:12px">
+      <thead><tr><th>나이대</th><th>1위</th><th>2위</th><th>3위</th></tr></thead>
+      <tbody>${ageProcRows}</tbody>
+    </table>` : '<p style="color:#aaa;font-size:11px;margin-bottom:12px">데이터 없음</p>'}
+    ${ageMemText ? `<div style="background:#f5f3ff;border-left:3px solid #8b5cf6;border-radius:0 8px 8px 0;padding:10px 14px;font-size:11px;color:#4c1d95;line-height:1.7">
+      <strong>🏷 나이대별 회원권</strong><br>${ageMemText}
+    </div>` : ''}
     <div class="comment-box" contenteditable="true" data-placeholder="성별/나이대 분석 코멘트 입력..."></div>
   </div>
 
