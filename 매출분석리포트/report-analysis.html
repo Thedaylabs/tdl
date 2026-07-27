@@ -1104,32 +1104,42 @@ function computeAggregates(rows) {
   const top10 = Object.entries(procMap).map(([name,g])=>({name,...g})).sort((a,b)=>b.cnt-a.cnt).slice(0,10);
   const membershipTop = Object.entries(memberMap).map(([name,g])=>({name,...g})).sort((a,b)=>b.cnt-a.cnt).slice(0,10);
 
-  // 성별별 집계
-  const genderMap = {};
-  // 나이대별 집계
-  const ageMap = {};
+  // 성별별 집계 (시술 / 멤버십 분리)
+  const genderProcMap = {}, genderMemMap = {};
+  // 나이대별 집계 (시술 / 멤버십 분리)
+  const ageProcMap = {}, ageMemMap = {};
   rows.forEach(r => {
     if (!r.amount) return;
+    if (isNonProcedure(r.order)) return;
+    const isMem = isMembership(r.order);
     if (r.gender) {
-      if (!genderMap[r.gender]) genderMap[r.gender] = {};
-      if (!genderMap[r.gender][r.order]) genderMap[r.gender][r.order] = {cnt:0,amt:0};
-      genderMap[r.gender][r.order].cnt++; genderMap[r.gender][r.order].amt += r.amount;
+      const gp = isMem ? genderMemMap : genderProcMap;
+      if (!gp[r.gender]) gp[r.gender] = {};
+      if (!gp[r.gender][r.order]) gp[r.gender][r.order] = {cnt:0,amt:0};
+      gp[r.gender][r.order].cnt++; gp[r.gender][r.order].amt += r.amount;
     }
     const ag = ageGroup(r.age);
     if (ag !== '미지정') {
-      if (!ageMap[ag]) ageMap[ag] = {};
-      if (!ageMap[ag][r.order]) ageMap[ag][r.order] = {cnt:0,amt:0};
-      ageMap[ag][r.order].cnt++; ageMap[ag][r.order].amt += r.amount;
+      const ap = isMem ? ageMemMap : ageProcMap;
+      if (!ap[ag]) ap[ag] = {};
+      if (!ap[ag][r.order]) ap[ag][r.order] = {cnt:0,amt:0};
+      ap[ag][r.order].cnt++; ap[ag][r.order].amt += r.amount;
     }
   });
-  const byGender = {};
-  Object.entries(genderMap).forEach(([g, procs]) => {
-    byGender[g] = Object.entries(procs).map(([name,v])=>({name,...v})).sort((a,b)=>b.cnt-a.cnt).slice(0,5);
-  });
-  const byAge = {};
-  Object.entries(ageMap).forEach(([ag, procs]) => {
-    byAge[ag] = Object.entries(procs).map(([name,v])=>({name,...v})).sort((a,b)=>b.cnt-a.cnt).slice(0,5);
-  });
+  const toArr = (map, limit) => {
+    const result = {};
+    Object.entries(map).forEach(([key, procs]) => {
+      result[key] = Object.entries(procs).map(([name,v])=>({name,...v})).sort((a,b)=>b.cnt-a.cnt).slice(0,limit);
+    });
+    return result;
+  };
+  const byGenderProc = toArr(genderProcMap, 5);
+  const byGenderMem  = toArr(genderMemMap,  3);
+  const byAgeProc    = toArr(ageProcMap,    3);
+  const byAgeMem     = toArr(ageMemMap,     3);
+  // 하위 호환용 (기존 참조 유지)
+  const byGender = byGenderProc;
+  const byAge    = byAgeProc;
 
   const staffMap = {};
   rows.forEach(r => {
@@ -1147,6 +1157,8 @@ function computeAggregates(rows) {
   const routeProcMap = {};
   rows.forEach(r => {
     if (!r.amount) return;
+    if (isNonProcedure(r.order)) return;
+    if (isMembership(r.order)) return;
     const route = r.route || '미지정';
     if (!routeProcMap[route]) routeProcMap[route] = {};
     if (!routeProcMap[route][r.order]) routeProcMap[route][r.order] = {cnt:0, amt:0};
@@ -1157,7 +1169,7 @@ function computeAggregates(rows) {
     routeProc[route] = Object.entries(procs).map(([name,v])=>({name,...v})).sort((a,b)=>b.cnt-a.cnt).slice(0,3);
   });
 
-  return { routeTable, top10, membershipTop, byGender, byAge, staffTable, routeProc, totalCnt: rows.length, totalAmt: rows.reduce((s,r)=>s+r.amount,0) };
+  return { routeTable, top10, membershipTop, byGender, byAge, byGenderProc, byGenderMem, byAgeProc, byAgeMem, staffTable, routeProc, totalCnt: rows.length, totalAmt: rows.reduce((s,r)=>s+r.amount,0) };
 }
 
 function ageGroup(age) {
@@ -1225,7 +1237,7 @@ function renderFiltered() {
 
   renderRouteTable(agg.routeTable || []);
   renderProcedures(agg.top10 || [], agg.membershipTop || []);
-  renderGenderAge(agg.byGender || {}, agg.byAge || {});
+  renderGenderAge(agg.byGenderProc || {}, agg.byAgeProc || {}, agg.byGenderMem || {}, agg.byAgeMem || {});
   renderRouteProc(agg.routeProc || {});
   renderStaffTable(agg.staffTable || []);
 }
@@ -1278,26 +1290,30 @@ function renderProcedures(entries, membershipEntries) {
     ${memberSection}`;
 }
 
-function renderGenderAge(byGender, byAge) {
+function renderGenderAge(byGenderProc, byAgeProc, byGenderMem, byAgeMem) {
   const ageOrder = ['10대','20대','30대','40대','50대','60대 이상'];
 
-  const genderBoxes = ['여','남'].map(g => {
-    const top = byGender[g];
+  function makeBox(icon, label, top, limit) {
     if (!top?.length) return '';
     return `<div class="group-box">
-      <h3>${g === '여' ? '👩' : '👨'} ${g}성 인기 시술 TOP 5</h3>
-      <ol>${top.map((t,i) => `<li><span class="nm">${i+1}. ${t.name}</span><span class="amt">${t.cnt}건</span></li>`).join('')}</ol>
+      <h3>${icon} ${label}</h3>
+      <ol>${top.slice(0,limit).map((t,i) => `<li><span class="nm">${i+1}. ${t.name}</span><span class="amt">${t.cnt}건</span></li>`).join('')}</ol>
     </div>`;
-  }).join('');
+  }
+
+  const genderBoxes = ['여','남'].map(g => {
+    const proc = makeBox(g==='여'?'👩':'👨', `${g}성 인기시술 TOP 5`, byGenderProc?.[g], 5);
+    const mem  = makeBox('🏷', `${g}성 회원권 TOP 3`, byGenderMem?.[g], 3);
+    if (!proc && !mem) return '';
+    return `<div style="display:flex;gap:10px;flex-wrap:wrap">${proc}${mem}</div>`;
+  }).filter(Boolean).join('<hr style="border:none;border-top:1px solid #e8f7f4;margin:12px 0">');
 
   const ageBoxes = ageOrder.map(ag => {
-    const top = byAge[ag];
-    if (!top?.length) return '';
-    return `<div class="group-box">
-      <h3>🎂 ${ag} 인기 시술 TOP 5</h3>
-      <ol>${top.map((t,i) => `<li><span class="nm">${i+1}. ${t.name}</span><span class="amt">${t.cnt}건</span></li>`).join('')}</ol>
-    </div>`;
-  }).join('');
+    const proc = makeBox('💉', `${ag} 인기시술 TOP 3`, byAgeProc?.[ag], 3);
+    const mem  = makeBox('🏷', `${ag} 회원권 TOP 3`, byAgeMem?.[ag], 3);
+    if (!proc && !mem) return '';
+    return `<div style="display:flex;gap:10px;flex-wrap:wrap">${proc}${mem}</div>`;
+  }).filter(Boolean).join('<hr style="border:none;border-top:1px solid #e8f7f4;margin:12px 0">');
 
   const noData = !genderBoxes && !ageBoxes;
   document.getElementById('genderAgeCard').innerHTML = `
@@ -1305,9 +1321,9 @@ function renderGenderAge(byGender, byAge) {
     <p class="sub-note">판매 건수 기준. 이름 컬럼의 성별/나이 표기를 기준으로 집계합니다.</p>
     ${noData ? '<p class="sub-note" style="padding:20px 0">성별/나이 정보를 가진 데이터가 없습니다.</p>' : `
     ${genderBoxes ? `<div style="margin-bottom:8px;font-size:0.85rem;font-weight:700;color:#2a7a6a">성별 구분</div>
-    <div class="group-grid" style="margin-bottom:24px">${genderBoxes}</div>` : ''}
+    <div style="margin-bottom:24px">${genderBoxes}</div>` : ''}
     ${ageBoxes ? `<div style="margin-bottom:8px;font-size:0.85rem;font-weight:700;color:#2a7a6a;border-top:1px solid #d4ede9;padding-top:20px">나이대별 구분</div>
-    <div class="group-grid">${ageBoxes}</div>` : ''}`}`;
+    <div>${ageBoxes}</div>` : ''}`}`;
 }
 
 function renderRouteProc(routeProc) {
@@ -1525,21 +1541,24 @@ async function exportPDF() {
     </tr>`;
   }).join('');
 
-  // 성별&나이대 — byGender[g] = [{name,cnt,amt}], byAge[ag] = [{name,cnt,amt}]
+  // 성별&나이대 — proc/mem 분리
   const ageOrder = ['10대','20대','30대','40대','50대','60대 이상'];
-  const byGender = agg.byGender || {};
-  const byAge    = agg.byAge    || {};
-  const genderRows = Object.entries(byGender)
-    .filter(([,arr]) => arr?.length)
-    .map(([g, arr]) => `<tr><td>${g}성</td>
-      ${arr.slice(0,3).map(t=>`<td>${t.name} <span style="color:#3d9e8c;font-size:10px">(${t.cnt}건)</span></td>`).join('')}
-    </tr>`).join('');
-  const ageRows = ageOrder.filter(a => byAge[a]?.length).map(a => {
-    const arr = byAge[a];
-    return `<tr><td>${a}</td>
-      ${arr.slice(0,3).map(t=>`<td>${t.name} <span style="color:#3d9e8c;font-size:10px">(${t.cnt}건)</span></td>`).join('')}
-    </tr>`;
-  }).join('');
+  const pdfGenderProc = agg.byGenderProc || {};
+  const pdfGenderMem  = agg.byGenderMem  || {};
+  const pdfAgeProc    = agg.byAgeProc    || {};
+  const pdfAgeMem     = agg.byAgeMem     || {};
+
+  function pdfDemoCell(arr, limit) {
+    return (arr||[]).slice(0,limit).map(t=>`<td>${t.name} <span style="color:#3d9e8c;font-size:10px">(${t.cnt}건)</span></td>`).join('');
+  }
+  const genderProcRows = ['여','남'].filter(g=>pdfGenderProc[g]?.length).map(g=>
+    `<tr><td>${g}성</td>${pdfDemoCell(pdfGenderProc[g],5)}</tr>`).join('');
+  const genderMemRows  = ['여','남'].filter(g=>pdfGenderMem[g]?.length).map(g=>
+    `<tr><td>${g}성</td>${pdfDemoCell(pdfGenderMem[g],3)}</tr>`).join('');
+  const ageProcRows = ageOrder.filter(a=>pdfAgeProc[a]?.length).map(a=>
+    `<tr><td>${a}</td>${pdfDemoCell(pdfAgeProc[a],3)}</tr>`).join('');
+  const ageMemRows  = ageOrder.filter(a=>pdfAgeMem[a]?.length).map(a=>
+    `<tr><td>${a}</td>${pdfDemoCell(pdfAgeMem[a],3)}</tr>`).join('');
 
   // 자동 인사이트
   const insights = autoInsight(agg, displayAmt);
@@ -1682,19 +1701,39 @@ async function exportPDF() {
   <!-- 성별·나이대별 -->
   <div class="section">
     <div class="sec-title">👥 성별 · 나이대별 인기시술 <span class="sec-badge">Demographics</span></div>
-    <div class="two-col">
+
+    <div style="font-size:11px;font-weight:700;color:#1a1a2e;margin:0 0 6px">▸ 성별 인기시술</div>
+    <div class="two-col" style="margin-bottom:16px">
       <div>
-        <div style="font-size:11px;font-weight:700;color:#3d9e8c;margin-bottom:8px">▸ 성별 TOP 3 시술</div>
-        ${genderRows ? `<table>
-          <thead><tr><th>성별</th><th>1위</th><th>2위</th><th>3위</th></tr></thead>
-          <tbody>${genderRows}</tbody>
+        <div style="font-size:10px;color:#3d9e8c;font-weight:700;margin-bottom:5px">💉 인기시술 TOP 5</div>
+        ${genderProcRows ? `<table>
+          <thead><tr><th>성별</th><th>1위</th><th>2위</th><th>3위</th><th>4위</th><th>5위</th></tr></thead>
+          <tbody>${genderProcRows}</tbody>
         </table>` : '<p style="color:#aaa;font-size:11px">데이터 없음</p>'}
       </div>
       <div>
-        <div style="font-size:11px;font-weight:700;color:#8b5cf6;margin-bottom:8px">▸ 나이대별 TOP 3 시술</div>
-        ${ageRows ? `<table>
+        <div style="font-size:10px;color:#8b5cf6;font-weight:700;margin-bottom:5px">🏷 회원권 TOP 3</div>
+        ${genderMemRows ? `<table>
+          <thead><tr><th>성별</th><th>1위</th><th>2위</th><th>3위</th></tr></thead>
+          <tbody>${genderMemRows}</tbody>
+        </table>` : '<p style="color:#aaa;font-size:11px">데이터 없음</p>'}
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:#1a1a2e;margin:0 0 6px;padding-top:12px;border-top:1px solid #f0f9f7">▸ 나이대별 인기시술</div>
+    <div class="two-col">
+      <div>
+        <div style="font-size:10px;color:#3d9e8c;font-weight:700;margin-bottom:5px">💉 인기시술 TOP 3</div>
+        ${ageProcRows ? `<table>
           <thead><tr><th>나이대</th><th>1위</th><th>2위</th><th>3위</th></tr></thead>
-          <tbody>${ageRows}</tbody>
+          <tbody>${ageProcRows}</tbody>
+        </table>` : '<p style="color:#aaa;font-size:11px">데이터 없음</p>'}
+      </div>
+      <div>
+        <div style="font-size:10px;color:#8b5cf6;font-weight:700;margin-bottom:5px">🏷 회원권 TOP 3</div>
+        ${ageMemRows ? `<table>
+          <thead><tr><th>나이대</th><th>1위</th><th>2위</th><th>3위</th></tr></thead>
+          <tbody>${ageMemRows}</tbody>
         </table>` : '<p style="color:#aaa;font-size:11px">데이터 없음</p>'}
       </div>
     </div>
