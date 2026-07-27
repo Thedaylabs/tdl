@@ -1466,56 +1466,88 @@ function rankBadge(i) {
 }
 
 // ── PDF 리포트 내보내기 ──
-function autoInsight(agg, displayAmt) {
+function getPrevMonth(ym) {
+  if (!ym) return null;
+  const [y, m] = ym.split('-').map(Number);
+  return m === 1 ? `${y-1}-12` : `${y}-${String(m-1).padStart(2,'0')}`;
+}
+
+function seasonContext(ym) {
+  if (!ym) return null;
+  const m = parseInt(ym.split('-')[1], 10);
+  if (m === 1 || m === 2)  return { label:'겨울철', tip:'건조한 피부 관리 수요가 높은 시즌입니다. 보습·재생 시술 및 필러 수요가 증가하는 경향이 있습니다.' };
+  if (m === 3 || m === 4)  return { label:'봄 환절기', tip:'피부 톤 정리·색소 시술 수요가 올라오는 시기입니다. 봄맞이 피부 개선 프로모션 효과가 높습니다.' };
+  if (m === 5 || m === 6)  return { label:'초여름·자외선 시즌', tip:'자외선 차단 및 미백 관련 시술, 제모 수요가 본격적으로 증가하는 시기입니다.' };
+  if (m === 7 || m === 8)  return { label:'여름 휴가철·성수기', tip:'제모·피부 톤업 시술이 피크를 맞습니다. 바캉스를 앞두고 시술 문의가 집중되는 시기이며, SNS·블로그 경로 유입이 늘어날 가능성이 높습니다.' };
+  if (m === 9 || m === 10) return { label:'가을 환절기', tip:'여름 자외선으로 손상된 피부 회복 수요(색소·재생 시술)가 높아지는 시기입니다. 연간 멤버십 갱신 프로모션도 효과적입니다.' };
+  return { label:'연말 시즌', tip:'연말 특수로 피부 관리 수요가 증가합니다. 멤버십·회원권 프로모션 및 선물 패키지 판매를 적극 활용할 수 있는 시기입니다.' };
+}
+
+function autoInsight(agg, displayAmt, prevAgg, month) {
   const lines = [];
-  const rt = agg.routeTable || [];
-  const top10 = agg.top10 || [];
-  const mem = agg.membershipTop || [];
-  const staff = agg.staffTable || [];
+  const top10   = agg.top10 || [];
+  const mem     = agg.membershipTop || [];
+  const staff   = agg.staffTable || [];
+  const rt      = agg.routeTable || [];
   const totalCnt = agg.totalCnt || 0;
 
-  // 내원경로 인사이트
-  if (rt.length) {
-    const top = rt[0];
-    const pct = totalCnt ? (top.totalCnt / totalCnt * 100).toFixed(1) : 0;
-    lines.push(`🔍 주요 내원경로는 <b>${top.route}</b>로 전체 거래의 <b>${pct}%</b>를 차지합니다.`);
-    const reRate = top.totalCnt ? (top.reCnt / top.totalCnt * 100).toFixed(1) : 0;
-    lines.push(`↪ 해당 경로의 재진율은 <b>${reRate}%</b>입니다.`);
-    if (rt.length >= 2) {
-      const sec = rt[1];
-      const pct2 = totalCnt ? (sec.totalCnt / totalCnt * 100).toFixed(1) : 0;
-      lines.push(`📌 2위 경로는 <b>${sec.route}</b> (${pct2}%)입니다.`);
+  // ① 이번 달 시술 현황 요약
+  if (top10.length) {
+    const top3 = top10.slice(0,3).map(e=>`<b>${e.name}</b>(${e.cnt}건)`).join(', ');
+    lines.push(`💉 이번 달 인기시술 TOP 3는 ${top3} 순이었습니다.`);
+  }
+
+  // ② 전달 대비 변화
+  if (prevAgg && top10.length) {
+    const prevMap = {};
+    (prevAgg.top10||[]).forEach(e => { prevMap[e.name] = e.cnt; });
+    const increased = top10.slice(0,5).filter(e => prevMap[e.name] !== undefined && e.cnt > prevMap[e.name])
+      .map(e => { const d = e.cnt - prevMap[e.name]; return `<b>${e.name}</b>(+${d}건)`; });
+    const newEntry  = top10.slice(0,5).filter(e => prevMap[e.name] === undefined)
+      .map(e => `<b>${e.name}</b>`);
+    if (increased.length)
+      lines.push(`📈 전달 대비 판매가 증가한 시술: ${increased.join(', ')}`);
+    if (newEntry.length)
+      lines.push(`🆕 이번 달 새로 TOP 5에 진입한 시술: ${newEntry.join(', ')}`);
+    // 전달 대비 매출 변화
+    if (displayAmt && prevAgg.totalAmt) {
+      const diff = displayAmt - prevAgg.totalAmt;
+      const sign = diff >= 0 ? '+' : '';
+      lines.push(`💰 전달 대비 매출 변화: <b>${sign}${fmt(Math.abs(diff))}원</b> (${diff>=0?'증가':'감소'})`);
     }
   }
 
-  // 시술 인사이트
-  if (top10.length) {
-    const t = top10[0];
-    lines.push(`💉 가장 많이 판매된 시술은 <b>${t.name}</b> (${t.cnt}건)입니다.`);
-    const top3names = top10.slice(0,3).map(e=>e.name).join(', ');
-    lines.push(`📋 TOP 3 인기시술: ${top3names}`);
-  }
+  // ③ 멤버십 트렌드
   if (mem.length) {
     const mTotal = mem.reduce((s,e)=>s+e.cnt,0);
-    lines.push(`🏷 멤버십/회원권 판매 건수: <b>${mTotal}건</b> (${mem[0]?.name} 외 ${mem.length-1}종)`);
-  }
-
-  // 스태프 인사이트
-  if (staff.length) {
-    const top = staff[0];
-    lines.push(`👑 객단가 1위: <b>${top.name}</b> 실장 (${fmt(top.perPatient)}원 / 환자 ${top.patients}명)`);
-    if (staff.length >= 2) {
-      const avg = Math.round(staff.reduce((s,e)=>s+e.perPatient,0) / staff.length);
-      lines.push(`📊 전체 평균 객단가: <b>${fmt(avg)}원</b>`);
-      const above = staff.filter(e=>e.perPatient >= avg).map(e=>e.name).join(', ');
-      if (above) lines.push(`✅ 평균 이상 실장: ${above}`);
+    const prevMTotal = (prevAgg?.membershipTop||[]).reduce((s,e)=>s+e.cnt,0);
+    let memLine = `🏷 멤버십·회원권 총 판매 <b>${mTotal}건</b>`;
+    if (prevMTotal && mTotal !== prevMTotal) {
+      const md = mTotal - prevMTotal;
+      memLine += ` (전달 대비 ${md>0?'+':''}${md}건)`;
     }
+    lines.push(memLine);
   }
 
-  // 총매출 인사이트
-  if (displayAmt) {
-    const perVisit = totalCnt ? Math.round(displayAmt / totalCnt) : 0;
-    lines.push(`💰 총 매출 기준 거래 건당 평균 금액: <b>${fmt(perVisit)}원</b>`);
+  // ④ 시즌 분석 + 전망
+  const season = seasonContext(month);
+  if (season) {
+    lines.push(`🌤 <b>[${season.label}]</b> ${season.tip}`);
+  }
+
+  // ⑤ 내원경로 핵심만
+  if (rt.length) {
+    const top = rt[0];
+    const pct = totalCnt ? (top.totalCnt/totalCnt*100).toFixed(1) : 0;
+    const reRate = top.totalCnt ? (top.reCnt/top.totalCnt*100).toFixed(1) : 0;
+    lines.push(`🔍 주 유입 경로 <b>${top.route}</b> (${pct}%) · 재진율 <b>${reRate}%</b>`);
+  }
+
+  // ⑥ 스태프 한줄 요약
+  if (staff.length >= 2) {
+    const avg = Math.round(staff.reduce((s,e)=>s+e.perPatient,0)/staff.length);
+    const best = staff[0];
+    lines.push(`👑 객단가 1위 <b>${best.name}</b>(${fmt(best.perPatient)}원) · 전체 평균 ${fmt(avg)}원`);
   }
 
   return lines;
@@ -1540,6 +1572,18 @@ async function exportPDF() {
 
   // 매출추이 데이터 미로드 시 서버에서 가져오기
   if (!allSalesData.length) await fetchAllSalesData();
+
+  // 이전 달 데이터
+  const prevMonth = getPrevMonth(month);
+  let prevAgg = null;
+  if (prevMonth) {
+    if (rawRows.length > 0) {
+      const prevRows = rawRows.filter(r => r.month === prevMonth);
+      if (prevRows.length) prevAgg = computeAggregates(prevRows);
+    } else if (serverData?.months?.[prevMonth]) {
+      prevAgg = cleanAgg({...serverData.months[prevMonth]});
+    }
+  }
 
   const today = new Date();
   const dateStr = `${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
@@ -1688,7 +1732,7 @@ async function exportPDF() {
   })();
 
   // 자동 인사이트
-  const insights = autoInsight(agg, displayAmt);
+  const insights = autoInsight(agg, displayAmt, prevAgg, month);
 
   const html = `<!DOCTYPE html>
 <html lang="ko">
