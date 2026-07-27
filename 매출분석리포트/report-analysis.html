@@ -1650,6 +1650,20 @@ async function exportPDF() {
     `<tr><td>${g}성</td>${pdfDemoCell(pdfGenderProc[g],5)}</tr>`).join('');
   const genderMemRows  = ['여','남'].filter(g=>pdfGenderMem[g]?.length).map(g=>
     `<tr><td>${g}성</td>${pdfDemoCell(pdfGenderMem[g],3)}</tr>`).join('');
+
+  // 성별 회원권 텍스트 인사이트
+  const genderMemText = (() => {
+    const fallback = (agg.membershipTop||[]).slice(0,3);
+    const hasDetail = ['여','남'].some(g => pdfGenderMem[g]?.length);
+    if (!hasDetail && !fallback.length) return null;
+    if (!hasDetail) {
+      return `인기 회원권: ${fallback.map(e=>e.name).join(' > ')} 순으로 판매되었습니다. (성별 구분 데이터 없음 — 파일 재업로드 시 분리됩니다)`;
+    }
+    return ['여','남'].filter(g=>pdfGenderMem[g]?.length).map(g => {
+      const top = pdfGenderMem[g].slice(0,3).map(e=>e.name).join(' > ');
+      return `${g}성: ${top}`;
+    }).join(' / ');
+  })();
   const ageProcRows = ageOrder.filter(a=>pdfAgeProc[a]?.length).map(a=>
     `<tr><td>${a}</td>${pdfDemoCell(pdfAgeProc[a],3)}</tr>`).join('');
 
@@ -1827,23 +1841,14 @@ window.addEventListener('afterprint', () => {
   <div class="section">
     <div class="sec-title">👥 성별 · 나이대별 인기시술 <span class="sec-badge">Demographics</span></div>
 
-    <div style="font-size:11px;font-weight:700;color:#1a1a2e;margin:0 0 6px">▸ 성별 인기시술</div>
-    <div class="two-col" style="margin-bottom:16px">
-      <div>
-        <div style="font-size:10px;color:#3d9e8c;font-weight:700;margin-bottom:5px">💉 인기시술 TOP 5</div>
-        ${genderProcRows ? `<table>
-          <thead><tr><th>성별</th><th>1위</th><th>2위</th><th>3위</th><th>4위</th><th>5위</th></tr></thead>
-          <tbody>${genderProcRows}</tbody>
-        </table>` : '<p style="color:#aaa;font-size:11px">데이터 없음</p>'}
-      </div>
-      <div>
-        <div style="font-size:10px;color:#8b5cf6;font-weight:700;margin-bottom:5px">🏷 회원권 TOP 3</div>
-        ${genderMemRows ? `<table>
-          <thead><tr><th>성별</th><th>1위</th><th>2위</th><th>3위</th></tr></thead>
-          <tbody>${genderMemRows}</tbody>
-        </table>` : '<p style="color:#aaa;font-size:11px">데이터 없음</p>'}
-      </div>
-    </div>
+    <div style="font-size:11px;font-weight:700;color:#1a1a2e;margin:0 0 8px">▸ 성별 인기시술</div>
+    ${genderProcRows ? `<table style="margin-bottom:12px">
+      <thead><tr><th>성별</th><th>1위</th><th>2위</th><th>3위</th><th>4위</th><th>5위</th></tr></thead>
+      <tbody>${genderProcRows}</tbody>
+    </table>` : '<p style="color:#aaa;font-size:11px;margin-bottom:12px">데이터 없음</p>'}
+    ${genderMemText ? `<div style="background:#f5f3ff;border-left:3px solid #8b5cf6;border-radius:0 8px 8px 0;padding:10px 14px;font-size:11px;color:#4c1d95;line-height:1.8;margin-bottom:16px">
+      <strong>🏷 성별 회원권</strong><br>${genderMemText}
+    </div>` : ''}
 
     <div style="font-size:11px;font-weight:700;color:#1a1a2e;margin:0 0 6px;padding-top:12px;border-top:1px solid #f0f9f7">▸ 나이대별 인기시술</div>
     ${ageProcRows ? `<table style="margin-bottom:12px">
