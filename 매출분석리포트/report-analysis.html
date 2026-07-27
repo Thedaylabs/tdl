@@ -352,6 +352,10 @@ async function deleteBranchData(branch) {
 }
 async function clearAllData() {
   if (!confirm('모든 지점의 업로드 파일과 분석 데이터를 전부 삭제합니다.\n계속하시겠습니까?')) return;
+  // 1. 서버에 있는 지점 목록 먼저 수집 (삭제 전에)
+  await fetchServerBranchList();
+  const serverBranches = Object.keys(serverBranchList);
+  // 2. IndexedDB 전체 초기화
   const db = await openIDB();
   await new Promise((res, rej) => {
     const tx = db.transaction([IDB_STORE, FILE_STORE], 'readwrite');
@@ -360,14 +364,12 @@ async function clearAllData() {
     tx.oncomplete = () => res();
     tx.onerror = e => rej(e.target.error);
   });
-  // 서버 분석 데이터도 전지점 삭제
-  try {
-    const summaries = await getAllBranchSummaries();
-    // summaries가 이미 비워졌으므로 serverData 쪽만 처리
-    if (serverData?.branches) {
-      await Promise.all(Object.keys(serverData.branches).map(b => deleteServerAnalysis(b)));
-    }
-  } catch(e) { console.warn('서버 삭제 오류', e); }
+  // 3. 서버 분석 데이터 전지점 삭제
+  if (serverBranches.length) {
+    try {
+      await Promise.all(serverBranches.map(b => deleteServerAnalysis(b)));
+    } catch(e) { console.warn('서버 삭제 오류', e); }
+  }
   alert('전체 초기화 완료. 파일을 다시 업로드해 주세요.');
   location.reload();
 }
