@@ -1237,7 +1237,12 @@ function renderFiltered() {
 
   renderRouteTable(agg.routeTable || []);
   renderProcedures(agg.top10 || [], agg.membershipTop || []);
-  renderGenderAge(agg.byGenderProc || {}, agg.byAgeProc || {}, agg.byGenderMem || {}, agg.byAgeMem || {});
+  renderGenderAge(
+    agg.byGenderProc || agg.byGender || {},
+    agg.byAgeProc    || agg.byAge    || {},
+    agg.byGenderMem  || {},
+    agg.byAgeMem     || {}
+  );
   renderRouteProc(agg.routeProc || {});
   renderStaffTable(agg.staffTable || []);
 }
