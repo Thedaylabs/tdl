@@ -1862,7 +1862,10 @@ const MEMBERSHIP_KEYWORDS = [
 ];
 function isMembership(name) {
   const n = (name || '').toLowerCase();
-  return MEMBERSHIP_KEYWORDS.some(k => n.includes(k));
+  if (MEMBERSHIP_KEYWORDS.some(k => n.includes(k))) return true;
+  // "100만원", "200만원권" 등 금액 단독 표기 항목 (시술명 없이 숫자+만원으로만 된 경우)
+  if (/^\d[\d,]*만원권?$/.test((name || '').trim())) return true;
+  return false;
 }
 
 const NON_PROC_KEYWORDS = [
