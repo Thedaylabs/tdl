@@ -1616,10 +1616,10 @@ async function exportPDF() {
   ];
 
   function kpiCard(k) {
-    return `<div class="kpi-card" style="background:${k.grad};border-radius:12px;padding:16px 14px;color:#fff;min-height:72px;">
-      <div style="font-size:10px;opacity:.85;margin-bottom:6px;">${k.label}</div>
-      <div style="font-size:16px;font-weight:800;line-height:1.2;">${k.val}</div>
-    </div>`;
+    return `<td class="kpi-card" style="background:${k.grad} !important;">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-val">${k.val}</div>
+    </td>`;
   }
 
   // 테이블 데이터 (내원경로 TOP 10)
@@ -1740,21 +1740,23 @@ async function exportPDF() {
 <meta charset="UTF-8">
 <title>${branch} 매출 분석 리포트 - ${monthText}</title>
 <style>
-  * { box-sizing:border-box; margin:0; padding:0; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
   body { font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif; color:#1a1a2e; font-size:12px; line-height:1.65; background:#f8fafc; }
   .wrap { max-width:860px; margin:0 auto; padding:32px 24px; }
   .print-hint { background:#d4f0ea; border-radius:8px; padding:10px 16px; font-size:11px; color:#2a7a6a; margin-bottom:22px; display:flex; align-items:center; gap:8px; }
 
   /* 헤더 */
-  .rpt-header { background:linear-gradient(135deg,#1a1a2e,#2a7a6a); border-radius:16px; padding:28px 32px; color:#fff; margin-bottom:24px; }
+  .rpt-header { background:linear-gradient(135deg,#1a1a2e,#2a7a6a) !important; border-radius:16px; padding:28px 32px; color:#fff; margin-bottom:24px; }
   .rpt-brand { font-size:11px; opacity:.7; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
   .rpt-title { font-size:24px; font-weight:800; margin-bottom:4px; }
   .rpt-sub   { font-size:14px; opacity:.8; font-weight:600; }
   .rpt-meta  { display:flex; gap:20px; flex-wrap:wrap; margin-top:16px; font-size:11px; opacity:.75; }
 
-  /* KPI 그리드 */
-  .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px; }
-  .kpi-card { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+  /* KPI 그리드 — 인쇄 호환을 위해 table 방식 사용 */
+  .kpi-row { width:100%; border-collapse:separate; border-spacing:8px 0; margin-bottom:8px; }
+  .kpi-card { border-radius:12px; padding:14px 12px; color:#fff !important; vertical-align:top; width:25%; }
+  .kpi-label { font-size:10px; opacity:.85; margin-bottom:5px; }
+  .kpi-val   { font-size:15px; font-weight:800; line-height:1.25; word-break:keep-all; overflow-wrap:break-word; }
 
   /* 섹션 */
   .section { background:#fff; border-radius:14px; padding:22px 24px; margin-bottom:18px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
@@ -1826,8 +1828,8 @@ window.addEventListener('afterprint', () => {
   </div>
 
   <!-- KPI 카드 -->
-  <div class="kpi-grid">${kpi1.map(kpiCard).join('')}</div>
-  <div class="kpi-grid" style="margin-bottom:20px">${kpi2.map(kpiCard).join('')}</div>
+  <table class="kpi-row"><tr>${kpi1.map(kpiCard).join('')}</tr></table>
+  <table class="kpi-row" style="margin-bottom:20px"><tr>${kpi2.map(kpiCard).join('')}</tr></table>
 
   <!-- 자동 종합 인사이트 -->
   <div class="summary-section">
