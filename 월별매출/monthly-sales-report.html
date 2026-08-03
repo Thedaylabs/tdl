@@ -628,7 +628,7 @@ const BRANCH_SPECIAL = {
   '분당점':    { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'화장품 판매 제외',id:'sp_cosmetic'}] },
   '부산서면점':{ type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'환불건 제외',id:'sp_refund'}] },
   '명동2호점': { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'소개_직원소개',id:'sp_md2_intro_staff'},{label:'소개_원장님소개',id:'sp_md2_intro_director'},{label:'직원',id:'sp_md2_employee'},{label:'임직원할인(특가)',id:'sp_md2_exec_discount'},{label:'SC임직원10%할인',id:'sp_md2_sc_discount'},{label:'화장품 매출',id:'sp_md2_cosmetic'}] },
-  '영등포점': { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요. (여신티켓 금액은 총 매출에 합산됩니다.)', items:[{label:'여신티켓',id:'sp_ydp_ticket'}] }
+  '영등포점': { type:'input', addToTotal:true, note:'아래 특약 항목(여신티켓, 강남언니)의 해당 금액을 입력해 주세요. 입력한 금액은 총 매출에 자동으로 합산됩니다.', items:[{label:'여신티켓',id:'sp_ydp_ticket'},{label:'강남언니',id:'sp_ydp_gangnamunni'}] }
 };
 
 let currentBranch = '';
@@ -719,13 +719,21 @@ function renderSpecial(branch) {
   content.innerHTML=html;
 }
 
+function getSpecialTotal(branch) {
+  const config=BRANCH_SPECIAL[branch];
+  if (!config||config.type!=='input') return 0;
+  let total=0;
+  config.items.forEach(item=>{ const el=document.getElementById(item.id); if(el) total+=parseFloat(el.value)||0; });
+  return total;
+}
+
 function calcSpecialTotal(branch) {
   const config=BRANCH_SPECIAL[branch];
   if (!config||config.type!=='input') return;
-  let total=0;
-  config.items.forEach(item=>{ const el=document.getElementById(item.id); if(el) total+=parseFloat(el.value)||0; });
+  const total=getSpecialTotal(branch);
   const el=document.getElementById('stotal_'+branch.replace(/[^가-힣a-z0-9]/gi,'_'));
   if(el) el.textContent=total.toLocaleString('ko-KR')+' 원';
+  if (config.addToTotal) calcTotal();
 }
 
 // ── 숫자 포맷 ───────────────────────────────────────────────
@@ -742,7 +750,10 @@ function calcTotal() {
     const o=Math.max(0,t-d);
     document.getElementById('salesOvs').value=o?o.toLocaleString('ko-KR'):'';
   } else {
-    const d=getRawNum('salesDom'), o=getRawNum('salesOvs'), t=d+o;
+    const d=getRawNum('salesDom'), o=getRawNum('salesOvs');
+    const config=BRANCH_SPECIAL[currentBranch];
+    const extra=(config&&config.addToTotal)?getSpecialTotal(currentBranch):0;
+    const t=d+o+extra;
     document.getElementById('salesTot').value=t?t.toLocaleString('ko-KR'):'';
   }
 }
@@ -1262,6 +1273,15 @@ function editFmt(input) {
 function editRaw(id) {
   return parseInt((document.getElementById(id).value||'0').replace(/,/g,''), 10) || 0;
 }
+function editGetSpecialTotal(branch) {
+  const shortKey = Object.keys(BRANCH_SPECIAL).find(k => branch.includes(k)) || '';
+  const config = BRANCH_SPECIAL[shortKey];
+  if (!config || config.type !== 'input') return 0;
+  let total = 0;
+  config.items.forEach(item => { total += editRaw('esp_' + item.id); });
+  return total;
+}
+
 function editCalcTotal() {
   const editBranch = document.getElementById('editRowId').dataset.branch || currentBranch;
   if (editBranch === '명동점') {
@@ -1269,7 +1289,10 @@ function editCalcTotal() {
     const o=Math.max(0,t-d);
     document.getElementById('editOvs').value = o ? o.toLocaleString('ko-KR') : '';
   } else {
-    const t = editRaw('editDom') + editRaw('editOvs');
+    const shortKey = Object.keys(BRANCH_SPECIAL).find(k => editBranch.includes(k)) || '';
+    const config = BRANCH_SPECIAL[shortKey];
+    const extra = (config && config.addToTotal) ? editGetSpecialTotal(editBranch) : 0;
+    const t = editRaw('editDom') + editRaw('editOvs') + extra;
     document.getElementById('editTotal').value = t ? t.toLocaleString('ko-KR') : '';
   }
 }
@@ -1303,11 +1326,12 @@ function editRenderSpecial(branch, existingSpecial) {
     return;
   }
   let html = `<div class="edit-field"><label>특약사항</label><div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 14px"><div style="font-size:.78rem;color:#92400e;margin-bottom:10px">📌 ${config.note}</div>`;
+  const specialOninput = config.addToTotal ? "editFmt(this);editCalcTotal();" : "editFmt(this)";
   config.items.forEach(item => {
     const existing = (existingSpecial && existingSpecial[item.label]) || {};
     html += `<div style="display:grid;grid-template-columns:150px 1fr 1fr;gap:8px;align-items:center;margin-bottom:8px">
       <div style="font-size:.82rem;font-weight:600;color:#374151;background:#fff;border-radius:7px;padding:8px 10px;border:1.5px solid #e5e7eb">${item.label}</div>
-      <input type="text" id="esp_${item.id}" inputmode="numeric" placeholder="금액 (원)" value="${existing.amount ? Number(existing.amount).toLocaleString('ko-KR') : ''}" style="padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.88rem;font-family:inherit;background:#fafafa" oninput="editFmt(this)" />
+      <input type="text" id="esp_${item.id}" inputmode="numeric" placeholder="금액 (원)" value="${existing.amount ? Number(existing.amount).toLocaleString('ko-KR') : ''}" style="padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.88rem;font-family:inherit;background:#fafafa" oninput="${specialOninput}" />
       <input type="text" id="esp_${item.id}_memo" placeholder="비고 (선택)" value="${existing.memo||''}" style="padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.88rem;font-family:inherit;background:#fafafa" />
     </div>`;
   });
