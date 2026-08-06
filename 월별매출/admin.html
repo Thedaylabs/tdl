@@ -1084,8 +1084,15 @@ const FEE_RULES = {
   '부산서면점':    { formula:'경영 1.5억 이하 면제/1.5억~3억:2.75%/3억+:5.5% | 마케팅 국내매출 5%+VAT',
     mgmt:(t)=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);},
     mkt:(t,ym,dom)=>Math.round(dom*0.055) },
-  '명동2호점':     { formula:'경영 15%+VAT(~26.04)/10%+VAT(26.05~) | 마케팅 국내5%+VAT(26.01~26.06)/없음(26.07~)',
-    mgmt:(t,ym)=>ym>='2026-05'?Math.round(t*0.11):Math.round(t*0.165),
+  '명동2호점':     { formula:'경영 15%+VAT(~26.04)/10%+VAT(26.05~26.07)/구간누진(26.08~: 15억미만11%,15~20억13.75%,20억+16.5%, 모두 VAT포함) | 마케팅 국내5%+VAT(26.01~26.06)/없음(26.07~)',
+    mgmt:(t,ym)=>{
+      if(ym>='2026-08'){
+        if(t<15*E8)return Math.round(t*0.11);
+        if(t<20*E8)return Math.round(t*0.1375);
+        return Math.round(t*0.165);
+      }
+      return ym>='2026-05'?Math.round(t*0.11):Math.round(t*0.165);
+    },
     mkt:(t,ym,dom)=>ym>='2026-07'?0:ym>='2026-01'?Math.round(dom*0.055):0 },
   '수원점':        { formula:'경영·마케팅 3%+VAT (구 영등포점 동일조건)',
     mgmt:(t)=>Math.round(t*0.033),
