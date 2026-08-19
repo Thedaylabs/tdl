@@ -401,7 +401,7 @@
           <option>부산서면점</option><option>명동2호점</option><option>수원점</option>
         </optgroup>
         <optgroup label="세라미크의원">
-          <option>세라미크 강남점</option>
+          <option>세라미크 강남점</option><option>세라미크 명동점</option>
         </optgroup>
       </select>
       <button class="btn-outline" onclick="exportCSV('overview')">📥 CSV 다운로드</button>
@@ -454,7 +454,7 @@
           <option>부산서면점</option><option>명동2호점</option><option>수원점</option>
         </optgroup>
         <optgroup label="세라미크의원">
-          <option>세라미크 강남점</option>
+          <option>세라미크 강남점</option><option>세라미크 명동점</option>
         </optgroup>
       </select>
       <select id="t2Sort" onchange="renderReports()">
@@ -554,7 +554,7 @@
           <option>부산서면점</option><option>명동2호점</option><option>수원점</option>
         </optgroup>
         <optgroup label="세라미크의원">
-          <option>세라미크 강남점</option>
+          <option>세라미크 강남점</option><option>세라미크 명동점</option>
         </optgroup>
       </select>
       <select id="t6Status" onchange="renderMgmtCheck()">
@@ -606,7 +606,7 @@
           <option>부산서면점</option><option>명동2호점</option><option>수원점</option>
         </optgroup>
         <optgroup label="세라미크의원">
-          <option>세라미크 강남점</option>
+          <option>세라미크 강남점</option><option>세라미크 명동점</option>
         </optgroup>
       </select>
       <div style="display:flex;gap:0;border:1.5px solid #e0e0e0;border-radius:8px;overflow:hidden;">
@@ -820,7 +820,7 @@ const SCRIPT_URL = '/api/sync';
 
 const BRANCHES_DAYB = ['강서발산점','건대입구점','광주상무점','강남점','안양범계점',
   '여의도점','영등포점','대전둔산점','명동점','분당점','인천구월점','전주점','부산서면점','명동2호점','수원점'];
-const BRANCHES_CERA = ['세라미크 강남점'];
+const BRANCHES_CERA = ['세라미크 강남점', '세라미크 명동점'];
 const ALL_BRANCHES  = [...BRANCHES_DAYB, ...BRANCHES_CERA];
 
 // 브랜드 판별
@@ -834,7 +834,7 @@ const BRANCH_CEO = {
   '안양범계점':'양윤성', '여의도점':'권오민', '대전둔산점':'이삭', '명동점':'김영수',
   '분당점':'이충연', '인천구월점':'이택규', '전주점':'박만우', '부산서면점':'이다인',
   '명동2호점':'김현지', '영등포점':'김장미', '수원점':'노성진',
-  '세라미크 강남점':'이종진',
+  '세라미크 강남점':'이종진', '세라미크 명동점':'우동진',
 };
 
 
@@ -1100,6 +1100,9 @@ const FEE_RULES = {
   '세라미크 강남점':{ formula:'경영 5%+VAT | 마케팅 10%+VAT',
     mgmt:(t)=>Math.round(t*0.055),
     mkt:(t)=>Math.round(t*0.11) },
+  '세라미크 명동점':{ formula:'경영 월매출 5%+VAT | 마케팅 국내매출 5%+VAT (2025.10.25~2027.10.24, 2년씩 자동연장)',
+    mgmt:(t)=>Math.round(t*0.055),
+    mkt:(t,ym,dom)=>Math.round(dom*0.055) },
 };
 
 // ════════════════════════════════════════════════════════
@@ -1790,7 +1793,8 @@ const DEFAULT_PIN_MAP = {
   '강서발산점':'0399','건대입구점':'7791','광주상무점':'7705','강남점':'2225',
   '안양범계점':'7122','여의도점':'5664','영등포점':'4842','대전둔산점':'9770',
   '명동점':'7771','분당점':'8026','인천구월점':'7960','전주점':'1004',
-  '부산서면점':'7890','명동2호점':'4090','수원점':'7117','세라미크 강남점':'3430'
+  '부산서면점':'7890','명동2호점':'4090','수원점':'7117','세라미크 강남점':'3430',
+  '세라미크 명동점':'2264'
 };
 
 function getPins() {
