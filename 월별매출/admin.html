@@ -1048,8 +1048,10 @@ async function doLogin() {
   }
   errEl.textContent = '';
   btn.disabled = true; const orig = btn.textContent; btn.textContent = '확인 중...';
+  const controller = new AbortController();
+  const timeoutId  = setTimeout(() => controller.abort(), 15000);
   try {
-    const resp = await fetch(SCRIPT_URL + '?action=verify_admin_pin&pin=' + encodeURIComponent(pin) + '&_t=' + Date.now());
+    const resp = await fetch(SCRIPT_URL + '?action=verify_admin_pin&pin=' + encodeURIComponent(pin) + '&_t=' + Date.now(), { signal: controller.signal });
     const json = await resp.json();
     if (json.result === 'ok') {
       sessionStorage.setItem('admin_logged_in', '1');
@@ -1060,8 +1062,11 @@ async function doLogin() {
       document.getElementById('pinInput').value = '';
     }
   } catch (e) {
-    errEl.textContent = '⚠️ 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+    errEl.textContent = e.name === 'AbortError'
+      ? '⚠️ 서버 응답이 지연되고 있어요. 잠시 후 다시 시도해 주세요.'
+      : '⚠️ 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
   } finally {
+    clearTimeout(timeoutId);
     btn.disabled = false; btn.textContent = orig;
   }
 }

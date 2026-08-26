@@ -704,8 +704,10 @@ async function doLogin() {
   }
   errEl.textContent = '';
   btn.disabled = true; const origBtnText = btn.textContent; btn.textContent = '확인 중...';
+  const controller = new AbortController();
+  const timeoutId  = setTimeout(() => controller.abort(), 15000);
   try {
-    const resp = await fetch('/api/sync?action=verify_pin&pin=' + encodeURIComponent(pin) + '&_t=' + Date.now());
+    const resp = await fetch('/api/sync?action=verify_pin&pin=' + encodeURIComponent(pin) + '&_t=' + Date.now(), { signal: controller.signal });
     const json = await resp.json();
     if (json.result === 'ok' && json.branch) {
       sessionStorage.setItem('branch_logged_in', json.branch);
@@ -719,8 +721,11 @@ async function doLogin() {
       document.getElementById('pinInput').focus();
     }
   } catch (e) {
-    errEl.textContent = '⚠️ 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+    errEl.textContent = e.name === 'AbortError'
+      ? '⚠️ 서버 응답이 지연되고 있어요. 잠시 후 다시 시도해 주세요.'
+      : '⚠️ 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
   } finally {
+    clearTimeout(timeoutId);
     btn.disabled = false; btn.textContent = origBtnText;
   }
 }
@@ -751,14 +756,16 @@ function doLogout() {
   const savedPin = sessionStorage.getItem('branch_pin');
   if (!saved) return;
   if (savedPin) {
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 15000);
     try {
-      const resp = await fetch('/api/sync?action=verify_pin&pin=' + encodeURIComponent(savedPin) + '&_t=' + Date.now());
+      const resp = await fetch('/api/sync?action=verify_pin&pin=' + encodeURIComponent(savedPin) + '&_t=' + Date.now(), { signal: controller.signal });
       const json = await resp.json();
       if (json.result === 'ok' && json.branch === saved) {
         BRANCH_SPECIAL = {};
         if (json.special) BRANCH_SPECIAL[json.branch] = json.special;
       }
-    } catch (e) {}
+    } catch (e) {} finally { clearTimeout(timeoutId); }
   }
   showBranchScreen(saved);
 })();
