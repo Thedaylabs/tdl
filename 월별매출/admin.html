@@ -199,6 +199,24 @@
     .lightbox-nav button:hover { background:rgba(255,255,255,.3); }
     .lightbox-nav button:disabled { opacity:.3; cursor:default; }
 
+    /* ── PIN 변경 모달 ── */
+    .pin-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999; align-items:center; justify-content:center; padding:16px; }
+    .pin-modal-overlay.show { display:flex; }
+    .pin-modal-card { background:#fff; border-radius:18px; padding:30px 28px; max-width:360px; width:100%; box-shadow:0 8px 40px rgba(0,0,0,.2); }
+    .pin-modal-card h3 { text-align:center; font-size:1.05rem; font-weight:700; margin-bottom:4px; }
+    .pin-modal-card > p { text-align:center; font-size:.8rem; color:#888; margin-bottom:18px; }
+    .pin-modal-field { margin-bottom:12px; }
+    .pin-modal-field label { display:block; font-size:.8rem; font-weight:600; color:#444; margin-bottom:5px; }
+    .pin-modal-field input { width:100%; padding:10px 12px; border:1.5px solid #e0e0e0; border-radius:9px; font-size:.95rem; font-family:inherit; letter-spacing:4px; text-align:center; background:#fafafa; }
+    .pin-modal-field input:focus { outline:none; border-color:#7c3aed; background:#fff; }
+    .pin-modal-error { font-size:.8rem; color:#e53e3e; min-height:18px; margin-bottom:6px; text-align:center; }
+    .pin-modal-success { font-size:.8rem; color:#059669; min-height:18px; margin-bottom:6px; text-align:center; }
+    .pin-modal-actions { display:flex; gap:8px; margin-top:6px; }
+    .pin-modal-actions button { flex:1; padding:11px; border-radius:9px; font-size:.88rem; font-weight:700; cursor:pointer; font-family:inherit; border:none; }
+    .pin-modal-cancel { background:#f1f5f9; color:#555; }
+    .pin-modal-submit { background:#7c3aed; color:#fff; }
+    .pin-modal-submit:disabled { opacity:.6; cursor:default; }
+
     /* ── 탭3: 수수료 설정 ── */
     .settings-wrap { max-width:900px; margin:0 auto; }
     .settings-card { background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); padding:28px; margin-bottom:20px; }
@@ -353,7 +371,7 @@
            oninput="this.value=this.value.replace(/[^0-9]/g,'')"
            onkeydown="if(event.key==='Enter') doLogin()" />
     <div class="login-error" id="loginError"></div>
-    <button class="btn-login" onclick="doLogin()">로그인</button>
+    <button class="btn-login" id="adminLoginBtn" onclick="doLogin()">로그인</button>
   </div>
 </div>
 
@@ -369,6 +387,7 @@
         <span style="font-size:.7rem;color:#9ca3af;white-space:nowrap;"><b style="color:#6b7280;">Ctrl+Shift+R</b></span>
         <div class="admin-chip">
           👑 관리자
+          <button class="btn-logout" onclick="openAdminPinChangeModal()">🔑 PIN 변경</button>
           <button class="btn-logout" onclick="doLogout()">로그아웃</button>
         </div>
       </div>
@@ -729,6 +748,35 @@
   </div>
 </div>
 
+<!-- 관리자 PIN 변경 모달 -->
+<div class="pin-modal-overlay" id="adminPinModal">
+  <div class="pin-modal-card">
+    <h3>🔑 관리자 PIN 변경</h3>
+    <p>기존 PIN을 확인한 후 새 PIN으로 변경합니다.</p>
+    <div class="pin-modal-field">
+      <label>기존 PIN</label>
+      <input type="password" id="adminPinOld" maxlength="4" placeholder="●●●●" inputmode="numeric"
+             oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+    </div>
+    <div class="pin-modal-field">
+      <label>새 PIN</label>
+      <input type="password" id="adminPinNew" maxlength="4" placeholder="●●●●" inputmode="numeric"
+             oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+    </div>
+    <div class="pin-modal-field">
+      <label>새 PIN 확인</label>
+      <input type="password" id="adminPinNew2" maxlength="4" placeholder="●●●●" inputmode="numeric"
+             oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+    </div>
+    <div class="pin-modal-error" id="adminPinError"></div>
+    <div class="pin-modal-success" id="adminPinSuccess"></div>
+    <div class="pin-modal-actions">
+      <button class="pin-modal-cancel" onclick="closeAdminPinChangeModal()">취소</button>
+      <button class="pin-modal-submit" id="adminPinSubmitBtn" onclick="submitAdminPinChange()">변경하기</button>
+    </div>
+  </div>
+</div>
+
 <!-- 라이트박스 -->
 <div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
   <div class="lightbox-inner">
@@ -819,7 +867,7 @@ document.addEventListener('keydown',e=>{
 // ════════════════════════════════════════════════════════
 // 설정
 // ════════════════════════════════════════════════════════
-const ADMIN_PIN = '0000';
+// 관리자 PIN은 더 이상 클라이언트에 하드코딩하지 않고 서버에서 검증한다.
 const SCRIPT_URL = '/api/sync';
 
 const BRANCHES_DAYB = ['강서발산점','건대입구점','광주상무점','강남점','안양범계점',
@@ -990,24 +1038,91 @@ function showAdminScreen() {
   });
 }
 
-function doLogin() {
-  const pin = document.getElementById('pinInput').value.trim();
-  if (pin !== ADMIN_PIN) {
-    document.getElementById('loginError').textContent = '❌ PIN 번호가 올바르지 않습니다.';
-    document.getElementById('pinInput').value = '';
+async function doLogin() {
+  const pin   = document.getElementById('pinInput').value.trim();
+  const errEl = document.getElementById('loginError');
+  const btn   = document.getElementById('adminLoginBtn');
+  if (!/^\d{4}$/.test(pin)) {
+    errEl.textContent = '❌ PIN 번호 4자리를 입력해 주세요.';
     return;
   }
-  sessionStorage.setItem('admin_logged_in', '1');
-  showAdminScreen();
+  errEl.textContent = '';
+  btn.disabled = true; const orig = btn.textContent; btn.textContent = '확인 중...';
+  try {
+    const resp = await fetch(SCRIPT_URL + '?action=verify_admin_pin&pin=' + encodeURIComponent(pin) + '&_t=' + Date.now());
+    const json = await resp.json();
+    if (json.result === 'ok') {
+      sessionStorage.setItem('admin_logged_in', '1');
+      sessionStorage.setItem('admin_pin', pin);
+      showAdminScreen();
+    } else {
+      errEl.textContent = '❌ PIN 번호가 올바르지 않습니다.';
+      document.getElementById('pinInput').value = '';
+    }
+  } catch (e) {
+    errEl.textContent = '⚠️ 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
 }
 
 function doLogout() {
   if (!confirm('로그아웃 하시겠어요?')) return;
   sessionStorage.removeItem('admin_logged_in');
+  sessionStorage.removeItem('admin_pin');
   document.getElementById('adminScreen').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('pinInput').value = '';
   switchTab(1);
+}
+
+// ── 관리자 PIN 변경 ────────────────────────────────────────────
+function openAdminPinChangeModal() {
+  document.getElementById('adminPinOld').value = '';
+  document.getElementById('adminPinNew').value = '';
+  document.getElementById('adminPinNew2').value = '';
+  document.getElementById('adminPinError').textContent = '';
+  document.getElementById('adminPinSuccess').textContent = '';
+  document.getElementById('adminPinModal').classList.add('show');
+}
+function closeAdminPinChangeModal() {
+  document.getElementById('adminPinModal').classList.remove('show');
+}
+async function submitAdminPinChange() {
+  const oldPin  = document.getElementById('adminPinOld').value.trim();
+  const newPin  = document.getElementById('adminPinNew').value.trim();
+  const newPin2 = document.getElementById('adminPinNew2').value.trim();
+  const errEl = document.getElementById('adminPinError');
+  const okEl  = document.getElementById('adminPinSuccess');
+  const btn   = document.getElementById('adminPinSubmitBtn');
+  errEl.textContent = ''; okEl.textContent = '';
+
+  if (!/^\d{4}$/.test(oldPin) || !/^\d{4}$/.test(newPin)) {
+    errEl.textContent = '❌ PIN은 4자리 숫자여야 합니다.'; return;
+  }
+  if (newPin !== newPin2) { errEl.textContent = '❌ 새 PIN이 서로 일치하지 않습니다.'; return; }
+  if (newPin === oldPin)  { errEl.textContent = '❌ 기존 PIN과 다른 번호로 변경해 주세요.'; return; }
+
+  btn.disabled = true; const orig = btn.textContent; btn.textContent = '변경 중...';
+  try {
+    const resp = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'change_admin_pin', oldPin, newPin })
+    });
+    const json = await resp.json();
+    if (json.result === 'ok') {
+      sessionStorage.setItem('admin_pin', newPin);
+      okEl.textContent = '✅ PIN이 변경되었습니다.';
+      setTimeout(closeAdminPinChangeModal, 1200);
+    } else {
+      errEl.textContent = '❌ ' + (json.message || 'PIN 변경에 실패했습니다.');
+    }
+  } catch (e) {
+    errEl.textContent = '⚠️ 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
 }
 
 // ════════════════════════════════════════════════════════
