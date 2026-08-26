@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>마케팅 관리자 페이지</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif; background:#f5f6fa; color:#1a1a2e; min-height:100vh; }
+
+  /* 로그인 */
+  #loginScreen { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px 16px; }
+  .login-card { background:#fff; border-radius:20px; box-shadow:0 4px 32px rgba(0,0,0,.10); padding:44px 36px 36px; width:100%; max-width:400px; text-align:center; }
+  .login-logo { font-size:2.4rem; margin-bottom:10px; }
+  .login-card h1 { font-size:1.3rem; font-weight:700; margin-bottom:6px; }
+  .login-card>p { font-size:.85rem; color:#888; margin-bottom:28px; }
+  .login-card label { display:block; text-align:left; font-size:.83rem; font-weight:600; color:#444; margin-bottom:6px; }
+  .login-card input[type=password] { width:100%; padding:13px 16px; border:1.5px solid #e0e0e0; border-radius:12px; font-size:1.1rem; letter-spacing:6px; text-align:center; background:#fafafa; margin-bottom:8px; font-family:inherit; transition:border-color .2s; }
+  .login-card input[type=password]:focus { outline:none; border-color:#0891b2; background:#fff; }
+  .login-error { font-size:.82rem; color:#e53e3e; min-height:20px; margin-bottom:14px; }
+  .btn-login { width:100%; background:#0891b2; color:#fff; border:none; border-radius:12px; padding:14px; font-size:1rem; font-weight:700; cursor:pointer; font-family:inherit; transition:background .2s; }
+  .btn-login:hover { background:#0e7490; }
+  .btn-login:disabled { opacity:.6; cursor:default; }
+
+  /* 관리자 화면 */
+  #adminScreen { display:none; }
+  .top-header { background:#fff; border-bottom:1px solid #e5e7eb; padding:0 24px; }
+  .top-header-inner { max-width:1280px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; height:60px; flex-wrap:wrap; gap:8px; }
+  .top-title { font-size:1rem; font-weight:700; }
+  .admin-chip { display:flex; align-items:center; gap:8px; background:#ecfeff; color:#0891b2; border-radius:30px; padding:5px 14px; font-size:.82rem; font-weight:700; }
+  .btn-logout { background:none; border:1.5px solid #a5f3fc; color:#0891b2; border-radius:20px; padding:3px 12px; font-size:.75rem; cursor:pointer; font-family:inherit; font-weight:600; }
+  .btn-logout:hover { background:#ecfeff; }
+
+  .tab-bar { background:#fff; border-bottom:1px solid #e5e7eb; }
+  .tab-bar-inner { max-width:1280px; margin:0 auto; display:flex; overflow-x:auto; }
+  .tab-btn { flex-shrink:0; padding:14px 22px; font-size:.86rem; font-weight:600; color:#888; background:none; border:none; border-bottom:3px solid transparent; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .tab-btn.active { color:#0891b2; border-bottom-color:#0891b2; }
+  .tab-content { display:none; max-width:1280px; margin:0 auto; padding:24px 16px 60px; }
+  .tab-content.active { display:block; }
+
+  .toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .toolbar input[type=month], .toolbar select {
+    padding:8px 12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:.85rem; font-family:inherit; background:#fff;
+  }
+
+  .summary-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px; }
+  .summary-card { background:#fff; border-radius:14px; padding:16px 18px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .summary-card .lbl { font-size:.78rem; color:#888; margin-bottom:6px; }
+  .summary-card .val { font-size:1.3rem; font-weight:700; }
+
+  table.data-table { width:100%; border-collapse:collapse; background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  table.data-table thead tr { background:#0891b2; }
+  table.data-table th { padding:11px 10px; font-size:.78rem; font-weight:700; color:#fff; text-align:right; white-space:nowrap; }
+  table.data-table th.left { text-align:left; }
+  table.data-table td { padding:10px; font-size:.85rem; text-align:right; border-bottom:1px solid #f0f2f5; white-space:nowrap; }
+  table.data-table td.left { text-align:left; }
+  table.data-table tbody tr:hover { background:#f8fdff; }
+  table.data-table tfoot td { font-weight:700; background:#f0fbfd; border-top:2px solid #a5f3fc; }
+  .brand-tag { display:inline-block; font-size:.7rem; font-weight:700; padding:2px 8px; border-radius:10px; }
+  .brand-dayb { background:#ede9fe; color:#5b21b6; }
+  .brand-cera { background:#fce7f3; color:#9d174d; }
+  .empty-row td { text-align:center; color:#aaa; padding:30px; }
+
+  .invoice-list { display:flex; flex-direction:column; gap:8px; }
+  .invoice-row { display:flex; align-items:center; gap:12px; background:#fff; border-radius:12px; padding:12px 16px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+  .invoice-row .branch-name { font-weight:700; flex:1; min-width:0; }
+  .invoice-row .amt { color:#0891b2; font-weight:700; font-size:.9rem; }
+  .btn-mini { padding:5px 12px; border-radius:8px; font-size:.78rem; font-weight:600; cursor:pointer; font-family:inherit; border:1.5px solid #a5f3fc; background:#fff; color:#0891b2; }
+  .btn-mini:hover { background:#ecfeff; }
+  #invoicePreviewArea { margin-top:20px; }
+
+  /* PIN 변경 모달 */
+  .pin-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999; align-items:center; justify-content:center; padding:16px; }
+  .pin-modal-overlay.show { display:flex; }
+  .pin-modal-card { background:#fff; border-radius:18px; padding:30px 28px; max-width:360px; width:100%; box-shadow:0 8px 40px rgba(0,0,0,.2); }
+  .pin-modal-card h3 { text-align:center; font-size:1.05rem; font-weight:700; margin-bottom:4px; }
+  .pin-modal-card>p { text-align:center; font-size:.8rem; color:#888; margin-bottom:18px; }
+  .pin-modal-field { margin-bottom:12px; }
+  .pin-modal-field label { display:block; font-size:.8rem; font-weight:600; color:#444; margin-bottom:5px; }
+  .pin-modal-field input { width:100%; padding:10px 12px; border:1.5px solid #e0e0e0; border-radius:9px; font-size:.95rem; font-family:inherit; letter-spacing:4px; text-align:center; background:#fafafa; }
+  .pin-modal-field input:focus { outline:none; border-color:#0891b2; background:#fff; }
+  .pin-modal-error { font-size:.8rem; color:#e53e3e; min-height:18px; margin-bottom:6px; text-align:center; }
+  .pin-modal-success { font-size:.8rem; color:#059669; min-height:18px; margin-bottom:6px; text-align:center; }
+  .pin-modal-actions { display:flex; gap:8px; margin-top:6px; }
+  .pin-modal-actions button { flex:1; padding:11px; border-radius:9px; font-size:.88rem; font-weight:700; cursor:pointer; font-family:inherit; border:none; }
+  .pin-modal-cancel { background:#f1f5f9; color:#555; }
+  .pin-modal-submit { background:#0891b2; color:#fff; }
+  .pin-modal-submit:disabled { opacity:.6; cursor:default; }
+
+  @media(max-width:640px){
+    .summary-grid { grid-template-columns:1fr; }
+    table.data-table { display:block; overflow-x:auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">📢</div>
+    <h1>마케팅 관리자 페이지</h1>
+    <p>마케팅 전용 PIN 번호를 입력해 주세요.</p>
+    <label>PIN 번호</label>
+    <input type="password" id="pinInput" maxlength="4" placeholder="●●●●"
+           oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+           onkeydown="if(event.key==='Enter') doLogin()" />
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">로그인</button>
+  </div>
+</div>
+
+<!-- 관리자 화면 -->
+<div id="adminScreen">
+  <div class="top-header">
+    <div class="top-header-inner">
+      <span class="top-title">📢 마케팅 관리자 페이지</span>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span id="syncIndicator" style="font-size:.78rem;color:#6b7280;"></span>
+        <button onclick="syncFromServer(()=>{renderAll();})" title="그래도 안 바뀌면 Ctrl+Shift+R로 강력 새로고침 해보세요" style="background:#ecfeff;color:#0891b2;border:1.5px solid #a5f3fc;border-radius:8px;padding:5px 12px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;">🔄 새로고침</button>
+        <div class="admin-chip">
+          📢 마케팅
+          <button class="btn-logout" onclick="openPinChangeModal()">🔑 PIN 변경</button>
+          <button class="btn-logout" onclick="doLogout()">로그아웃</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab-bar-inner">
+      <button class="tab-btn active" id="tabBtn1" onclick="switchTab(1)">📊 매출 현황</button>
+      <button class="tab-btn" id="tabBtn2" onclick="switchTab(2)">📢 마케팅 수수료</button>
+      <button class="tab-btn" id="tabBtn3" onclick="switchTab(3)">📄 수수료 청구서</button>
+    </div>
+  </div>
+
+  <!-- 탭1: 매출 현황 -->
+  <div class="tab-content active" id="tab1">
+    <div class="toolbar">
+      <input type="month" id="t1Month" onchange="renderSales()" />
+      <select id="t1Branch" onchange="renderSales()"></select>
+    </div>
+    <div class="summary-grid" id="t1Summary"></div>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="left">브랜드</th>
+            <th class="left">지점명</th>
+            <th>국내매출</th>
+            <th>해외매출</th>
+            <th>총매출</th>
+          </tr>
+        </thead>
+        <tbody id="t1Body"></tbody>
+        <tfoot id="t1Foot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- 탭2: 마케팅 수수료 -->
+  <div class="tab-content" id="tab2">
+    <div class="toolbar">
+      <input type="month" id="t2Month" onchange="renderMkt()" />
+      <select id="t2Branch" onchange="renderMkt()"></select>
+    </div>
+    <div class="summary-grid" id="t2Summary"></div>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="left">지점명</th>
+            <th>총매출</th>
+            <th>마케팅 수수료</th>
+            <th class="left">산정 기준</th>
+          </tr>
+        </thead>
+        <tbody id="t2Body"></tbody>
+        <tfoot id="t2Foot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- 탭3: 수수료 청구서 -->
+  <div class="tab-content" id="tab3">
+    <div class="toolbar">
+      <input type="month" id="t3Month" onchange="renderInvoiceList()" />
+    </div>
+    <div class="invoice-list" id="invoiceListArea"></div>
+    <div id="invoicePreviewArea"></div>
+  </div>
+</div>
+
+<!-- PIN 변경 모달 -->
+<div class="pin-modal-overlay" id="pinModal">
+  <div class="pin-modal-card">
+    <h3>🔑 PIN 변경</h3>
+    <p>기존 PIN을 확인한 후 새 PIN으로 변경합니다.</p>
+    <div class="pin-modal-field">
+      <label>기존 PIN</label>
+      <input type="password" id="pinOld" maxlength="4" placeholder="●●●●" inputmode="numeric"
+             oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+    </div>
+    <div class="pin-modal-field">
+      <label>새 PIN</label>
+      <input type="password" id="pinNew" maxlength="4" placeholder="●●●●" inputmode="numeric"
+             oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+    </div>
+    <div class="pin-modal-field">
+      <label>새 PIN 확인</label>
+      <input type="password" id="pinNew2" maxlength="4" placeholder="●●●●" inputmode="numeric"
+             oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+    </div>
+    <div class="pin-modal-error" id="pinModalError"></div>
+    <div class="pin-modal-success" id="pinModalSuccess"></div>
+    <div class="pin-modal-actions">
+      <button class="pin-modal-cancel" onclick="closePinChangeModal()">취소</button>
+      <button class="pin-modal-submit" id="pinModalSubmitBtn" onclick="submitPinChange()">변경하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// 설정 — 매출 관리자 페이지(admin.html)와 동일한 지점/수수료 규칙을 사용
+// ════════════════════════════════════════════════════════
+const SCRIPT_URL = '/api/sync';
+const BRANCHES_DAYB = ['강서발산점','건대입구점','광주상무점','강남점','안양범계점',
+  '여의도점','영등포점','대전둔산점','명동점','분당점','인천구월점','전주점','부산서면점','명동2호점','수원점'];
+const BRANCHES_CERA = ['세라미크 강남점', '세라미크 명동점'];
+const ALL_BRANCHES  = [...BRANCHES_DAYB, ...BRANCHES_CERA];
+function getBrand(branch) { return branch.startsWith('세라미크') ? '세라미크' : '데이뷰'; }
+
+const E8 = 100000000;
+const GANGNAM_SPECIAL_FALLBACK = {
+  '2025-09': 60648390, '2025-10': 59801742, '2025-11': 97815415, '2025-12': 95605587,
+  '2026-01': 91341657, '2026-02': 25228269, '2026-03': 58202595, '2026-04': 71403057, '2026-05': 62413956,
+};
+const FEE_RULES = {
+  '강서발산점':    { formula:'국내 3%+VAT',  mgmt:(t)=>11000000, mkt:(t,ym,dom)=>Math.round(t*0.033) },
+  '건대입구점':    { formula:'국내 4%+VAT',  mgmt:(t)=>t<3*E8?0:11000000, mkt:(t,ym,dom)=>Math.round(dom*0.044) },
+  '광주상무점':    { formula:'3억이하:4%/초과분:3%+VAT', mgmt:(t)=>t<3*E8?0:11000000,
+    mkt:(t)=>t>3*E8?Math.round(((3*E8*0.04)+(t-3*E8)*0.03)*1.1):Math.round(t*0.044) },
+  '강남점':        { formula:'마케팅 수수료 없음', mgmt:()=>0, mkt:()=>0 },
+  '안양범계점':    { formula:'3억이하:4%/초과분:3%+VAT', mgmt:(t)=>t<E8?0:11000000,
+    mkt:(t)=>t>3*E8?Math.round(((3*E8*0.04)+(t-3*E8)*0.03)*1.1):Math.round(t*0.044) },
+  '여의도점':      { formula:'3억이하:4%/초과분:3%+VAT', mgmt:(t)=>t<3*E8?0:Math.round(t*0.0385),
+    mkt:(t)=>t>3*E8?Math.round(((3*E8*0.04)+(t-3*E8)*0.03)*1.1):Math.round(t*0.044) },
+  '영등포점':      { formula:'~26.03: 3%+VAT | 26.04~: 6%+VAT', mgmt:(t,ym)=>ym>='2026-04'?(t<3*E8?Math.round(t*0.011):Math.round(t*0.066)):Math.round(t*0.033),
+    mkt:(t,ym)=>ym>='2026-04'?Math.round(t*0.066):Math.round(t*0.033) },
+  '대전둔산점':    { formula:'4%+VAT', mgmt:(t)=>11000000, mkt:(t,ym,dom)=>Math.round(t*0.044) },
+  '명동점':        { formula:'국내4%+VAT(25.11~없음)', mgmt:(t)=>{if(t<3*E8)return 0;if(t<4*E8)return 11000000;return Math.round(t*0.11);},
+    mkt:(t,ym,dom)=>ym>='2025-11'?0:Math.round(dom*0.044) },
+  '분당점':        { formula:'4%+VAT ※화장품 결제건 제외', mgmt:(t)=>Math.round(t*0.044), mkt:(t,ym,dom)=>Math.round(t*0.044) },
+  '인천구월점':    { formula:'4%+VAT', mgmt:(t)=>t<2.5*E8?0:Math.round(t*0.044), mkt:(t,ym,dom)=>Math.round(t*0.044) },
+  '전주점':        { formula:'~26.02: 2.75%/5.5% | 26.03~: 2.2%/4.4%', mgmt:(t,ym)=>{
+      if(t<=E8) return 0;
+      if(ym>='2026-03') return t<2*E8?Math.round(t*0.022):Math.round(t*0.044);
+      return t<2*E8?Math.round(t*0.0275):Math.round(t*0.055);
+    }, mkt:(t,ym)=>{
+      if(t<=E8) return 0;
+      if(ym>='2026-03') return t<2*E8?Math.round(t*0.022):Math.round(t*0.044);
+      return t<2*E8?Math.round(t*0.0275):Math.round(t*0.055);
+    }},
+  '부산서면점':    { formula:'국내매출 5%+VAT', mgmt:(t)=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);},
+    mkt:(t,ym,dom)=>Math.round(dom*0.055) },
+  '명동2호점':     { formula:'국내5%+VAT(26.01~26.06)/없음(26.07~)', mgmt:(t,ym)=>{
+      if(ym>='2026-08'){ if(t<15*E8)return Math.round(t*0.11); if(t<20*E8)return Math.round(t*0.1375); return Math.round(t*0.165); }
+      return ym>='2026-05'?Math.round(t*0.11):Math.round(t*0.165);
+    }, mkt:(t,ym,dom)=>ym>='2026-07'?0:ym>='2026-01'?Math.round(dom*0.055):0 },
+  '수원점':        { formula:'3%+VAT', mgmt:(t)=>Math.round(t*0.033), mkt:(t)=>Math.round(t*0.033) },
+  '세라미크 강남점':{ formula:'10%+VAT', mgmt:(t)=>Math.round(t*0.055), mkt:(t)=>Math.round(t*0.11) },
+  '세라미크 명동점':{ formula:'국내매출 5%+VAT', mgmt:(t)=>Math.round(t*0.055), mkt:(t,ym,dom)=>Math.round(dom*0.055) },
+};
+
+function calcFees(row) {
+  const tot = row.salesTotal || 0;
+  const branch = row.branch || '';
+  const rule = FEE_RULES[branch];
+  if (!rule) return { mgmt:0, mkt:0, total:0, formula:'-' };
+  const ym  = row.month || '';
+  const dom = row.salesDomestic != null ? row.salesDomestic : tot;
+  const spFromRow = row.special ? Object.values(row.special).reduce((s,v)=>s+(v.amount||0),0) : 0;
+  const spRaw = spFromRow || (branch === '강남점' ? (GANGNAM_SPECIAL_FALLBACK[ym] || 0) : 0);
+  const sp = (branch === '강남점' && ym >= '2026-06') ? 0 : spRaw;
+  const isSpecialDeduct = branch === '분당점' || (branch === '명동2호점' && ym >= '2026-06');
+  const isSpecialAdd = branch === '영등포점';
+  const effTot = isSpecialDeduct ? Math.max(0, tot - sp) : isSpecialAdd ? tot + sp : tot;
+  const mgmtAmt = rule.mgmt(effTot, ym, dom);
+  const mktAmt  = rule.mkt(effTot, ym, dom);
+  return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:rule.formula };
+}
+
+function numFmt(n) { return Number(n||0).toLocaleString('ko-KR'); }
+
+// ── 지점 셀렉트 채우기 ──────────────────────────────────────
+function fillBranchSelect(id) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = '<option value="">전체 지점</option>' +
+    '<optgroup label="데이뷰의원">' + BRANCHES_DAYB.map(b=>`<option>${b}</option>`).join('') + '</optgroup>' +
+    '<optgroup label="세라미크의원">' + BRANCHES_CERA.map(b=>`<option>${b}</option>`).join('') + '</optgroup>';
+}
+
+// ════════════════════════════════════════════════════════
+// 서버 동기화 (매출 데이터만 필요)
+// ════════════════════════════════════════════════════════
+const _deletedIds = new Set(JSON.parse(localStorage.getItem('_deletedIds') || '[]'));
+
+async function fetchWithTimeoutRetry(url, timeoutMs, retries) {
+  for (let attempt = 0; ; attempt++) {
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const resp = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      return resp;
+    } catch (e) {
+      clearTimeout(timeoutId);
+      if (attempt >= retries) throw e;
+    }
+  }
+}
+
+function getData() { return JSON.parse(localStorage.getItem('sales_data')||'[]'); }
+
+function syncFromServer(callback) {
+  const indicator = document.getElementById('syncIndicator');
+  if (indicator) indicator.textContent = '🔄 동기화 중...';
+  fetchWithTimeoutRetry(SCRIPT_URL + '?action=all&_t=' + Date.now(), 20000, 1)
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(data => {
+      if (data.result !== 'ok') throw new Error(data.message || '서버 오류');
+      const gasDeletedIds = new Set(data.deleted_ids || []);
+      const serverRows = (data.sales_data || []).filter(r => !_deletedIds.has(r.id) && !gasDeletedIds.has(r.id));
+      localStorage.setItem('sales_data', JSON.stringify(serverRows));
+      if (indicator) { indicator.textContent = '✅ 동기화 완료'; setTimeout(()=>{ indicator.textContent=''; }, 3000); }
+    })
+    .catch(err => {
+      console.error('[동기화] 실패:', err);
+      const reason = err.name === 'AbortError' ? '시간 초과' : (err.message || '네트워크 오류');
+      if (indicator) { indicator.textContent = `⚠️ 동기화 실패 (${reason})`; setTimeout(()=>{ indicator.textContent=''; }, 6000); }
+    })
+    .finally(() => { if (callback) callback(); });
+}
+
+// ════════════════════════════════════════════════════════
+// 로그인
+// ════════════════════════════════════════════════════════
+async function doLogin() {
+  const pin   = document.getElementById('pinInput').value.trim();
+  const errEl = document.getElementById('loginError');
+  const btn   = document.getElementById('loginBtn');
+  if (!/^\d{4}$/.test(pin)) { errEl.textContent = '❌ PIN 번호 4자리를 입력해 주세요.'; return; }
+  errEl.textContent = '';
+  btn.disabled = true; const orig = btn.textContent; btn.textContent = '확인 중...';
+  try {
+    const resp = await fetchWithTimeoutRetry(SCRIPT_URL + '?action=verify_marketing_pin&pin=' + encodeURIComponent(pin) + '&_t=' + Date.now(), 15000, 1);
+    const json = await resp.json();
+    if (json.result === 'ok') {
+      sessionStorage.setItem('marketing_logged_in', '1');
+      sessionStorage.setItem('marketing_pin', pin);
+      showAdminScreen();
+    } else {
+      errEl.textContent = '❌ PIN 번호가 올바르지 않습니다.';
+      document.getElementById('pinInput').value = '';
+    }
+  } catch (e) {
+    errEl.textContent = e.name === 'AbortError'
+      ? '⚠️ 서버 응답이 지연되고 있어요. 잠시 후 다시 시도해 주세요.'
+      : '⚠️ 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+function doLogout() {
+  if (!confirm('로그아웃 하시겠어요?')) return;
+  sessionStorage.removeItem('marketing_logged_in');
+  sessionStorage.removeItem('marketing_pin');
+  document.getElementById('adminScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('pinInput').value = '';
+}
+
+function showAdminScreen() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('adminScreen').style.display = 'block';
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  fillBranchSelect('t1Branch'); fillBranchSelect('t2Branch');
+  document.getElementById('t1Month').value = ym;
+  document.getElementById('t2Month').value = ym;
+  document.getElementById('t3Month').value = ym;
+  renderAll();
+  syncFromServer(() => renderAll());
+}
+
+function renderAll() { renderSales(); renderMkt(); renderInvoiceList(); }
+
+if (sessionStorage.getItem('marketing_logged_in') === '1') showAdminScreen();
+
+// ── PIN 변경 ────────────────────────────────────────────────
+function openPinChangeModal() {
+  document.getElementById('pinOld').value = '';
+  document.getElementById('pinNew').value = '';
+  document.getElementById('pinNew2').value = '';
+  document.getElementById('pinModalError').textContent = '';
+  document.getElementById('pinModalSuccess').textContent = '';
+  document.getElementById('pinModal').classList.add('show');
+}
+function closePinChangeModal() { document.getElementById('pinModal').classList.remove('show'); }
+async function submitPinChange() {
+  const oldPin = document.getElementById('pinOld').value.trim();
+  const newPin = document.getElementById('pinNew').value.trim();
+  const newPin2 = document.getElementById('pinNew2').value.trim();
+  const errEl = document.getElementById('pinModalError');
+  const okEl  = document.getElementById('pinModalSuccess');
+  const btn   = document.getElementById('pinModalSubmitBtn');
+  errEl.textContent = ''; okEl.textContent = '';
+  if (!/^\d{4}$/.test(oldPin) || !/^\d{4}$/.test(newPin)) { errEl.textContent = '❌ PIN은 4자리 숫자여야 합니다.'; return; }
+  if (newPin !== newPin2) { errEl.textContent = '❌ 새 PIN이 서로 일치하지 않습니다.'; return; }
+  if (newPin === oldPin)  { errEl.textContent = '❌ 기존 PIN과 다른 번호로 변경해 주세요.'; return; }
+  btn.disabled = true; const orig = btn.textContent; btn.textContent = '변경 중...';
+  try {
+    const resp = await fetch(SCRIPT_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'change_marketing_pin', oldPin, newPin })
+    });
+    const json = await resp.json();
+    if (json.result === 'ok') {
+      sessionStorage.setItem('marketing_pin', newPin);
+      okEl.textContent = '✅ PIN이 변경되었습니다.';
+      setTimeout(closePinChangeModal, 1200);
+    } else {
+      errEl.textContent = '❌ ' + (json.message || 'PIN 변경에 실패했습니다.');
+    }
+  } catch (e) {
+    errEl.textContent = '⚠️ 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// 탭 전환
+// ════════════════════════════════════════════════════════
+function switchTab(n) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab'+n).classList.add('active');
+  document.getElementById('tabBtn'+n).classList.add('active');
+  if (n===1) renderSales();
+  if (n===2) renderMkt();
+  if (n===3) renderInvoiceList();
+}
+
+// ════════════════════════════════════════════════════════
+// 탭1: 매출 현황
+// ════════════════════════════════════════════════════════
+function renderSales() {
+  const m = document.getElementById('t1Month').value;
+  const b = document.getElementById('t1Branch').value;
+  let rows = getData().filter(r => (!m||r.month===m) && (!b||r.branch===b));
+  rows.sort((a,c)=>ALL_BRANCHES.indexOf(a.branch)-ALL_BRANCHES.indexOf(c.branch));
+
+  const tbody = document.getElementById('t1Body');
+  const tfoot = document.getElementById('t1Foot');
+  tbody.innerHTML = ''; tfoot.innerHTML = '';
+
+  if (!rows.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">데이터가 없습니다.</td></tr>'; document.getElementById('t1Summary').innerHTML=''; return; }
+
+  let sumDom=0, sumOvs=0, sumTot=0;
+  rows.forEach(row => {
+    const brand = getBrand(row.branch);
+    sumDom += row.salesDomestic||0; sumOvs += row.salesOverseas||0; sumTot += row.salesTotal||0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="left"><span class="brand-tag ${brand==='세라미크'?'brand-cera':'brand-dayb'}">${brand}</span></td>
+      <td class="left" style="font-weight:700;">${row.branch}</td>
+      <td>${numFmt(row.salesDomestic)}</td>
+      <td>${numFmt(row.salesOverseas)}</td>
+      <td style="font-weight:700;color:#0891b2;">${numFmt(row.salesTotal)}</td>`;
+    tbody.appendChild(tr);
+  });
+  tfoot.innerHTML = `<tr><td class="left" colspan="2">합계</td><td>${numFmt(sumDom)}</td><td>${numFmt(sumOvs)}</td><td style="color:#0891b2;">${numFmt(sumTot)}</td></tr>`;
+
+  document.getElementById('t1Summary').innerHTML = `
+    <div class="summary-card"><div class="lbl">국내매출 합계</div><div class="val">${numFmt(sumDom)}원</div></div>
+    <div class="summary-card"><div class="lbl">해외매출 합계</div><div class="val">${numFmt(sumOvs)}원</div></div>
+    <div class="summary-card"><div class="lbl">총매출 합계</div><div class="val" style="color:#0891b2;">${numFmt(sumTot)}원</div></div>`;
+}
+
+// ════════════════════════════════════════════════════════
+// 탭2: 마케팅 수수료
+// ════════════════════════════════════════════════════════
+function renderMkt() {
+  const m = document.getElementById('t2Month').value;
+  const b = document.getElementById('t2Branch').value;
+  let rows = getData().filter(r => (!m||r.month===m) && (!b||r.branch===b));
+  rows.sort((a,c)=>ALL_BRANCHES.indexOf(a.branch)-ALL_BRANCHES.indexOf(c.branch));
+
+  const tbody = document.getElementById('t2Body');
+  const tfoot = document.getElementById('t2Foot');
+  tbody.innerHTML = ''; tfoot.innerHTML = '';
+
+  if (!rows.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">데이터가 없습니다.</td></tr>'; document.getElementById('t2Summary').innerHTML=''; return; }
+
+  let sumTot=0, sumMkt=0;
+  rows.forEach(row => {
+    const fees = calcFees(row);
+    sumTot += row.salesTotal||0; sumMkt += fees.mkt;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="left" style="font-weight:700;">${row.branch}</td>
+      <td>${numFmt(row.salesTotal)}</td>
+      <td style="font-weight:700;color:#0891b2;">${numFmt(fees.mkt)}</td>
+      <td class="left" style="font-size:.78rem;color:#888;">${fees.formula}</td>`;
+    tbody.appendChild(tr);
+  });
+  tfoot.innerHTML = `<tr><td class="left">합계</td><td>${numFmt(sumTot)}</td><td style="color:#0891b2;">${numFmt(sumMkt)}</td><td></td></tr>`;
+
+  document.getElementById('t2Summary').innerHTML = `
+    <div class="summary-card"><div class="lbl">총매출 합계</div><div class="val">${numFmt(sumTot)}원</div></div>
+    <div class="summary-card"><div class="lbl">마케팅 수수료 합계</div><div class="val" style="color:#0891b2;">${numFmt(sumMkt)}원</div></div>
+    <div class="summary-card"><div class="lbl">평균 요율</div><div class="val">${sumTot?((sumMkt/sumTot)*100).toFixed(2):'0.00'}%</div></div>`;
+}
+
+// ════════════════════════════════════════════════════════
+// 탭3: 수수료 청구서 (마케팅 수수료만)
+// ════════════════════════════════════════════════════════
+function renderInvoiceList() {
+  const month = document.getElementById('t3Month').value;
+  const area = document.getElementById('invoiceListArea');
+  if (!month) { area.innerHTML=''; return; }
+  const all = getData();
+  const rows = ALL_BRANCHES
+    .map(b => all.find(r => r.branch===b && r.month===month))
+    .filter(Boolean)
+    .map(r => ({ row:r, fees:calcFees(r) }))
+    .filter(x => x.fees.mkt > 0);
+
+  if (!rows.length) { area.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;">해당 월에 마케팅 수수료가 있는 지점이 없습니다.</div>'; document.getElementById('invoicePreviewArea').innerHTML=''; return; }
+
+  area.innerHTML = rows.map(({row,fees}) => `
+    <div class="invoice-row">
+      <span class="branch-name">${row.branch}</span>
+      <span class="amt">${numFmt(fees.mkt)}원</span>
+      <button class="btn-mini" onclick="previewInvoice('${row.branch}','${month}')">👁️ 미리보기</button>
+      <button class="btn-mini" onclick="printInvoice('${row.branch}','${month}')">🖨️ 인쇄</button>
+    </div>`).join('');
+  document.getElementById('invoicePreviewArea').innerHTML = '';
+}
+
+async function toDataURL(url) {
+  try {
+    const r = await fetch(url);
+    const blob = await r.blob();
+    return await new Promise(res => {
+      const rd = new FileReader();
+      rd.onload = () => res(rd.result);
+      rd.onerror = () => res('');
+      rd.readAsDataURL(blob);
+    });
+  } catch { return ''; }
+}
+
+async function previewInvoice(branch, month) {
+  const stamp = await toDataURL('stamp_dayblabs.png');
+  const area = document.getElementById('invoicePreviewArea');
+  area.innerHTML = buildMarketingInvoiceHTML(branch, month, true, stamp);
+  area.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+async function printInvoice(branch, month) {
+  const stamp = await toDataURL('stamp_dayblabs.png');
+  const html = buildMarketingInvoiceHTML(branch, month, false, stamp);
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.onload = () => w.print();
+}
+
+function buildMarketingInvoiceHTML(branch, month, isPreview, stamp) {
+  const all = getData();
+  const row = all.find(r => r.branch === branch && r.month === month);
+  if (!row) {
+    const msg = `<div style="text-align:center;padding:60px;color:#e53e3e;font-size:1rem;">⚠️ ${branch} ${month} 매출 데이터가 없습니다.</div>`;
+    return isPreview ? msg : `<!DOCTYPE html><html><body>${msg}</body></html>`;
+  }
+  const fees = calcFees(row);
+  const tot  = row.salesTotal || 0;
+  const mkt  = fees.mkt;
+  const [y, m] = month.split('-');
+  const mn = parseInt(m, 10);
+  const invoiceM = mn === 12 ? 1 : mn + 1;
+  const invoiceY = mn === 12 ? parseInt(y, 10) + 1 : parseInt(y, 10);
+  const dateStr = `${invoiceY}년 ${invoiceM}월 5일`;
+  const itemLabel = `${mn}월 매출 마케팅 수수료`;
+  const fmt = n => n.toLocaleString('ko-KR');
+  const fw  = n => '₩' + fmt(n);
+  const s = stamp || '';
+
+  const css = `
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:10pt;background:#fff;color:#000;}
+    .inv-wrap{display:flex;flex-direction:column;gap:6mm;padding:10mm;}
+    .inv-page{border:1px solid #000;page-break-inside:avoid;}
+    .inv-title{text-align:center;font-size:16pt;font-weight:700;letter-spacing:6px;padding:10px 0;border-bottom:1px solid #000;}
+    .inv-hdr{width:100%;border-collapse:collapse;border-bottom:1px solid #000;}
+    .inv-hdr td{vertical-align:top;padding:0;}
+    .meta-td{width:168px;padding:0;border-right:1px solid #000;font-size:8.5pt;line-height:1.85;white-space:nowrap;}
+    .meta-row{padding:6px 10px;border-bottom:1px solid #000;}
+    .total-box{display:flex;align-items:stretch;margin-top:8px;border:1px solid #000;}
+    .total-lbl{padding:3px 6px;font-size:8pt;font-weight:700;border-right:1px solid #000;text-align:center;line-height:1.55;white-space:nowrap;}
+    .total-val{padding:4px 8px;font-size:9.5pt;font-weight:700;white-space:nowrap;}
+    .sup-td{padding:0;}
+    .sup-tbl{width:100%;border-collapse:collapse;font-size:8.5pt;table-layout:fixed;}
+    .sup-tbl td{border:1px solid #000;padding:2px 5px;vertical-align:middle;line-height:1.3;overflow:hidden;}
+    .sup-tbl td:first-child{border-left:none;}
+    .sup-tbl tr:first-child td{border-top:none;}
+    .sup-tbl tr:last-child td{border-bottom:none;}
+    .sup-tbl td:last-child{border-right:none;}
+    .sk{font-weight:600;white-space:nowrap;background:#fafafa;width:66px;}
+    .ceo-div{display:flex;align-items:center;justify-content:flex-end;gap:6px;}
+    .stamp-img{width:40px;height:40px;opacity:.82;object-fit:contain;flex-shrink:0;display:block;}
+    .inv-note{font-size:7pt;text-align:right;padding:1px 5px;color:#666;}
+    .items-tbl{width:100%;border-collapse:collapse;font-size:9pt;table-layout:fixed;}
+    .items-tbl th{border:1px solid #000;padding:5px 8px;text-align:center;background:#f0f0f0;font-weight:700;white-space:nowrap;}
+    .items-tbl td{border:1px solid #000;padding:5px 8px;text-align:right;vertical-align:middle;}
+    .lft{text-align:left;}
+    .ctr{text-align:center;}
+    .sum-row td{font-weight:700;background:#f5f5f5;}
+    .inv-footer{padding:7px 10px;font-size:8.5pt;border-top:1px solid #000;line-height:1.85;}
+    @page{size:A4 portrait;margin:0;}
+  `;
+
+  const stampTag = s ? `<img src="${s}" class="stamp-img" onerror="this.style.display='none'">` : '';
+  const supplier = `<table class="sup-tbl">
+    <colgroup><col style="width:66px"><col><col style="width:14%"><col style="width:34%"></colgroup>
+    <tr><td class="sk">사업자번호</td><td colspan="3" style="letter-spacing:2px;font-weight:600;">591-81-02463</td></tr>
+    <tr><td class="sk">회사명</td><td colspan="2" style="font-weight:700;">주식회사 데이뷰마케팅그룹</td>
+      <td><div class="ceo-div"><span><b style="font-weight:600;">대표</b> 홍봉기</span>${stampTag}</div></td></tr>
+    <tr><td class="sk">주소</td><td colspan="3" style="font-size:7.5pt;word-break:keep-all;">서울특별시 구로구 디지털로34길 55, 305호(구로동, 코오롱씨이엔스밸리2차)</td></tr>
+    <tr><td class="sk">업태</td><td style="font-size:8pt;">전문, 과학 및 기술서비스업 외</td><td class="sk" style="text-align:center;width:auto;">종목</td><td style="font-size:8pt;">광고 대행업 외</td></tr>
+    <tr><td class="sk">담당자</td><td>홍봉기</td><td class="sk" style="text-align:center;width:auto;">E-mail</td><td style="font-size:6.5pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">hotissue-medical@hotissue-medical.kr</td></tr>
+  </table>`;
+
+  const body = `<div class="inv-wrap"><div class="inv-page">
+    <div class="inv-title">마 케 팅　수 수 료 청 구 서</div>
+    <table class="inv-hdr">
+      <tr>
+        <td class="meta-td">
+          <div class="meta-row">청구일자 : ${dateStr}</div>
+          <div class="meta-row">거래처명 : ${branch} 귀하</div>
+          <div class="total-box" style="margin:0;">
+            <div class="total-lbl">총 합계<br>(VAT포함)</div>
+            <div class="total-val">${fw(mkt)}</div>
+          </div>
+        </td>
+        <td class="sup-td">${supplier}<div class="inv-note">(vat 포함)</div></td>
+      </tr>
+    </table>
+    <table class="items-tbl">
+      <colgroup><col style="width:38px"><col><col style="width:22%"><col style="width:22%"><col style="width:22%"></colgroup>
+      <thead><tr><th>No</th><th class="lft">항목</th><th>총 매출</th><th>마케팅 수수료</th><th>합계</th></tr></thead>
+      <tbody><tr><td class="ctr">1</td><td class="lft">${itemLabel}</td><td>${fw(tot)}</td><td>${fw(mkt)}</td><td>${fw(mkt)}</td></tr></tbody>
+      <tfoot><tr class="sum-row"><td colspan="4" class="ctr">합 계</td><td>${fw(mkt)}</td></tr></tfoot>
+    </table>
+    <div class="inv-footer">
+      <div style="font-weight:700;margin-bottom:2px;">*기타 사항</div>
+      <div>1. 입금계좌 : 신한은행 140-014-052189</div>
+      <div>2. 예금주 : 주식회사 데이뷰마케팅그룹</div>
+      <div>※ 청구 기한 내 입금 부탁드립니다.</div>
+    </div>
+  </div></div>`;
+
+  if (isPreview) return `<style>${css}.inv-wrap{max-width:794px;margin:0 auto;background:#fff;box-shadow:0 2px 16px rgba(0,0,0,.12);}</style>${body}`;
+  return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>마케팅수수료청구서 - ${branch} ${month}</title><style>${css}</style></head><body>${body}</body></html>`;
+}
+</script>
+</body>
+</html>

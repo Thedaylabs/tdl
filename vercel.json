@@ -15,6 +15,7 @@
     { "src": "/workspace/admin", "dest": "/사내워크스페이스/admin.html" },
     { "src": "/", "dest": "/월별매출/index.html" },
     { "src": "/admin.html", "dest": "/월별매출/admin.html" },
+    { "src": "/marketing-admin.html", "dest": "/월별매출/marketing-admin.html" },
     { "src": "/monthly-sales-report.html", "dest": "/월별매출/monthly-sales-report.html" },
     { "src": "/guide.html", "dest": "/월별매출/guide.html" },
     { "src": "/stamp_dayblabs.png", "dest": "/월별매출/stamp_dayblabs.png" },
