@@ -70,6 +70,30 @@
       transition: background 0.15s;
     }
     .btn-logout:hover { background: #ede9fe; }
+    .btn-pin-change {
+      background: none; border: 1.5px solid #c7d2fe; color: #6366f1;
+      border-radius: 20px; padding: 3px 12px; font-size: 0.75rem;
+      cursor: pointer; font-family: inherit; font-weight: 600;
+      transition: background 0.15s;
+    }
+    .btn-pin-change:hover { background: #ede9fe; }
+
+    /* ── PIN 변경 모달 ── */
+    .pin-modal-field { text-align: left; margin-bottom: 14px; }
+    .pin-modal-field label { display: block; font-size: 0.82rem; font-weight: 600; color: #444; margin-bottom: 6px; }
+    .pin-modal-field input {
+      width: 100%; padding: 11px 14px; border: 1.5px solid #e0e0e0; border-radius: 10px;
+      font-size: 1rem; font-family: inherit; letter-spacing: 4px; text-align: center;
+      background: #fafafa; color: #1a1a2e;
+    }
+    .pin-modal-field input:focus { outline: none; border-color: #4f46e5; background: #fff; }
+    .pin-modal-error { font-size: 0.82rem; color: #e53e3e; min-height: 18px; margin-bottom: 8px; text-align: left; }
+    .pin-modal-success { font-size: 0.82rem; color: #059669; min-height: 18px; margin-bottom: 8px; text-align: left; }
+    .pin-modal-actions { display: flex; gap: 8px; margin-top: 6px; }
+    .pin-modal-actions button { flex: 1; padding: 12px; border-radius: 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer; font-family: inherit; border: none; }
+    .btn-pin-cancel { background: #f1f5f9; color: #555; }
+    .btn-pin-submit { background: #4f46e5; color: #fff; }
+    .btn-pin-submit:disabled { opacity: 0.6; cursor: default; }
 
     /* 탭 */
     .tab-bar {
@@ -379,7 +403,7 @@
            oninput="this.value=this.value.replace(/[^0-9]/g,'')"
            onkeydown="if(event.key==='Enter') doLogin()" />
     <div class="login-error" id="loginError"></div>
-    <button class="btn-login" onclick="doLogin()">로그인</button>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">로그인</button>
     <p class="login-hint">PIN 번호는 본사로 문의해 주세요.</p>
   </div>
 </div>
@@ -393,6 +417,7 @@
       <span class="top-title">📊 월별 매출 보고서</span>
       <div class="branch-chip">
         🏬 <span id="headerBranchName"></span>
+        <button class="btn-pin-change" onclick="openPinChangeModal()">🔑 PIN 변경</button>
         <button class="btn-logout" onclick="doLogout()">로그아웃</button>
       </div>
     </div>
@@ -577,6 +602,36 @@
   </div>
 </div>
 
+<!-- PIN 변경 모달 -->
+<div class="overlay" id="pinChangeModal">
+  <div class="modal" style="text-align:left;">
+    <div class="ico" style="text-align:center;">🔑</div>
+    <h3 style="text-align:center;">PIN 번호 변경</h3>
+    <p style="text-align:center;font-size:.82rem;color:#888;margin-bottom:18px;">기존 PIN을 확인한 후 새 PIN으로 변경합니다.</p>
+    <div class="pin-modal-field">
+      <label>기존 PIN 번호</label>
+      <input type="password" id="pinChangeOld" maxlength="4" placeholder="●●●●" inputmode="numeric"
+             oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+    </div>
+    <div class="pin-modal-field">
+      <label>새 PIN 번호</label>
+      <input type="password" id="pinChangeNew" maxlength="4" placeholder="●●●●" inputmode="numeric"
+             oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+    </div>
+    <div class="pin-modal-field">
+      <label>새 PIN 번호 확인</label>
+      <input type="password" id="pinChangeNew2" maxlength="4" placeholder="●●●●" inputmode="numeric"
+             oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+    </div>
+    <div class="pin-modal-error" id="pinChangeError"></div>
+    <div class="pin-modal-success" id="pinChangeSuccess"></div>
+    <div class="pin-modal-actions">
+      <button class="btn-pin-cancel" onclick="closePinChangeModal()">취소</button>
+      <button class="btn-pin-submit" id="pinChangeSubmitBtn" onclick="submitPinChange()">변경하기</button>
+    </div>
+  </div>
+</div>
+
 <!-- 완료 모달 -->
 <div class="overlay" id="doneModal">
   <div class="modal">
@@ -600,36 +655,14 @@
 <script>
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgvA5ZB2ROdBTo4f_7N-GXTezd4UhH5kTWlIKInmlVrugTONgzApw5Ee4xL4orb0W_/exec';
 
-// ── PIN 맵 (관리자 페이지에서 변경 가능, localStorage 우선) ──
-const DEFAULT_PIN_MAP = {
-  '0399': '강서발산점', '7791': '건대입구점', '7705': '광주상무점',
-  '2225': '강남점',    '7122': '안양범계점', '5664': '여의도점',
-  '4842': '영등포점',  '9770': '대전둔산점', '7771': '명동점',
-  '8026': '분당점',    '7960': '인천구월점', '1004': '전주점',
-  '7890': '부산서면점','4090': '명동2호점',  '7117': '수원점',
-  '3430': '세라미크 강남점', '2264': '세라미크 명동점'
-};
-
-function getPinMap() {
-  const saved = localStorage.getItem('pin_map');
-  if (!saved) return DEFAULT_PIN_MAP;
-  // pin_map은 {지점명: PIN} 형태 → 역방향으로 변환
-  const branchToPin = JSON.parse(saved);
-  const pinToBranch = {};
-  Object.entries(branchToPin).forEach(([branch, pin]) => { pinToBranch[pin] = branch; });
-  return pinToBranch;
-}
-const PIN_MAP = new Proxy({}, { get: (_, pin) => getPinMap()[pin] });
+// ── PIN 로그인 ──
+// PIN 목록 전체를 클라이언트에 내려주지 않고, 입력한 PIN 하나만 서버에서
+// 검증한다 (예전엔 전체 지점 PIN이 이 파일 소스에 그대로 노출되어 있었음).
 
 // ── 특약 설정 ───────────────────────────────────────────────
-const BRANCH_SPECIAL = {
-  '강남점':    { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'울쎄라 시술 제외',id:'sp_ulthera'},{label:'리쥬란 시술 제외',id:'sp_rejuran'}] },
-
-  '분당점':    { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'화장품 판매 제외',id:'sp_cosmetic'}] },
-  '부산서면점':{ type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'환불건 제외',id:'sp_refund'}] },
-  '명동2호점': { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'소개_직원소개',id:'sp_md2_intro_staff'},{label:'소개_원장님소개',id:'sp_md2_intro_director'},{label:'직원',id:'sp_md2_employee'},{label:'임직원할인(특가)',id:'sp_md2_exec_discount'},{label:'SC임직원10%할인',id:'sp_md2_sc_discount'},{label:'화장품 매출',id:'sp_md2_cosmetic'}] },
-  '영등포점': { type:'input', addToTotal:true, note:'아래 특약 항목(여신티켓, 강남언니)의 해당 금액을 입력해 주세요. 입력한 금액은 총 매출에 자동으로 합산됩니다.', items:[{label:'여신티켓',id:'sp_ydp_ticket'},{label:'강남언니',id:'sp_ydp_gangnamunni'}] }
-};
+// 다른 지점의 특약사항(계약 조건)이 이 페이지 소스에 그대로 노출되지 않도록
+// 전체 지점 설정을 여기 두지 않고, 로그인(PIN 검증) 응답으로 내 지점 것만 받아온다.
+let BRANCH_SPECIAL = {};
 
 let currentBranch = '';
 let historyData   = [];
@@ -661,23 +694,43 @@ function showBranchScreen(branch) {
     `${repY}-${String(repM).padStart(2,'0')}`;
 }
 
-function doLogin() {
-  const pin    = document.getElementById('pinInput').value.trim();
-  const branch = PIN_MAP[pin];
-  if (!branch) {
-    document.getElementById('loginError').textContent = '❌ PIN 번호가 올바르지 않습니다.';
-    document.getElementById('pinInput').value = '';
-    document.getElementById('pinInput').focus();
+async function doLogin() {
+  const pin   = document.getElementById('pinInput').value.trim();
+  const errEl = document.getElementById('loginError');
+  const btn   = document.getElementById('loginBtn');
+  if (!/^\d{4}$/.test(pin)) {
+    errEl.textContent = '❌ PIN 번호 4자리를 입력해 주세요.';
     return;
   }
-  sessionStorage.setItem('branch_logged_in', branch);
-  showBranchScreen(branch);
+  errEl.textContent = '';
+  btn.disabled = true; const origBtnText = btn.textContent; btn.textContent = '확인 중...';
+  try {
+    const resp = await fetch('/api/sync?action=verify_pin&pin=' + encodeURIComponent(pin) + '&_t=' + Date.now());
+    const json = await resp.json();
+    if (json.result === 'ok' && json.branch) {
+      sessionStorage.setItem('branch_logged_in', json.branch);
+      sessionStorage.setItem('branch_pin', pin);
+      BRANCH_SPECIAL = {};
+      if (json.special) BRANCH_SPECIAL[json.branch] = json.special;
+      showBranchScreen(json.branch);
+    } else {
+      errEl.textContent = '❌ PIN 번호가 올바르지 않습니다.';
+      document.getElementById('pinInput').value = '';
+      document.getElementById('pinInput').focus();
+    }
+  } catch (e) {
+    errEl.textContent = '⚠️ 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+  } finally {
+    btn.disabled = false; btn.textContent = origBtnText;
+  }
 }
 
 // ── 로그아웃 ────────────────────────────────────────────────
 function doLogout() {
   if (!confirm('로그아웃 하시겠어요?\n입력하신 내용은 초기화됩니다.')) return;
   sessionStorage.removeItem('branch_logged_in');
+  sessionStorage.removeItem('branch_pin');
+  BRANCH_SPECIAL = {};
   currentBranch = ''; historyData = [];
   document.getElementById('mainScreen').style.display  = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
@@ -693,9 +746,21 @@ function doLogout() {
 }
 
 // ── 새로고침 후 세션 복원 ────────────────────────────────────
-(function restoreSession() {
-  const saved = sessionStorage.getItem('branch_logged_in');
-  if (saved) showBranchScreen(saved);
+(async function restoreSession() {
+  const saved    = sessionStorage.getItem('branch_logged_in');
+  const savedPin = sessionStorage.getItem('branch_pin');
+  if (!saved) return;
+  if (savedPin) {
+    try {
+      const resp = await fetch('/api/sync?action=verify_pin&pin=' + encodeURIComponent(savedPin) + '&_t=' + Date.now());
+      const json = await resp.json();
+      if (json.result === 'ok' && json.branch === saved) {
+        BRANCH_SPECIAL = {};
+        if (json.special) BRANCH_SPECIAL[json.branch] = json.special;
+      }
+    } catch (e) {}
+  }
+  showBranchScreen(saved);
 })();
 
 // ── 특약 렌더 ───────────────────────────────────────────────
@@ -821,6 +886,59 @@ function showWarn(errors) {
 }
 function closeWarn() {
   document.getElementById('warnModal').classList.remove('show');
+}
+
+// ── PIN 변경 ────────────────────────────────────────────────
+function openPinChangeModal() {
+  document.getElementById('pinChangeOld').value = '';
+  document.getElementById('pinChangeNew').value = '';
+  document.getElementById('pinChangeNew2').value = '';
+  document.getElementById('pinChangeError').textContent = '';
+  document.getElementById('pinChangeSuccess').textContent = '';
+  document.getElementById('pinChangeModal').classList.add('show');
+}
+function closePinChangeModal() {
+  document.getElementById('pinChangeModal').classList.remove('show');
+}
+async function submitPinChange() {
+  const oldPin = document.getElementById('pinChangeOld').value.trim();
+  const newPin = document.getElementById('pinChangeNew').value.trim();
+  const newPin2 = document.getElementById('pinChangeNew2').value.trim();
+  const errEl = document.getElementById('pinChangeError');
+  const okEl  = document.getElementById('pinChangeSuccess');
+  const btn   = document.getElementById('pinChangeSubmitBtn');
+  errEl.textContent = ''; okEl.textContent = '';
+
+  if (!/^\d{4}$/.test(oldPin) || !/^\d{4}$/.test(newPin)) {
+    errEl.textContent = '❌ PIN은 4자리 숫자여야 합니다.'; return;
+  }
+  if (newPin !== newPin2) {
+    errEl.textContent = '❌ 새 PIN이 서로 일치하지 않습니다.'; return;
+  }
+  if (newPin === oldPin) {
+    errEl.textContent = '❌ 기존 PIN과 다른 번호로 변경해 주세요.'; return;
+  }
+
+  btn.disabled = true; const orig = btn.textContent; btn.textContent = '변경 중...';
+  try {
+    const resp = await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'change_pin', branch: currentBranch, oldPin, newPin })
+    });
+    const json = await resp.json();
+    if (json.result === 'ok') {
+      sessionStorage.setItem('branch_pin', newPin);
+      okEl.textContent = '✅ PIN이 변경되었습니다.';
+      setTimeout(closePinChangeModal, 1200);
+    } else {
+      errEl.textContent = '❌ ' + (json.message || 'PIN 변경에 실패했습니다.');
+    }
+  } catch (e) {
+    errEl.textContent = '⚠️ 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
 }
 
 function clearErrors() {

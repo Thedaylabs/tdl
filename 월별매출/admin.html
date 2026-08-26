@@ -517,6 +517,10 @@
           <button class="btn-save" onclick="savePins()">💾 PIN 저장</button>
           <span class="save-notice" id="pinSaveNotice">✅ PIN이 저장되었습니다!</span>
         </div>
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #f0f2f5;">
+          <div style="font-size:.82rem;font-weight:700;color:#7c3aed;margin-bottom:6px;">🕓 최근 PIN 변경 이력 (지점 자체 변경)</div>
+          <div id="pinChangeLogList" style="font-size:.8rem;color:#555;"></div>
+        </div>
       </div></div>
 
       <!-- 데이터 관리 -->
@@ -936,6 +940,11 @@ function syncFromServer(callback) {
       if (Object.keys(data.pin_map || {}).length > 0) {
         localStorage.setItem('pin_map', JSON.stringify(data.pin_map));
       }
+
+      // PIN 변경 이력: 지점에서 PIN을 직접 바꾸면 여기 쌓임 — 못 본 새 변경이 있으면 알림
+      const pinLog = data.pin_change_log || [];
+      localStorage.setItem('pin_change_log', JSON.stringify(pinLog));
+      notifyNewPinChanges(pinLog);
 
       if (indicator) indicator.textContent = '✅ 동기화 완료';
 
@@ -1806,6 +1815,35 @@ function initPinTable() {
   const pins = getPins();
   renderPinSection('pinBodyDayb', BRANCHES_DAYB, pins, 'dayb');
   renderPinSection('pinBodyCera', BRANCHES_CERA, pins, 'cera');
+  renderPinChangeLog();
+}
+
+// ── PIN 변경 이력 (지점 자체 변경분) ────────────────────────────
+function renderPinChangeLog() {
+  const el = document.getElementById('pinChangeLogList');
+  if (!el) return;
+  const log = JSON.parse(localStorage.getItem('pin_change_log') || '[]');
+  if (!log.length) { el.innerHTML = '<span style="color:#aaa;">아직 변경 이력이 없습니다.</span>'; return; }
+  el.innerHTML = log.slice(0, 10).map(e =>
+    `<div style="padding:4px 0;">🔑 <b>${e.branch}</b> — ${formatDate(e.changedAt)}</div>`
+  ).join('');
+}
+
+// 관리자가 아직 못 본 PIN 변경이 있으면 화면에 잠깐 알림을 띄운다
+function notifyNewPinChanges(log) {
+  if (!log.length) return;
+  const lastSeen = localStorage.getItem('pin_change_seen_at') || '';
+  const unseen = log.filter(e => !lastSeen || new Date(e.changedAt) > new Date(lastSeen));
+  if (!unseen.length) return;
+
+  const box = document.createElement('div');
+  box.style.cssText = 'position:fixed;top:70px;right:20px;background:#1a1a2e;color:#fff;border-radius:12px;padding:14px 18px;font-size:.82rem;line-height:1.7;box-shadow:0 6px 24px rgba(0,0,0,.25);z-index:9999;max-width:280px;';
+  box.innerHTML = '🔔 <b>PIN 변경 알림</b><br>' +
+    unseen.slice(0, 5).map(e => `${e.branch} — ${formatDate(e.changedAt)}`).join('<br>');
+  document.body.appendChild(box);
+  setTimeout(() => box.remove(), 8000);
+
+  localStorage.setItem('pin_change_seen_at', log[0].changedAt);
 }
 
 function renderPinSection(containerId, branches, pins, brand) {

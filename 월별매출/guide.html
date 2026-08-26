@@ -209,31 +209,28 @@
   </div>
 
   <script>
-    // monthly-sales-report.html의 BRANCH_SPECIAL과 동일한 지점별 특약사항 —
-    // 여기서는 표시 전용으로만 사용 (계산 로직 없음)
-    const BRANCH_SPECIAL = {
-      '강남점':    { note:'아래 특약 항목은 매출 집계 시 제외하고 보고서를 작성해 주세요.', items:['울쎄라 시술 제외','리쥬란 시술 제외'] },
-      '분당점':    { note:'아래 특약 항목은 매출 집계 시 제외하고 보고서를 작성해 주세요.', items:['화장품 판매 제외'] },
-      '부산서면점':{ note:'아래 특약 항목은 매출 집계 시 제외하고 보고서를 작성해 주세요.', items:['환불건 제외'] },
-      '명동2호점': { note:'아래 특약 항목은 매출 집계 시 제외하고 보고서를 작성해 주세요.', items:['소개_직원소개','소개_원장님소개','직원','임직원할인(특가)','SC임직원10%할인','화장품 매출'] },
-      '영등포점':  { note:'아래 특약 항목(여신티켓, 강남언니)의 해당 금액을 입력해 주세요. 입력한 금액은 총 매출에 자동으로 합산됩니다.', items:['여신티켓','강남언니'] }
-    };
-
-    (function personalize() {
+    // 다른 지점의 특약사항이 이 페이지 소스에 노출되지 않도록, 전체 지점 설정을
+    // 여기 두지 않고 로그인 세션에 저장된 PIN으로 서버에서 내 지점 것만 조회한다.
+    (async function personalize() {
       const branch = sessionStorage.getItem('branch_logged_in');
+      const pin    = sessionStorage.getItem('branch_pin');
       if (!branch) return; // 지점 로그인 없이 직접 열람 시 일반 가이드 표시
 
       document.getElementById('heroTitle').textContent = `${branch} 매출 보고서 작성 가이드`;
       document.getElementById('heroDesc').innerHTML = `<b>${branch}</b> 원장님께서는 매월 매출 보고서를 아래 안내에 따라<br>작성·제출해 주시기 바랍니다.`;
 
-      const shortKey = Object.keys(BRANCH_SPECIAL).find(k => branch.includes(k));
-      const config = shortKey ? BRANCH_SPECIAL[shortKey] : null;
-      if (config) {
-        document.getElementById('branchSpecialTitle').textContent = branch;
-        document.getElementById('branchSpecialNote').textContent = config.note;
-        document.getElementById('branchSpecialItems').innerHTML =
-          config.items.map(item => `<li>${item}</li>`).join('');
-        document.getElementById('branchSpecialCard').style.display = 'block';
+      if (pin) {
+        try {
+          const resp = await fetch('/api/sync?action=verify_pin&pin=' + encodeURIComponent(pin) + '&_t=' + Date.now());
+          const json = await resp.json();
+          if (json.result === 'ok' && json.branch === branch && json.special) {
+            document.getElementById('branchSpecialTitle').textContent = branch;
+            document.getElementById('branchSpecialNote').textContent = json.special.note || '';
+            document.getElementById('branchSpecialItems').innerHTML =
+              (json.special.items || []).map(item => `<li>${item.label}</li>`).join('');
+            document.getElementById('branchSpecialCard').style.display = 'block';
+          }
+        } catch (e) {}
       }
 
       // 명동점은 매출 입력란 자체가 다른 지점과 반대로 동작함
