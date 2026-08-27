@@ -244,6 +244,7 @@
     #contractAlertBar { display:none; position:sticky; top:0; z-index:500; background:#fef2f2; border-bottom:2px solid #fca5a5; color:#991b1b; font-size:.82rem; font-weight:600; padding:8px 16px; text-align:center; }
     #contractAlertBar.show { display:block; }
     .fee-table { width:100%; border-collapse:collapse; table-layout:fixed; min-width:580px; }
+    .contract-table { min-width:1540px; }
     .fee-table th { background:#f8f5ff; padding:9px 12px; font-size:.78rem; color:#7c3aed; font-weight:700; text-align:left; border-bottom:2px solid #ede9fe; white-space:nowrap; }
     .fee-table td { padding:8px 10px; border-bottom:1px solid #f0f2f5; font-size:.84rem; vertical-align:middle; }
     .fee-table tr:last-child td { border-bottom:none; }
@@ -509,7 +510,7 @@
   <!-- ── 탭6: 본사 설정 ── -->
   <div class="tab-content" id="tab6">
     <div class="hq-subnav">
-      <button onclick="showHqSection('fee', this)">⚙️ 수수료 확인</button>
+      <button onclick="showHqSection('fee', this)">📑 지점 계약</button>
       <button onclick="showHqSection('newbranch', this)">➕ 지점 생성</button>
       <button onclick="showHqSection('contract', this)">📅 계약 정보</button>
       <button onclick="showHqSection('ratechange', this)">💹 수수료율 변경</button>
@@ -518,31 +519,44 @@
     </div>
     <div style="max-width:1100px;margin:0 auto;padding-bottom:40px;">
 
-      <!-- 수수료 확인 -->
+      <!-- 지점 계약 -->
       <div class="hq-panel" id="panel-fee">
-      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:20px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">⚙️ 수수료 확인</div>
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:20px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">📑 지점 계약</div>
       <div class="settings-wrap" style="padding:0;">
         <div class="settings-card">
-          <p>지점별 현재 적용 중인 수수료 계산식을 확인합니다. 수수료율 변경은 <b>💹 수수료율 변경</b> 탭에서 진행해 주세요.</p>
-          <div class="vat-notice">💡 모든 수수료는 부가세(VAT 10%) 포함 금액입니다.</div>
+          <p>지점별 계약·수수료 현황을 한눈에 확인합니다. 내용 수정은 <b>📅 계약 정보 관리</b> 탭에서 진행해 주세요.</p>
           <div class="fee-section-title">🏥 데이뷰의원</div>
           <div class="table-scroll-wrap">
-          <table class="fee-table">
+          <table class="fee-table contract-table">
             <thead><tr>
-              <th style="width:130px">지점명</th>
-              <th>계약서 기준 계산식 (부가세 포함)</th>
+              <th style="width:110px">지점명</th>
+              <th style="width:90px">대표원장님</th>
+              <th style="width:110px">사업자번호</th>
+              <th style="width:170px">이메일</th>
+              <th style="width:220px">경영컨설팅 수수료</th>
+              <th style="width:220px">마케팅 수수료</th>
+              <th style="width:150px">계약기간</th>
+              <th style="width:170px">계약기준</th>
+              <th style="width:300px">수수료 특약</th>
             </tr></thead>
-            <tbody id="feeBodyDayb"></tbody>
+            <tbody id="contractBodyDayb"></tbody>
           </table>
           </div>
           <div class="fee-section-title">💆 세라미크의원</div>
           <div class="table-scroll-wrap">
-          <table class="fee-table">
+          <table class="fee-table contract-table">
             <thead><tr>
-              <th style="width:130px">지점명</th>
-              <th>계약서 기준 계산식 (부가세 포함)</th>
+              <th style="width:110px">지점명</th>
+              <th style="width:90px">대표원장님</th>
+              <th style="width:110px">사업자번호</th>
+              <th style="width:170px">이메일</th>
+              <th style="width:220px">경영컨설팅 수수료</th>
+              <th style="width:220px">마케팅 수수료</th>
+              <th style="width:150px">계약기간</th>
+              <th style="width:170px">계약기준</th>
+              <th style="width:300px">수수료 특약</th>
             </tr></thead>
-            <tbody id="feeBodyCera"></tbody>
+            <tbody id="contractBodyCera"></tbody>
           </table>
           </div>
         </div>
@@ -560,7 +574,7 @@
             <select id="nbBrand" class="nb-input"><option value="데이뷰">데이뷰</option><option value="세라미크">세라미크</option></select>
           </div>
           <div><label class="nb-label">대표원장</label><input type="text" id="nbCeo" class="nb-input" /></div>
-          <div></div>
+          <div><label class="nb-label">사업자등록번호</label><input type="text" id="nbBizNo" placeholder="예: 123-45-67890" class="nb-input" /></div>
           <div><label class="nb-label">계약 시작일</label><input type="date" id="nbContractStart" class="nb-input" /></div>
           <div><label class="nb-label">계약 종료일</label><input type="date" id="nbContractEnd" class="nb-input" /></div>
           <div style="grid-column:1/3;"><label class="nb-label">계약 기준 (자동연장 조건 등)</label><input type="text" id="nbContractNote" placeholder="예: 2년 계약, 2년씩 자동 연장" class="nb-input" /></div>
@@ -587,13 +601,22 @@
       <div class="hq-panel" id="panel-contract">
       <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">📅 계약 정보 관리</div>
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
-        <p>기존 지점의 계약기간·계약기준을 등록하면, 계약 종료 90일 전부터 상단에 알림이 표시됩니다.</p>
+        <p>기존 지점의 계약기간·계약기준을 등록하면, 계약 종료 90일 전부터 상단에 알림이 표시됩니다. 여기서 입력한 내용은 <b>📑 지점 계약</b> 탭 전체 현황표에 그대로 표시됩니다.</p>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
           <div><label class="nb-label">지점 선택</label><select id="ccBranch" class="nb-input" onchange="loadContractForm()"></select></div>
+          <div><label class="nb-label">사업자등록번호</label><input type="text" id="ccBizNo" placeholder="예: 123-45-67890" class="nb-input" /></div>
+          <div><label class="nb-label">이메일</label><input type="email" id="ccEmail" class="nb-input" /></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
           <div><label class="nb-label">계약 시작일</label><input type="date" id="ccContractStart" class="nb-input" /></div>
           <div><label class="nb-label">계약 종료일</label><input type="date" id="ccContractEnd" class="nb-input" /></div>
         </div>
-        <div style="margin-top:10px;"><label class="nb-label">계약 기준</label><input type="text" id="ccContractNote" placeholder="예: 2년 계약, 2년씩 자동 연장" class="nb-input" style="width:100%;" /></div>
+        <div style="margin-top:10px;"><label class="nb-label">계약 기준 (자동연장 조건 등)</label><input type="text" id="ccContractNote" placeholder="예: 3년 계약, 2년씩 자동 연장" class="nb-input" style="width:100%;" /></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+          <div><label class="nb-label">경영컨설팅 수수료 (표시용 텍스트)</label><input type="text" id="ccMgmtFeeText" placeholder="예: 월 매출액의 4% (부가세 별도)" class="nb-input" /></div>
+          <div><label class="nb-label">마케팅 수수료 (표시용 텍스트)</label><input type="text" id="ccMktFeeText" placeholder="예: 국내 월 매출액의 4% (부가세 별도)" class="nb-input" /></div>
+        </div>
+        <div style="margin-top:10px;"><label class="nb-label">수수료 특약</label><textarea id="ccSpecialTerms" placeholder="예: 월 매출이 1억 8천만원 미만이거나 적자가 발생될 경우 상호 협의하여 수수료 조정 가능" class="nb-input" style="width:100%;min-height:60px;resize:vertical;"></textarea></div>
         <button class="btn-save" style="margin-top:14px;" onclick="saveContractInfo()">💾 계약 정보 저장</button>
         <span class="save-notice" id="ccNotice">✅ 저장되었습니다!</span>
       </div></div>
@@ -2015,24 +2038,36 @@ async function deleteReport(id) {
 }
 
 // ════════════════════════════════════════════════════════
-// 탭3: 수수료 설정
+// 탭3: 지점 계약
 // ════════════════════════════════════════════════════════
 function initFeeTable() {
-  renderFeeSection('feeBodyDayb', BRANCHES_DAYB);
-  renderFeeSection('feeBodyCera', BRANCHES_CERA);
+  renderBranchContractTable();
 }
 
-function renderFeeSection(tbodyId, branches) {
+function renderBranchContractTable() {
+  renderContractSection('contractBodyDayb', BRANCHES_DAYB);
+  renderContractSection('contractBodyCera', BRANCHES_CERA);
+}
+
+function renderContractSection(tbodyId, branches) {
   const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
   tbody.innerHTML = '';
-  const ym = new Date().toISOString().slice(0,7);
   branches.forEach(branch => {
-    const schedule = getRateScheduleFor(branch, ym);
-    const formula = schedule ? describeRateSchedule(schedule) : (FEE_RULES[branch] || { formula: '-' }).formula;
+    const cfg = BRANCH_CONFIG[branch] || {};
+    const ceo = cfg.ceo || BRANCH_CEO[branch] || '-';
+    const period = (cfg.contractStart && cfg.contractEnd) ? `${cfg.contractStart} ~ ${cfg.contractEnd}` : '-';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="bname">${branch}</td>
-      <td style="font-size:.75rem;color:#555;line-height:1.6;white-space:normal;">${formula}</td>`;
+      <td style="white-space:nowrap;font-size:.8rem;">${ceo}</td>
+      <td style="white-space:nowrap;font-size:.78rem;">${cfg.bizNo || '-'}</td>
+      <td style="white-space:nowrap;font-size:.72rem;">${cfg.email || '-'}</td>
+      <td style="font-size:.78rem;color:#555;white-space:normal;">${cfg.mgmtFeeText || '-'}</td>
+      <td style="font-size:.78rem;color:#555;white-space:normal;">${cfg.mktFeeText || '-'}</td>
+      <td style="white-space:nowrap;font-size:.78rem;">${period}</td>
+      <td style="font-size:.78rem;color:#555;white-space:normal;">${cfg.contractNote || '-'}</td>
+      <td style="font-size:.72rem;white-space:normal;color:#b91c1c;">${cfg.specialTerms || '-'}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -2066,6 +2101,7 @@ async function createBranch() {
   const name = document.getElementById('nbName').value.trim();
   const brand = document.getElementById('nbBrand').value;
   const ceo = document.getElementById('nbCeo').value.trim();
+  const bizNo = document.getElementById('nbBizNo').value.trim();
   const contractStart = document.getElementById('nbContractStart').value;
   const contractEnd = document.getElementById('nbContractEnd').value;
   const contractNote = document.getElementById('nbContractNote').value.trim();
@@ -2076,9 +2112,9 @@ async function createBranch() {
   const effectiveFrom = document.getElementById('nbEffectiveFrom').value || new Date().toISOString().slice(0,7);
 
   if (!name) { alert('지점명을 입력해 주세요.'); return; }
-  if (ALL_BRANCHES.includes(name)) { alert('이미 존재하는 지점명입니다.'); return; }
+  if (ALL_BRANCHES.includes(name)) { alert('이미 존재하는 지점명입니다. 폐업 후 다른 사업자로 재개업한 지점이라면, 데이터가 섞이지 않도록 지점명을 다르게(예: 마포홍대점2) 구분해서 등록해 주세요.'); return; }
 
-  const branchData = { branch:name, brand, ceo, contractStart, contractEnd, contractNote };
+  const branchData = { branch:name, brand, ceo, bizNo, contractStart, contractEnd, contractNote };
   await serverPost({ action:'save_branch_config', data:branchData });
   await serverPost({ action:'add_rate_history', data:{ branch:name, effectiveFrom, mgmtType, mgmtVal, mktType, mktVal, note:'지점 생성' } });
 
@@ -2088,7 +2124,7 @@ async function createBranch() {
   localStorage.setItem('rate_history', JSON.stringify(RATE_HISTORY));
   mergeCustomBranches();
 
-  ['nbName','nbCeo','nbContractStart','nbContractEnd','nbContractNote','nbMgmtVal','nbMktVal','nbEffectiveFrom'].forEach(id => document.getElementById(id).value = '');
+  ['nbName','nbCeo','nbBizNo','nbContractStart','nbContractEnd','nbContractNote','nbMgmtVal','nbMktVal','nbEffectiveFrom'].forEach(id => document.getElementById(id).value = '');
 
   initFeeTable(); initPinTable(); initBranchAdminSection(); renderContractAlert();
   renderOverview(); renderReports();
@@ -2099,9 +2135,14 @@ async function createBranch() {
 function loadContractForm() {
   const branch = document.getElementById('ccBranch').value;
   const cfg = BRANCH_CONFIG[branch] || {};
+  document.getElementById('ccBizNo').value = cfg.bizNo || '';
+  document.getElementById('ccEmail').value = cfg.email || '';
   document.getElementById('ccContractStart').value = cfg.contractStart || '';
   document.getElementById('ccContractEnd').value = cfg.contractEnd || '';
   document.getElementById('ccContractNote').value = cfg.contractNote || '';
+  document.getElementById('ccMgmtFeeText').value = cfg.mgmtFeeText || '';
+  document.getElementById('ccMktFeeText').value = cfg.mktFeeText || '';
+  document.getElementById('ccSpecialTerms').value = cfg.specialTerms || '';
 }
 
 async function saveContractInfo() {
@@ -2112,14 +2153,20 @@ async function saveContractInfo() {
     branch,
     brand: existing.brand || getBrand(branch),
     ceo: existing.ceo || BRANCH_CEO[branch] || '',
+    bizNo: document.getElementById('ccBizNo').value.trim(),
+    email: document.getElementById('ccEmail').value.trim(),
     contractStart: document.getElementById('ccContractStart').value,
     contractEnd: document.getElementById('ccContractEnd').value,
     contractNote: document.getElementById('ccContractNote').value.trim(),
+    mgmtFeeText: document.getElementById('ccMgmtFeeText').value.trim(),
+    mktFeeText: document.getElementById('ccMktFeeText').value.trim(),
+    specialTerms: document.getElementById('ccSpecialTerms').value.trim(),
   };
   await serverPost({ action:'save_branch_config', data:branchData });
   BRANCH_CONFIG[branch] = branchData;
   localStorage.setItem('branch_config', JSON.stringify(BRANCH_CONFIG));
   renderContractAlert();
+  renderBranchContractTable();
   const n = document.getElementById('ccNotice'); n.style.display='inline';
   setTimeout(()=>n.style.display='none', 2500);
 }
