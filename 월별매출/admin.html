@@ -1196,6 +1196,12 @@ function syncFromServer(callback) {
       localStorage.setItem('rate_history', JSON.stringify(RATE_HISTORY));
       mergeCustomBranches();
       renderContractAlert();
+      renderBranchContractTable();
+      initPinTable();
+      if (document.getElementById('ccBranch')) fillBranchDropdown('ccBranch');
+      if (document.getElementById('rcBranch')) fillBranchDropdown('rcBranch');
+      if (document.getElementById('delBranch')) fillBranchDropdown('delBranch', true);
+      if (document.getElementById('rateHistoryList')) renderRateHistory();
 
       if (indicator) indicator.textContent = '✅ 동기화 완료';
 
