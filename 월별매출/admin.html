@@ -1198,6 +1198,8 @@ function syncFromServer(callback) {
       if (document.getElementById('rcBranch')) fillBranchDropdown('rcBranch');
       if (document.getElementById('delBranch')) fillBranchDropdown('delBranch', true);
       if (document.getElementById('rateHistoryList')) renderRateHistory();
+      if (document.getElementById('t6Branch')) fillBranchOptgroups('t6Branch', true);
+      if (document.getElementById('t8Branch')) fillBranchOptgroups('t8Branch');
 
       if (indicator) indicator.textContent = '✅ 동기화 완료';
 
@@ -1361,9 +1363,9 @@ function switchTab(n) {
   document.getElementById('tabBtn'+n).classList.add('active');
   if (n===1) renderOverview();
   if (n===2) renderReports();
-  if (n===3) renderTrend();
+  if (n===3) { fillBranchOptgroups('t8Branch'); renderTrend(); }
   if (n===4) renderInvoiceTab();
-  if (n===5) renderMgmtCheck();
+  if (n===5) { fillBranchOptgroups('t6Branch', true); renderMgmtCheck(); }
   if (n===6) { initFeeTable(); initPinTable(); updateDataCount(); initBranchAdminSection(); }
   if (n===7) renderAllBranchAdmin();
 }
@@ -2133,6 +2135,21 @@ function fillBranchDropdown(selectId, includeClosed) {
   if (list.includes(prev)) sel.value = prev;
 }
 
+// 경영팀 확인 / 매출 추이 탭의 지점 선택 목록 — 폐업 지점은 제외(과거 데이터는 실제 제출 기록으로 계속 조회 가능)
+function fillBranchOptgroups(selectId, includeAllOption) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const prev = sel.value;
+  const dayb = BRANCHES_DAYB.filter(b => !isBranchClosed(b));
+  const cera = BRANCHES_CERA.filter(b => !isBranchClosed(b));
+  let html = includeAllOption ? '<option value="">전체 지점</option>' : '';
+  html += '<optgroup label="데이뷰의원">' + dayb.map(b => `<option>${b}</option>`).join('') + '</optgroup>';
+  html += '<optgroup label="세라미크의원">' + cera.map(b => `<option>${b}</option>`).join('') + '</optgroup>';
+  sel.innerHTML = html;
+  const validValues = [...(includeAllOption ? [''] : []), ...dayb, ...cera];
+  if (validValues.includes(prev)) sel.value = prev;
+}
+
 async function createBranch() {
   const name = document.getElementById('nbName').value.trim();
   const brand = document.getElementById('nbBrand').value;
@@ -2494,6 +2511,7 @@ function renderInvoiceTab() {
   ALL_BRANCHES.forEach(branch => {
     const row = all.find(r => r.branch === branch && r.month === month);
     if (!row) {
+      if (isBranchClosed(branch)) return; // 폐업 지점은 해당 월 데이터가 없으면 목록에서 제외
       html += `<tr style="border-bottom:1px solid #f3f4f6;">
         <td style="padding:8px 10px;font-weight:600;">${branch}</td>
         <td colspan="4" style="padding:8px 10px;color:#aaa;text-align:center;">데이터 없음</td>
