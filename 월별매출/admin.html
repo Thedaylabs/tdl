@@ -244,7 +244,7 @@
     #contractAlertBar { display:none; position:sticky; top:0; z-index:500; background:#fef2f2; border-bottom:2px solid #fca5a5; color:#991b1b; font-size:.82rem; font-weight:600; padding:8px 16px; text-align:center; }
     #contractAlertBar.show { display:block; }
     .fee-table { width:100%; border-collapse:collapse; table-layout:fixed; min-width:580px; }
-    .contract-table { min-width:1500px; }
+    .contract-table { min-width:1310px; }
     .fee-table th { background:#f8f5ff; padding:9px 12px; font-size:.78rem; color:#7c3aed; font-weight:700; text-align:left; border-bottom:2px solid #ede9fe; white-space:nowrap; }
     .fee-table td { padding:8px 10px; border-bottom:1px solid #f0f2f5; font-size:.84rem; vertical-align:middle; }
     .fee-table tr:last-child td { border-bottom:none; }
@@ -538,9 +538,7 @@
               <th style="width:180px">마케팅 수수료</th>
               <th style="width:130px">계약기간</th>
               <th style="width:140px">계약기준</th>
-              <th style="width:220px">수수료 특약</th>
-              <th style="width:110px">비고</th>
-              <th style="width:110px">입금일</th>
+              <th style="width:250px">수수료 특약</th>
             </tr></thead>
             <tbody id="contractBodyDayb"></tbody>
           </table>
@@ -557,9 +555,7 @@
               <th style="width:180px">마케팅 수수료</th>
               <th style="width:130px">계약기간</th>
               <th style="width:140px">계약기준</th>
-              <th style="width:220px">수수료 특약</th>
-              <th style="width:110px">비고</th>
-              <th style="width:110px">입금일</th>
+              <th style="width:250px">수수료 특약</th>
             </tr></thead>
             <tbody id="contractBodyCera"></tbody>
           </table>
@@ -622,10 +618,6 @@
           <div><label class="nb-label">마케팅 수수료 (표시용 텍스트)</label><input type="text" id="ccMktFeeText" placeholder="예: 국내 월 매출액의 4% (부가세 별도)" class="nb-input" /></div>
         </div>
         <div style="margin-top:10px;"><label class="nb-label">수수료 특약</label><textarea id="ccSpecialTerms" placeholder="예: 월 매출이 1억 8천만원 미만이거나 적자가 발생될 경우 상호 협의하여 수수료 조정 가능" class="nb-input" style="width:100%;min-height:60px;resize:vertical;"></textarea></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
-          <div><label class="nb-label">비고</label><input type="text" id="ccRemark" placeholder="예: 계약연장 완료" class="nb-input" /></div>
-          <div><label class="nb-label">입금일</label><input type="text" id="ccPaymentDue" placeholder="예: 다음달 5일까지" class="nb-input" /></div>
-        </div>
         <button class="btn-save" style="margin-top:14px;" onclick="saveContractInfo()">💾 계약 연장 저장</button>
         <span class="save-notice" id="ccNotice">✅ 저장되었습니다!</span>
       </div></div>
@@ -2104,9 +2096,7 @@ function renderContractSection(tbodyId, branches) {
       <td style="font-size:.78rem;color:#555;white-space:pre-line;">${cfg.mktFeeText || '-'}</td>
       <td style="white-space:nowrap;font-size:.78rem;">${period}</td>
       <td style="font-size:.78rem;color:#555;white-space:pre-line;">${cfg.contractNote || '-'}</td>
-      <td style="font-size:.72rem;white-space:pre-line;color:#b91c1c;">${cfg.specialTerms || '-'}</td>
-      <td style="font-size:.75rem;color:#555;white-space:pre-line;">${cfg.remark || '-'}</td>
-      <td style="font-size:.75rem;color:#555;white-space:nowrap;">${cfg.paymentDue || '-'}</td>`;
+      <td style="font-size:.72rem;white-space:pre-line;color:#b91c1c;">${cfg.specialTerms || '-'}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -2185,8 +2175,6 @@ function loadContractForm() {
   document.getElementById('ccMgmtFeeText').value = cfg.mgmtFeeText || '';
   document.getElementById('ccMktFeeText').value = cfg.mktFeeText || '';
   document.getElementById('ccSpecialTerms').value = cfg.specialTerms || '';
-  document.getElementById('ccRemark').value = cfg.remark || '';
-  document.getElementById('ccPaymentDue').value = cfg.paymentDue || '';
 }
 
 async function saveContractInfo() {
@@ -2206,8 +2194,6 @@ async function saveContractInfo() {
     mgmtFeeText: document.getElementById('ccMgmtFeeText').value.trim(),
     mktFeeText: document.getElementById('ccMktFeeText').value.trim(),
     specialTerms: document.getElementById('ccSpecialTerms').value.trim(),
-    remark: document.getElementById('ccRemark').value.trim(),
-    paymentDue: document.getElementById('ccPaymentDue').value.trim(),
   };
   await serverPost({ action:'save_branch_config', data:branchData });
   BRANCH_CONFIG[branch] = branchData;
