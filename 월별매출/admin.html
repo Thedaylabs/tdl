@@ -819,6 +819,10 @@
   <div class="tab-content" id="tab4">
     <div class="toolbar">
       <input type="month" id="t7Month" />
+      <select id="invoiceMode" style="padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.85rem;font-family:inherit;">
+        <option value="both">경영컨설팅+마케팅 (1장)</option>
+        <option value="mgmt">경영컨설팅만</option>
+      </select>
       <button class="btn-purple" onclick="renderInvoiceTab()">🔍 전체 조회</button>
       <button class="btn-outline" onclick="downloadAllInvoices()" style="margin-left:6px;">⬇️ 전체 다운로드</button>
     </div>
@@ -2555,17 +2559,22 @@ async function toDataURL(url) {
   } catch { return ''; }
 }
 
+function getInvoiceMode() {
+  const sel = document.getElementById('invoiceMode');
+  return sel ? sel.value : 'both';
+}
+
 async function previewInvoice(branch, month) {
   const [s1, s2] = await Promise.all([toDataURL('stamp_dayblabs.png'), toDataURL('stamp_dayview.png')]);
   const area = document.getElementById('invoicePreviewArea');
-  area.innerHTML = buildInvoiceHTML(branch, month, true, s1, s2);
+  area.innerHTML = buildInvoiceHTML(branch, month, true, s1, s2, getInvoiceMode());
   area.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function printInvoice(branch, month) {
   if (!branch || !month) { alert('지점과 월을 선택하세요.'); return; }
   const [s1, s2] = await Promise.all([toDataURL('stamp_dayblabs.png'), toDataURL('stamp_dayview.png')]);
-  const html = buildInvoiceHTML(branch, month, false, s1, s2);
+  const html = buildInvoiceHTML(branch, month, false, s1, s2, getInvoiceMode());
   const w = window.open('', '_blank');
   w.document.write(html);
   w.document.close();
@@ -2584,6 +2593,7 @@ async function downloadAllInvoices() {
   const orig = btn.textContent;
   btn.disabled = true;
 
+  const mode = getInvoiceMode();
   try {
     const [s1, s2] = await Promise.all([toDataURL('stamp_dayblabs.png'), toDataURL('stamp_dayview.png')]);
     const zip = new JSZip();
@@ -2593,7 +2603,7 @@ async function downloadAllInvoices() {
       btn.textContent = `⏳ PDF 생성 중... (${i+1}/${branches.length})`;
 
       // Blob URL 방식: 독립적인 same-origin iframe으로 어드민 CSS 간섭 없이 렌더링
-      const fullHtml = buildInvoiceHTML(branch, month, false, s1, s2);
+      const fullHtml = buildInvoiceHTML(branch, month, false, s1, s2, mode);
       const blobUrl = URL.createObjectURL(new Blob([fullHtml], { type: 'text/html' }));
 
       const iframe = document.createElement('iframe');
@@ -2646,14 +2656,16 @@ async function downloadAllInvoices() {
       }
 
       const pdfBlob = pdf.output('blob');
-      zip.file(`수수료청구서_${branch}_${month}.pdf`, pdfBlob);
+      const modeLabel = mode === 'mgmt' ? '경영컨설팅_' : '';
+      zip.file(`수수료청구서_${modeLabel}${branch}_${month}.pdf`, pdfBlob);
     }
 
     btn.textContent = '⏳ ZIP 압축 중...';
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(zipBlob);
-    a.download = `수수료청구서_${month}_전체(${branches.length}개지점).zip`;
+    const modeLabel = mode === 'mgmt' ? '경영컨설팅_' : '';
+    a.download = `수수료청구서_${modeLabel}${month}_전체(${branches.length}개지점).zip`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 10000);
   } finally {
@@ -2662,7 +2674,7 @@ async function downloadAllInvoices() {
   }
 }
 
-function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
+function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt, mode) {
   const all = JSON.parse(localStorage.getItem('sales_data')||'[]');
   const row = all.find(r => r.branch === branch && r.month === month);
   if (!row) {
@@ -2833,7 +2845,7 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
     '2. 예금주 : 더데이랩스 주식회사'
   );
 
-  const mktInv = mkt > 0 ? makeInvoice(
+  const mktInv = (mode !== 'mgmt' && mkt > 0) ? makeInvoice(
     mkt, '마케팅 수수료', '마 케 팅',
     makeSupplier('591-81-02463','주식회사 데이뷰마케팅그룹','홍봉기',
       '서울특별시 구로구 디지털로34길 55, 305호(구로동, 코오롱씨이엔스밸리2차)',
@@ -2847,7 +2859,8 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt) {
   if (isPreview) {
     return `<style>${css}.inv-wrap{max-width:794px;margin:0 auto;background:#fff;box-shadow:0 2px 16px rgba(0,0,0,.12);}</style>${body}`;
   }
-  return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>수수료청구서 - ${branch} ${month}</title><style>${css}</style></head><body>${body}</body></html>`;
+  const titlePrefix = mode === 'mgmt' ? '경영컨설팅 수수료청구서' : '수수료청구서';
+  return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>${titlePrefix} - ${branch} ${month}</title><style>${css}</style></head><body>${body}</body></html>`;
 }
 
 function getMgmtData() { return JSON.parse(localStorage.getItem('mgmt_check')||'{}'); }
