@@ -515,6 +515,7 @@
       <button onclick="showHqSection('contract', this)">🔄 계약 연장</button>
       <button onclick="showHqSection('ratechange', this)">💹 수수료율 변경</button>
       <button onclick="showHqSection('pin', this)">🔑 PIN 관리</button>
+      <button onclick="showHqSection('delete', this)">🗑️ 지점 삭제</button>
       <button onclick="showHqSection('data', this)">🗂️ 데이터관리</button>
     </div>
     <div style="max-width:1650px;margin:0 auto;padding-bottom:40px;">
@@ -668,6 +669,20 @@
           <div style="font-size:.82rem;font-weight:700;color:#7c3aed;margin-bottom:6px;">🕓 최근 PIN 변경 이력 (지점 자체 변경)</div>
           <div id="pinChangeLogList" style="font-size:.8rem;color:#555;"></div>
         </div>
+      </div></div>
+      </div>
+
+      <!-- 지점 삭제(폐업 처리) -->
+      <div class="hq-panel" id="panel-delete">
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;max-width:900px;margin-left:auto;margin-right:auto;">🗑️ 지점 삭제 (폐업 처리)</div>
+      <div class="settings-wrap" style="padding:0;"><div class="settings-card">
+        <p>지점을 폐업 처리하면 PIN 관리·계약 연장·수수료율 변경 목록에서 제외됩니다. <b>과거 매출·수수료 기록은 삭제되지 않고 그대로 남으며</b>, 📑 지점 계약 표에는 "폐업" 표시와 함께 계속 보입니다. 언제든 다시 재활성화할 수 있습니다.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+          <div><label class="nb-label">지점 선택</label><select id="delBranch" class="nb-input" onchange="loadDeleteForm()"></select></div>
+          <div><label class="nb-label">현재 상태</label><div id="delStatusDisplay" class="nb-input" style="display:flex;align-items:center;background:#f8f5ff;"></div></div>
+        </div>
+        <button class="btn-danger" style="margin-top:14px;" id="delToggleBtn" onclick="toggleBranchStatus()">🗑️ 폐업 처리</button>
+        <span class="save-notice" id="delNotice">✅ 처리되었습니다!</span>
       </div></div>
       </div>
 
@@ -1041,6 +1056,11 @@ function mergeCustomBranches() {
   });
 }
 mergeCustomBranches();
+
+function isBranchClosed(branch) {
+  const cfg = BRANCH_CONFIG[branch];
+  return !!(cfg && cfg.status === 'closed');
+}
 
 // 지점의 특정 월(ym)에 적용되는 가장 최근 수수료 이력을 찾는다
 function getRateScheduleFor(branch, ym) {
@@ -2057,9 +2077,12 @@ function renderContractSection(tbodyId, branches) {
     const cfg = BRANCH_CONFIG[branch] || {};
     const ceo = cfg.ceo || BRANCH_CEO[branch] || '-';
     const period = (cfg.contractStart && cfg.contractEnd) ? `${cfg.contractStart} ~ ${cfg.contractEnd}` : '-';
+    const closed = isBranchClosed(branch);
+    const closedBadge = closed ? ' <span style="font-size:.65rem;background:#f3f4f6;color:#6b7280;border-radius:4px;padding:1px 5px;">폐업</span>' : '';
     const tr = document.createElement('tr');
+    if (closed) tr.style.cssText = 'opacity:.55;';
     tr.innerHTML = `
-      <td class="bname">${branch}</td>
+      <td class="bname">${branch}${closedBadge}</td>
       <td style="white-space:nowrap;font-size:.8rem;">${ceo}</td>
       <td style="white-space:nowrap;font-size:.78rem;">${cfg.bizNo || '-'}</td>
       <td style="white-space:nowrap;font-size:.72rem;">${cfg.email || '-'}</td>
@@ -2088,13 +2111,16 @@ function initBranchAdminSection() {
   fillBranchDropdown('rcBranch');
   loadContractForm();
   renderRateHistory();
+  fillBranchDropdown('delBranch', true);
+  loadDeleteForm();
 }
 
-function fillBranchDropdown(selectId) {
+function fillBranchDropdown(selectId, includeClosed) {
   const sel = document.getElementById(selectId);
   const prev = sel.value;
-  sel.innerHTML = ALL_BRANCHES.map(b => `<option value="${b}">${b}</option>`).join('');
-  if (ALL_BRANCHES.includes(prev)) sel.value = prev;
+  const list = includeClosed ? ALL_BRANCHES : ALL_BRANCHES.filter(b => !isBranchClosed(b));
+  sel.innerHTML = list.map(b => `<option value="${b}">${b}${isBranchClosed(b)?' (폐업)':''}</option>`).join('');
+  if (list.includes(prev)) sel.value = prev;
 }
 
 async function createBranch() {
@@ -2209,13 +2235,53 @@ function renderRateHistory() {
     </div>`).join('');
 }
 
+// ── 지점 삭제(폐업 처리) ────────────────────────────────────────
+function loadDeleteForm() {
+  const sel = document.getElementById('delBranch');
+  const branch = sel ? sel.value : '';
+  if (!branch) return;
+  const closed = isBranchClosed(branch);
+  document.getElementById('delStatusDisplay').textContent = closed ? '⛔ 폐업 처리됨' : '✅ 영업 중';
+  const btn = document.getElementById('delToggleBtn');
+  btn.textContent = closed ? '🔄 재활성화' : '🗑️ 폐업 처리';
+  btn.className = closed ? 'btn-save' : 'btn-danger';
+}
+
+async function toggleBranchStatus() {
+  const branch = document.getElementById('delBranch').value;
+  if (!branch) return;
+  const closed = isBranchClosed(branch);
+  const newStatus = closed ? 'active' : 'closed';
+  const msg = closed
+    ? `${branch} 지점을 다시 활성화하시겠습니까?`
+    : `${branch} 지점을 폐업 처리하시겠습니까?\n\n과거 매출·수수료 기록은 삭제되지 않고 그대로 남습니다.\nPIN 관리·계약 연장·수수료율 변경 목록에서만 제외됩니다.`;
+  if (!confirm(msg)) return;
+
+  const existing = BRANCH_CONFIG[branch] || { branch, brand: getBrand(branch), ceo: BRANCH_CEO[branch] || '' };
+  const branchData = { ...existing, branch, status: newStatus };
+  await serverPost({ action:'save_branch_config', data:branchData });
+  BRANCH_CONFIG[branch] = branchData;
+  localStorage.setItem('branch_config', JSON.stringify(BRANCH_CONFIG));
+
+  fillBranchDropdown('ccBranch');
+  fillBranchDropdown('rcBranch');
+  fillBranchDropdown('delBranch', true);
+  document.getElementById('delBranch').value = branch;
+  loadDeleteForm();
+  initPinTable();
+  renderBranchContractTable();
+  renderContractAlert();
+  const n = document.getElementById('delNotice'); n.style.display='inline';
+  setTimeout(()=>n.style.display='none', 2500);
+}
+
 // ── 계약 만료 알림 배너 (종료 90일 전부터 상단 고정 표시) ─────────
 function renderContractAlert() {
   const bar = document.getElementById('contractAlertBar');
   if (!bar) return;
   const today = new Date(); today.setHours(0,0,0,0);
   const alerts = Object.values(BRANCH_CONFIG)
-    .filter(cfg => cfg.contractEnd)
+    .filter(cfg => cfg.contractEnd && cfg.status !== 'closed')
     .map(cfg => {
       const end = new Date(cfg.contractEnd);
       const dday = Math.round((end - today) / 86400000);
@@ -2249,8 +2315,8 @@ function getPins() {
 
 function initPinTable() {
   const pins = getPins();
-  renderPinSection('pinBodyDayb', BRANCHES_DAYB, pins, 'dayb');
-  renderPinSection('pinBodyCera', BRANCHES_CERA, pins, 'cera');
+  renderPinSection('pinBodyDayb', BRANCHES_DAYB.filter(b => !isBranchClosed(b)), pins, 'dayb');
+  renderPinSection('pinBodyCera', BRANCHES_CERA.filter(b => !isBranchClosed(b)), pins, 'cera');
   renderPinChangeLog();
 }
 
