@@ -523,15 +523,14 @@
       <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:20px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">⚙️ 수수료 확인</div>
       <div class="settings-wrap" style="padding:0;">
         <div class="settings-card">
-          <p>지점별 수수료를 직접 입력합니다. 경영수수료는 고정금액(원) 또는 총매출 비율(%)로, 마케팅 수수료는 총매출 기준 비율(%)로 설정하세요.</p>
+          <p>지점별 현재 적용 중인 수수료 계산식을 확인합니다. 수수료율 변경은 <b>💹 수수료율 변경</b> 탭에서 진행해 주세요.</p>
           <div class="vat-notice">💡 모든 수수료는 부가세(VAT 10%) 포함 금액입니다.</div>
           <div class="fee-section-title">🏥 데이뷰의원</div>
           <div class="table-scroll-wrap">
           <table class="fee-table">
             <thead><tr>
               <th style="width:130px">지점명</th>
-              <th style="width:320px">계약서 기준 계산식 (부가세 포함)</th>
-              <th>수동 조정값 입력</th>
+              <th>계약서 기준 계산식 (부가세 포함)</th>
             </tr></thead>
             <tbody id="feeBodyDayb"></tbody>
           </table>
@@ -541,14 +540,10 @@
           <table class="fee-table">
             <thead><tr>
               <th style="width:130px">지점명</th>
-              <th style="width:320px">계약서 기준 계산식 (부가세 포함)</th>
-              <th>수동 조정값 입력</th>
+              <th>계약서 기준 계산식 (부가세 포함)</th>
             </tr></thead>
             <tbody id="feeBodyCera"></tbody>
           </table>
-          </div>
-          <div style="margin-top:16px;display:flex;align-items:center">
-            <span class="save-notice" id="saveNotice" style="margin-left:0">✅ 저장되었습니다!</span>
           </div>
         </div>
       </div>
@@ -1457,13 +1452,6 @@ function setSentState(branch,month,val){ const d=JSON.parse(localStorage.getItem
 function calcFees(row) {
   const tot = row.salesTotal || 0;
   const branch = row.branch || '';
-  const override = localStorage.getItem('fee_override_' + branch);
-  if (override) {
-    const o = JSON.parse(override);
-    const mgmt = o.mgmtType==='fixed' ? o.mgmtVal : Math.round(tot * o.mgmtVal / 100);
-    const mkt  = Math.round(tot * o.mktPct / 100);
-    return { mgmt, mkt, total: mgmt+mkt, formula:'(수동 조정)', overridden: true };
-  }
   const ym  = row.month || '';
   const dom = row.salesDomestic != null ? row.salesDomestic : tot;
   const spFromRow = row.special ? Object.values(row.special).reduce((s,v)=>s+(v.amount||0),0) : 0;
@@ -2037,69 +2025,16 @@ function initFeeTable() {
 function renderFeeSection(tbodyId, branches) {
   const tbody = document.getElementById(tbodyId);
   tbody.innerHTML = '';
+  const ym = new Date().toISOString().slice(0,7);
   branches.forEach(branch => {
-    const rule = FEE_RULES[branch] || { formula: '-' };
-    const sid = branch.replace(/\s/g,'_');
-    const override = localStorage.getItem('fee_override_'+branch);
-    const hasOverride = !!override;
-    const o = hasOverride ? JSON.parse(override) : null;
-
+    const schedule = getRateScheduleFor(branch, ym);
+    const formula = schedule ? describeRateSchedule(schedule) : (FEE_RULES[branch] || { formula: '-' }).formula;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="bname">${branch}</td>
-      <td style="font-size:.75rem;color:#555;line-height:1.6;white-space:normal;">${rule.formula}</td>
-      <td>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-          <select id="ovr_type_${sid}" style="padding:5px 7px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:.8rem;font-family:inherit;">
-            <option value="fixed" ${o&&o.mgmtType==='fixed'?'selected':''}>경영 고정(원)</option>
-            <option value="pct"   ${o&&o.mgmtType==='pct'  ?'selected':''}>경영 %(매출)</option>
-          </select>
-          <input type="number" id="ovr_mgmt_${sid}" placeholder="경영수수료" min="0" step="0.01"
-            value="${o?o.mgmtVal:''}"
-            style="width:120px;padding:5px 8px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:.8rem;font-family:inherit;" />
-          <input type="number" id="ovr_mkt_${sid}" placeholder="마케팅%" min="0" step="0.01"
-            value="${o?o.mktPct:''}"
-            style="width:80px;padding:5px 8px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:.8rem;font-family:inherit;" />
-          <button onclick="saveOverride('${sid}','${branch}')"
-            style="background:#7c3aed;color:#fff;border:none;border-radius:7px;padding:5px 12px;font-size:.78rem;cursor:pointer;font-family:inherit;">저장</button>
-          <button onclick="clearOverride('${sid}','${branch}')"
-            style="background:#fff;color:#dc2626;border:1.5px solid #fca5a5;border-radius:7px;padding:5px 10px;font-size:.78rem;cursor:pointer;font-family:inherit;">초기화</button>
-          ${hasOverride?'<span style="font-size:.72rem;color:#d97706;font-weight:600;">⚠️ 수동 적용 중</span>':'<span style="font-size:.72rem;color:#059669;">✅ 자동계산</span>'}
-        </div>
-      </td>`;
+      <td style="font-size:.75rem;color:#555;line-height:1.6;white-space:normal;">${formula}</td>`;
     tbody.appendChild(tr);
   });
-}
-
-function toggleOverride(sid, branch) {
-  const checked = document.getElementById('ovr_'+sid).checked;
-  document.getElementById('ovr_fields_'+sid).style.display = checked ? 'flex' : 'none';
-  if (!checked) clearOverride(sid, branch);
-}
-
-function saveOverride(sid, branch) {
-  const type = document.getElementById('ovr_type_'+sid).value;
-  const mgmtVal = parseFloat(document.getElementById('ovr_mgmt_'+sid).value)||0;
-  const mktPct  = parseFloat(document.getElementById('ovr_mkt_'+sid).value)||0;
-  localStorage.setItem('fee_override_'+branch, JSON.stringify({mgmtType:type, mgmtVal, mktPct}));
-  renderFeeSection(
-    BRANCHES_DAYB.includes(branch) ? 'feeBodyDayb' : 'feeBodyCera',
-    BRANCHES_DAYB.includes(branch) ? BRANCHES_DAYB : BRANCHES_CERA
-  );
-  renderOverview(); renderReports();
-  const n=document.getElementById('saveNotice'); n.style.display='inline';
-  setTimeout(()=>n.style.display='none',2500);
-}
-
-function clearOverride(sid, branch) {
-  localStorage.removeItem('fee_override_'+branch);
-  document.getElementById('ovr_'+sid).checked = false;
-  document.getElementById('ovr_fields_'+sid).style.display = 'none';
-  renderFeeSection(
-    BRANCHES_DAYB.includes(branch) ? 'feeBodyDayb' : 'feeBodyCera',
-    BRANCHES_DAYB.includes(branch) ? BRANCHES_DAYB : BRANCHES_CERA
-  );
-  renderOverview(); renderReports();
 }
 
 function showHqSection(id, btn) {
