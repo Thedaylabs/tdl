@@ -39,9 +39,12 @@
     .tab-content.active { display:block; }
 
     /* 본사 설정 서브 내비 */
-    .hq-subnav { position:sticky; top:104px; z-index:98; background:#faf9ff; border-bottom:1px solid #ede9fe; display:flex; gap:6px; overflow-x:auto; padding:10px 16px; -webkit-overflow-scrolling:touch; }
+    .hq-subnav { position:sticky; top:104px; z-index:98; background:#faf9ff; border-bottom:1px solid #ede9fe; display:flex; justify-content:center; flex-wrap:wrap; gap:6px; overflow-x:auto; padding:10px 16px; -webkit-overflow-scrolling:touch; }
     .hq-subnav button { flex-shrink:0; background:#fff; color:#7c3aed; border:1.5px solid #ddd6fe; border-radius:20px; padding:6px 14px; font-size:.8rem; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; transition:background .15s; }
     .hq-subnav button:hover { background:#f3e8ff; }
+    .hq-subnav button.active { background:#7c3aed; color:#fff; border-color:#7c3aed; }
+    .hq-panel { display:none; }
+    .hq-panel.active { display:block; }
 
     /* 공통 툴바 */
     .toolbar { max-width:1280px; margin:0 auto 18px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -506,17 +509,18 @@
   <!-- ── 탭6: 본사 설정 ── -->
   <div class="tab-content" id="tab6">
     <div class="hq-subnav">
-      <button onclick="scrollToSection('sec-fee')">⚙️ 수수료 확인</button>
-      <button onclick="scrollToSection('sec-newbranch')">➕ 지점 생성</button>
-      <button onclick="scrollToSection('sec-contract')">📅 계약 정보</button>
-      <button onclick="scrollToSection('sec-ratechange')">💹 수수료율 변경</button>
-      <button onclick="scrollToSection('sec-pin')">🔑 PIN 관리</button>
-      <button onclick="scrollToSection('sec-data')">🗂️ 데이터관리</button>
+      <button onclick="showHqSection('fee', this)">⚙️ 수수료 확인</button>
+      <button onclick="showHqSection('newbranch', this)">➕ 지점 생성</button>
+      <button onclick="showHqSection('contract', this)">📅 계약 정보</button>
+      <button onclick="showHqSection('ratechange', this)">💹 수수료율 변경</button>
+      <button onclick="showHqSection('pin', this)">🔑 PIN 관리</button>
+      <button onclick="showHqSection('data', this)">🗂️ 데이터관리</button>
     </div>
     <div style="max-width:1100px;margin:0 auto;padding-bottom:40px;">
 
       <!-- 수수료 확인 -->
-      <div id="sec-fee" style="font-size:1rem;font-weight:700;color:#7c3aed;padding:20px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;scroll-margin-top:185px;">⚙️ 수수료 확인</div>
+      <div class="hq-panel" id="panel-fee">
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:20px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">⚙️ 수수료 확인</div>
       <div class="settings-wrap" style="padding:0;">
         <div class="settings-card">
           <p>지점별 수수료를 직접 입력합니다. 경영수수료는 고정금액(원) 또는 총매출 비율(%)로, 마케팅 수수료는 총매출 기준 비율(%)로 설정하세요.</p>
@@ -548,9 +552,11 @@
           </div>
         </div>
       </div>
+      </div>
 
       <!-- 신규 지점 생성 -->
-      <div id="sec-newbranch" style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;scroll-margin-top:185px;">➕ 신규 지점 생성</div>
+      <div class="hq-panel" id="panel-newbranch">
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">➕ 신규 지점 생성</div>
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
         <p>새 지점을 만들면 전체 지점 목록에 바로 추가됩니다. PIN은 생성 후 위쪽 <b>PIN 관리</b>에서 별도로 설정해 주세요.</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
@@ -580,9 +586,11 @@
         <button class="btn-save" style="margin-top:14px;" onclick="createBranch()">➕ 지점 생성</button>
         <span class="save-notice" id="nbNotice">✅ 지점이 생성되었습니다!</span>
       </div></div>
+      </div>
 
       <!-- 계약 정보 관리 -->
-      <div id="sec-contract" style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;scroll-margin-top:185px;">📅 계약 정보 관리</div>
+      <div class="hq-panel" id="panel-contract">
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">📅 계약 정보 관리</div>
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
         <p>기존 지점의 계약기간·계약기준을 등록하면, 계약 종료 90일 전부터 상단에 알림이 표시됩니다.</p>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
@@ -594,9 +602,11 @@
         <button class="btn-save" style="margin-top:14px;" onclick="saveContractInfo()">💾 계약 정보 저장</button>
         <span class="save-notice" id="ccNotice">✅ 저장되었습니다!</span>
       </div></div>
+      </div>
 
-      <!-- 수수료율 변경 -->
-      <div id="sec-ratechange" style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;scroll-margin-top:185px;">💹 수수료율 변경 (효력발생일 지정)</div>
+      <!-- 수수료율 변경 + 변경 이력 -->
+      <div class="hq-panel" id="panel-ratechange">
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">💹 수수료율 변경 (효력발생일 지정)</div>
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
         <p>단순 고정액/단일% 구조의 지점에 적용됩니다. 구간별 누진 요율처럼 복잡한 공식은 별도 요청해 주세요.</p>
         <div class="vat-notice" style="margin-top:8px;">💡 아래 수수료는 <b>부가세 별도</b> 금액으로 입력하면 부가세 10%를 자동으로 더해 계산합니다.</div>
@@ -617,14 +627,15 @@
         <span class="save-notice" id="rcNotice">✅ 저장되었습니다!</span>
       </div></div>
 
-      <!-- 변경 이력 -->
       <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">🕓 수수료 변경 이력</div>
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
         <div id="rateHistoryList" style="font-size:.84rem;color:#444;"></div>
       </div></div>
+      </div>
 
       <!-- PIN 관리 -->
-      <div id="sec-pin" style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;scroll-margin-top:185px;">🔑 PIN 관리</div>
+      <div class="hq-panel" id="panel-pin">
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">🔑 PIN 관리</div>
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
         <p style="margin-bottom:14px;">변경 후 아래 <strong>PIN 저장</strong> 버튼을 누르세요.</p>
         <div class="pin-section-title">🏥 데이뷰의원</div>
@@ -640,9 +651,11 @@
           <div id="pinChangeLogList" style="font-size:.8rem;color:#555;"></div>
         </div>
       </div></div>
+      </div>
 
       <!-- 데이터 관리 -->
-      <div id="sec-data" style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;scroll-margin-top:185px;">🗂️ 데이터 관리</div>
+      <div class="hq-panel" id="panel-data">
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">🗂️ 데이터 관리</div>
       <div class="data-card">
         <h2>📋 저장된 데이터 현황</h2>
         <p id="dataCount" style="font-size:1rem;font-weight:700;color:#7c3aed;margin-bottom:16px;"></p>
@@ -657,6 +670,7 @@
         <h2 style="color:#dc2626">⚠️ 데이터 초기화</h2>
         <p>저장된 모든 제출 데이터가 삭제됩니다. 삭제 전 반드시 백업하세요.</p>
         <button class="btn-danger" onclick="clearData()">🗑️ 전체 데이터 삭제</button>
+      </div>
       </div>
 
     </div>
@@ -2088,9 +2102,12 @@ function clearOverride(sid, branch) {
   renderOverview(); renderReports();
 }
 
-function scrollToSection(id) {
-  const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function showHqSection(id, btn) {
+  document.querySelectorAll('.hq-panel').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.hq-subnav button').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById('panel-' + id);
+  if (panel) panel.classList.add('active');
+  if (btn) btn.classList.add('active');
 }
 
 // ════════════════════════════════════════════════════════
