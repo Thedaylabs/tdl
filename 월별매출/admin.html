@@ -244,7 +244,7 @@
     #contractAlertBar { display:none; position:sticky; top:0; z-index:500; background:#fef2f2; border-bottom:2px solid #fca5a5; color:#991b1b; font-size:.82rem; font-weight:600; padding:8px 16px; text-align:center; }
     #contractAlertBar.show { display:block; }
     .fee-table { width:100%; border-collapse:collapse; table-layout:fixed; min-width:580px; }
-    .contract-table { min-width:1540px; }
+    .contract-table { min-width:1310px; }
     .fee-table th { background:#f8f5ff; padding:9px 12px; font-size:.78rem; color:#7c3aed; font-weight:700; text-align:left; border-bottom:2px solid #ede9fe; white-space:nowrap; }
     .fee-table td { padding:8px 10px; border-bottom:1px solid #f0f2f5; font-size:.84rem; vertical-align:middle; }
     .fee-table tr:last-child td { border-bottom:none; }
@@ -517,27 +517,27 @@
       <button onclick="showHqSection('pin', this)">🔑 PIN 관리</button>
       <button onclick="showHqSection('data', this)">🗂️ 데이터관리</button>
     </div>
-    <div style="max-width:1100px;margin:0 auto;padding-bottom:40px;">
+    <div style="max-width:1650px;margin:0 auto;padding-bottom:40px;">
 
       <!-- 지점 계약 -->
       <div class="hq-panel" id="panel-fee">
-      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:20px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">📑 지점 계약</div>
-      <div class="settings-wrap" style="padding:0;">
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:20px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;max-width:900px;margin-left:auto;margin-right:auto;">📑 지점 계약</div>
+      <div class="settings-wrap" style="padding:0;max-width:1650px;">
         <div class="settings-card">
           <p>지점별 계약·수수료 현황을 한눈에 확인합니다. 내용 수정은 <b>📅 계약 정보 관리</b> 탭에서 진행해 주세요.</p>
           <div class="fee-section-title">🏥 데이뷰의원</div>
           <div class="table-scroll-wrap">
           <table class="fee-table contract-table">
             <thead><tr>
-              <th style="width:110px">지점명</th>
-              <th style="width:90px">대표원장님</th>
-              <th style="width:110px">사업자번호</th>
-              <th style="width:170px">이메일</th>
-              <th style="width:220px">경영컨설팅 수수료</th>
-              <th style="width:220px">마케팅 수수료</th>
-              <th style="width:150px">계약기간</th>
-              <th style="width:170px">계약기준</th>
-              <th style="width:300px">수수료 특약</th>
+              <th style="width:100px">지점명</th>
+              <th style="width:80px">대표원장님</th>
+              <th style="width:100px">사업자번호</th>
+              <th style="width:150px">이메일</th>
+              <th style="width:180px">경영컨설팅 수수료</th>
+              <th style="width:180px">마케팅 수수료</th>
+              <th style="width:130px">계약기간</th>
+              <th style="width:140px">계약기준</th>
+              <th style="width:250px">수수료 특약</th>
             </tr></thead>
             <tbody id="contractBodyDayb"></tbody>
           </table>
@@ -546,15 +546,15 @@
           <div class="table-scroll-wrap">
           <table class="fee-table contract-table">
             <thead><tr>
-              <th style="width:110px">지점명</th>
-              <th style="width:90px">대표원장님</th>
-              <th style="width:110px">사업자번호</th>
-              <th style="width:170px">이메일</th>
-              <th style="width:220px">경영컨설팅 수수료</th>
-              <th style="width:220px">마케팅 수수료</th>
-              <th style="width:150px">계약기간</th>
-              <th style="width:170px">계약기준</th>
-              <th style="width:300px">수수료 특약</th>
+              <th style="width:100px">지점명</th>
+              <th style="width:80px">대표원장님</th>
+              <th style="width:100px">사업자번호</th>
+              <th style="width:150px">이메일</th>
+              <th style="width:180px">경영컨설팅 수수료</th>
+              <th style="width:180px">마케팅 수수료</th>
+              <th style="width:130px">계약기간</th>
+              <th style="width:140px">계약기준</th>
+              <th style="width:250px">수수료 특약</th>
             </tr></thead>
             <tbody id="contractBodyCera"></tbody>
           </table>
@@ -565,7 +565,7 @@
 
       <!-- 신규 지점 생성 -->
       <div class="hq-panel" id="panel-newbranch">
-      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">➕ 신규 지점 생성</div>
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;max-width:900px;margin-left:auto;margin-right:auto;">➕ 신규 지점 생성</div>
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
         <p>새 지점을 만들면 전체 지점 목록에 바로 추가됩니다. PIN은 생성 후 위쪽 <b>PIN 관리</b>에서 별도로 설정해 주세요.</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
@@ -599,7 +599,7 @@
 
       <!-- 계약 정보 관리 -->
       <div class="hq-panel" id="panel-contract">
-      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">📅 계약 정보 관리</div>
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;max-width:900px;margin-left:auto;margin-right:auto;">📅 계약 정보 관리</div>
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
         <p>기존 지점의 계약기간·계약기준을 등록하면, 계약 종료 90일 전부터 상단에 알림이 표시됩니다. 여기서 입력한 내용은 <b>📑 지점 계약</b> 탭 전체 현황표에 그대로 표시됩니다.</p>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
@@ -624,7 +624,7 @@
 
       <!-- 수수료율 변경 + 변경 이력 -->
       <div class="hq-panel" id="panel-ratechange">
-      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">💹 수수료율 변경 (효력발생일 지정)</div>
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;max-width:900px;margin-left:auto;margin-right:auto;">💹 수수료율 변경 (효력발생일 지정)</div>
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
         <p>단순 고정액/단일% 구조의 지점에 적용됩니다. 구간별 누진 요율처럼 복잡한 공식은 별도 요청해 주세요.</p>
         <div class="vat-notice" style="margin-top:8px;">💡 아래 수수료는 <b>부가세 별도</b> 금액으로 입력하면 부가세 10%를 자동으로 더해 계산합니다.</div>
@@ -645,7 +645,7 @@
         <span class="save-notice" id="rcNotice">✅ 저장되었습니다!</span>
       </div></div>
 
-      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">🕓 수수료 변경 이력</div>
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;max-width:900px;margin-left:auto;margin-right:auto;">🕓 수수료 변경 이력</div>
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
         <div id="rateHistoryList" style="font-size:.84rem;color:#444;"></div>
       </div></div>
@@ -653,7 +653,7 @@
 
       <!-- PIN 관리 -->
       <div class="hq-panel" id="panel-pin">
-      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">🔑 PIN 관리</div>
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;max-width:900px;margin-left:auto;margin-right:auto;">🔑 PIN 관리</div>
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
         <p style="margin-bottom:14px;">변경 후 아래 <strong>PIN 저장</strong> 버튼을 누르세요.</p>
         <div class="pin-section-title">🏥 데이뷰의원</div>
@@ -673,7 +673,7 @@
 
       <!-- 데이터 관리 -->
       <div class="hq-panel" id="panel-data">
-      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;">🗂️ 데이터 관리</div>
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;max-width:900px;margin-left:auto;margin-right:auto;">🗂️ 데이터 관리</div>
       <div class="data-card">
         <h2>📋 저장된 데이터 현황</h2>
         <p id="dataCount" style="font-size:1rem;font-weight:700;color:#7c3aed;margin-bottom:16px;"></p>
