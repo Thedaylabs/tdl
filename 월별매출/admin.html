@@ -512,7 +512,7 @@
     <div class="hq-subnav">
       <button onclick="showHqSection('fee', this)">📑 지점 계약</button>
       <button onclick="showHqSection('newbranch', this)">➕ 지점 생성</button>
-      <button onclick="showHqSection('contract', this)">📅 계약 정보</button>
+      <button onclick="showHqSection('contract', this)">🔄 계약 연장</button>
       <button onclick="showHqSection('ratechange', this)">💹 수수료율 변경</button>
       <button onclick="showHqSection('pin', this)">🔑 PIN 관리</button>
       <button onclick="showHqSection('data', this)">🗂️ 데이터관리</button>
@@ -524,7 +524,7 @@
       <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:20px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;max-width:900px;margin-left:auto;margin-right:auto;">📑 지점 계약</div>
       <div class="settings-wrap" style="padding:0;max-width:1650px;">
         <div class="settings-card">
-          <p>지점별 계약·수수료 현황을 한눈에 확인합니다. 내용 수정은 <b>📅 계약 정보 관리</b> 탭에서 진행해 주세요.</p>
+          <p>지점별 계약·수수료 현황을 한눈에 확인합니다. 내용 수정은 <b>🔄 계약 연장</b> 탭에서 진행해 주세요.</p>
           <div class="fee-section-title">🏥 데이뷰의원</div>
           <div class="table-scroll-wrap">
           <table class="fee-table contract-table">
@@ -597,11 +597,11 @@
       </div></div>
       </div>
 
-      <!-- 계약 정보 관리 -->
+      <!-- 계약 연장(재계약) -->
       <div class="hq-panel" id="panel-contract">
-      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;max-width:900px;margin-left:auto;margin-right:auto;">📅 계약 정보 관리</div>
+      <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;max-width:900px;margin-left:auto;margin-right:auto;">🔄 계약 연장 (재계약)</div>
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
-        <p>기존 지점의 계약기간·계약기준을 등록하면, 계약 종료 90일 전부터 상단에 알림이 표시됩니다. 여기서 입력한 내용은 <b>📑 지점 계약</b> 탭 전체 현황표에 그대로 표시됩니다.</p>
+        <p>지점의 계약이 연장(재계약)될 때 새로운 계약 시작일·종료일·기준으로 갱신해 주세요. 계약 종료 90일 전부터 상단에 알림이 표시됩니다. 여기서 입력한 내용은 <b>📑 지점 계약</b> 탭 전체 현황표에 그대로 표시됩니다.</p>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
           <div><label class="nb-label">지점 선택</label><select id="ccBranch" class="nb-input" onchange="loadContractForm()"></select></div>
           <div><label class="nb-label">사업자등록번호</label><input type="text" id="ccBizNo" placeholder="예: 123-45-67890" class="nb-input" /></div>
@@ -617,7 +617,7 @@
           <div><label class="nb-label">마케팅 수수료 (표시용 텍스트)</label><input type="text" id="ccMktFeeText" placeholder="예: 국내 월 매출액의 4% (부가세 별도)" class="nb-input" /></div>
         </div>
         <div style="margin-top:10px;"><label class="nb-label">수수료 특약</label><textarea id="ccSpecialTerms" placeholder="예: 월 매출이 1억 8천만원 미만이거나 적자가 발생될 경우 상호 협의하여 수수료 조정 가능" class="nb-input" style="width:100%;min-height:60px;resize:vertical;"></textarea></div>
-        <button class="btn-save" style="margin-top:14px;" onclick="saveContractInfo()">💾 계약 정보 저장</button>
+        <button class="btn-save" style="margin-top:14px;" onclick="saveContractInfo()">💾 계약 연장 저장</button>
         <span class="save-notice" id="ccNotice">✅ 저장되었습니다!</span>
       </div></div>
       </div>
@@ -2081,7 +2081,7 @@ function showHqSection(id, btn) {
 }
 
 // ════════════════════════════════════════════════════════
-// 신규 지점 생성 / 계약 정보 / 수수료율 변경 / 변경 이력
+// 신규 지점 생성 / 계약 연장(재계약) / 수수료율 변경 / 변경 이력
 // ════════════════════════════════════════════════════════
 function initBranchAdminSection() {
   fillBranchDropdown('ccBranch');
