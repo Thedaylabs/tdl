@@ -4,5 +4,6 @@ import-2604.js
 와이즐리제안서/원본/
 node_modules/
 .env
+.env.local
 .vercel
 .claude/
