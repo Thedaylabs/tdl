@@ -5,3 +5,4 @@ import-2604.js
 node_modules/
 .env
 .vercel
+.claude/
