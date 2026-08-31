@@ -1,0 +1,7 @@
+와이즐리제안서/배포용/
+apps-script.gs
+import-2604.js
+와이즐리제안서/원본/
+node_modules/
+.env
+.vercel

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 - 더데이랩스 워크스페이스</title>
+<link rel="stylesheet" href="/사내워크스페이스/shared.css">
+</head>
+<body>
+<div class="navbar" id="navbar"></div>
+<div class="container">
+  <h1 class="page-title">관리자</h1>
+  <p class="page-sub">계정, 팀별 열람 권한, 바쁜 업무 기간, 전체 게시글을 관리해요.</p>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="users">계정 관리</div>
+    <div class="tab" data-tab="grants">팀별 열람 권한</div>
+    <div class="tab" data-tab="busy">바쁜 업무 기간</div>
+    <div class="tab" data-tab="posts">전체 게시글</div>
+  </div>
+
+  <div id="panel-users" class="panel">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-head"><h2>새 계정 만들기</h2></div>
+      <div class="form-inline">
+        <div class="form-row"><label>아이디</label><input class="input" id="uUsername"></div>
+        <div class="form-row"><label>비밀번호</label><input class="input" id="uPassword" type="text"></div>
+        <div class="form-row"><label>이름</label><input class="input" id="uName"></div>
+      </div>
+      <div class="form-inline">
+        <div class="form-row"><label>팀</label><select class="input" id="uTeam"></select></div>
+        <div class="form-row"><label>권한</label>
+          <select class="input" id="uRole">
+            <option value="member">일반 팀원</option>
+            <option value="admin">관리자</option>
+          </select>
+        </div>
+        <div class="form-row" style="display:flex; align-items:flex-end;">
+          <button class="btn btn-primary" id="createUserBtn" style="width:100%; justify-content:center;">계정 생성</button>
+        </div>
+      </div>
+    </div>
+    <div class="card"><table class="table" id="userTable"></table></div>
+  </div>
+
+  <div id="panel-grants" class="panel" style="display:none;">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-head"><h2>열람 권한 추가</h2></div>
+      <p class="muted" style="font-size:12.5px; margin-top:-4px;">기본적으로 각 팀은 자기 팀 게시판만 볼 수 있어요. 여기서 특정 팀에게 다른 팀 게시판을 볼 수 있는 권한을 추가로 줄 수 있어요.</p>
+      <div class="form-inline">
+        <div class="form-row"><label>이 팀이</label><select class="input" id="gViewer"></select></div>
+        <div class="form-row"><label>이 팀 게시판도 볼 수 있음</label><select class="input" id="gTarget"></select></div>
+        <div class="form-row" style="display:flex; align-items:flex-end;">
+          <button class="btn btn-primary" id="addGrantBtn" style="width:100%; justify-content:center;">권한 추가</button>
+        </div>
+      </div>
+    </div>
+    <div class="card"><table class="table" id="grantTable"></table></div>
+  </div>
+
+  <div id="panel-busy" class="panel" style="display:none;">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-head"><h2>바쁜 업무 기간 등록</h2></div>
+      <div class="form-inline">
+        <div class="form-row"><label>팀</label><select class="input" id="bTeam"></select></div>
+        <div class="form-row" style="flex:2"><label>사유</label><input class="input" id="bTitle" placeholder="예: 월마감 정산 주간"></div>
+      </div>
+      <div class="form-inline">
+        <div class="form-row"><label>시작일</label><input class="input" type="date" id="bStart"></div>
+        <div class="form-row"><label>종료일</label><input class="input" type="date" id="bEnd"></div>
+        <div class="form-row"><label style="display:flex; align-items:center; gap:6px; margin-top:8px;">
+          <input type="checkbox" id="bRepeat"> 매달 같은 날짜에 반복
+        </label></div>
+      </div>
+      <div class="form-row"><label>메모 (선택)</label><input class="input" id="bNote"></div>
+      <div style="text-align:right;"><button class="btn btn-primary" id="addBusyBtn">등록</button></div>
+    </div>
+    <div class="card"><table class="table" id="busyTable"></table></div>
+  </div>
+
+  <div id="panel-posts" class="panel" style="display:none;">
+    <div class="card"><table class="table" id="postTable"></table></div>
+  </div>
+</div>
+
+<script src="/사내워크스페이스/shared.js"></script>
+<script>
+let user, teams = [], users = [], grants = [], busyPeriods = [];
+
+(async () => {
+  user = await requireAuth();
+  if (!user) return;
+  if (user.role !== 'admin') { location.href = `${WS_BASE}/index.html`; return; }
+
+  const teamsRes = await fetchJSON(`${API_WS}?action=list_teams`);
+  teams = teamsRes.teams;
+  renderNav(user, 'admin', teams);
+  fillTeamSelects();
+
+  await Promise.all([loadUsers(), loadGrants(), loadBusy()]);
+})();
+
+function fillTeamSelects() {
+  const opts = teams.map(t => `<option value="${t.id}">${escapeHtml(t.division_name)} · ${escapeHtml(t.name)}</option>`).join('');
+  ['uTeam', 'gViewer', 'gTarget', 'bTeam'].forEach(id => {
+    document.getElementById(id).innerHTML = (id === 'uTeam' ? '<option value="">미배정</option>' : '') + opts;
+  });
+}
+
+function teamName(id) {
+  const t = teams.find(t => t.id === id);
+  return t ? `${t.division_name} · ${t.name}` : '-';
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+    tab.classList.add('active');
+    document.getElementById(`panel-${tab.dataset.tab}`).style.display = 'block';
+    if (tab.dataset.tab === 'posts') loadPosts();
+  };
+});
+
+// ---- 계정 관리 ----
+async function loadUsers() {
+  const { users: rows } = await fetchJSON(`${API_WS}?action=list_users`);
+  users = rows;
+  const table = document.getElementById('userTable');
+  table.innerHTML = `
+    <tr><th>아이디</th><th>이름</th><th>팀</th><th>권한</th><th></th></tr>
+    ${users.map(u => `
+      <tr>
+        <td>${escapeHtml(u.username)}</td>
+        <td>${escapeHtml(u.name)}</td>
+        <td>${escapeHtml(u.team_name || '미배정')}</td>
+        <td>${u.role === 'admin' ? '<span class="badge badge-admin">관리자</span>' : '일반'}</td>
+        <td style="text-align:right; white-space:nowrap;">
+          <button class="btn btn-sm" onclick="resetPassword(${u.id})">비번 초기화</button>
+          <button class="btn btn-sm btn-ghost" onclick="deleteUser(${u.id})">삭제</button>
+        </td>
+      </tr>
+    `).join('')}
+  `;
+}
+
+document.getElementById('createUserBtn').onclick = async () => {
+  const username = document.getElementById('uUsername').value.trim();
+  const password = document.getElementById('uPassword').value;
+  const name = document.getElementById('uName').value.trim();
+  const team_id = document.getElementById('uTeam').value || null;
+  const role = document.getElementById('uRole').value;
+  if (!username || !password || !name) return toast('아이디/비밀번호/이름을 입력해주세요.', 'error');
+  try {
+    await fetchJSON(`${API_WS}?action=create_user`, { method: 'POST', body: { action: 'create_user', username, password, name, team_id, role } });
+    document.getElementById('uUsername').value = '';
+    document.getElementById('uPassword').value = '';
+    document.getElementById('uName').value = '';
+    await loadUsers();
+    toast('계정을 생성했어요.');
+  } catch (e) { toast(e.message, 'error'); }
+};
+
+async function resetPassword(id) {
+  const password = prompt('새 비밀번호를 입력해주세요.');
+  if (!password) return;
+  await fetchJSON(`${API_WS}?action=reset_password`, { method: 'POST', body: { action: 'reset_password', id, password } });
+  toast('비밀번호를 변경했어요.');
+}
+
+async function deleteUser(id) {
+  const ok = await confirmModal({ title: '계정 삭제', body: '이 계정을 삭제할까요? 되돌릴 수 없어요.', confirmText: '삭제', danger: true });
+  if (!ok) return;
+  try {
+    await fetchJSON(`${API_WS}?action=delete_user`, { method: 'POST', body: { action: 'delete_user', id } });
+    await loadUsers();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ---- 열람 권한 ----
+async function loadGrants() {
+  const { grants: rows } = await fetchJSON(`${API_WS}?action=list_grants`);
+  grants = rows;
+  const table = document.getElementById('grantTable');
+  if (rows.length === 0) { table.innerHTML = '<tr><td class="empty">추가된 열람 권한이 없어요.</td></tr>'; return; }
+  table.innerHTML = `
+    <tr><th>보는 팀</th><th>볼 수 있는 게시판</th><th></th></tr>
+    ${rows.map(g => `
+      <tr>
+        <td>${escapeHtml(g.viewer_team_name)}</td>
+        <td>${escapeHtml(g.target_team_name)}</td>
+        <td style="text-align:right;"><button class="btn btn-sm btn-ghost" onclick="removeGrant(${g.id})">삭제</button></td>
+      </tr>
+    `).join('')}
+  `;
+}
+
+document.getElementById('addGrantBtn').onclick = async () => {
+  const viewer_team_id = document.getElementById('gViewer').value;
+  const target_team_id = document.getElementById('gTarget').value;
+  try {
+    await fetchJSON(`${API_WS}?action=add_grant`, { method: 'POST', body: { action: 'add_grant', viewer_team_id, target_team_id } });
+    await loadGrants();
+    toast('열람 권한을 추가했어요.');
+  } catch (e) { toast(e.message, 'error'); }
+};
+
+async function removeGrant(id) {
+  await fetchJSON(`${API_WS}?action=remove_grant`, { method: 'POST', body: { action: 'remove_grant', id } });
+  await loadGrants();
+}
+
+// ---- 바쁜 업무 기간 ----
+async function loadBusy() {
+  const { busy_periods: rows } = await fetchJSON(`${API_WS}?action=list_busy`);
+  busyPeriods = rows;
+  const table = document.getElementById('busyTable');
+  if (rows.length === 0) { table.innerHTML = '<tr><td class="empty">등록된 바쁜 기간이 없어요.</td></tr>'; return; }
+  table.innerHTML = `
+    <tr><th>팀</th><th>사유</th><th>기간</th><th>반복</th><th></th></tr>
+    ${rows.map(b => `
+      <tr>
+        <td>${escapeHtml(b.team_name)}</td>
+        <td>${escapeHtml(b.title)}${b.note ? `<div class="muted" style="font-size:11.5px;">${escapeHtml(b.note)}</div>` : ''}</td>
+        <td>${fmtDate(b.start_date)} ~ ${fmtDate(b.end_date)}</td>
+        <td>${b.repeat_monthly ? '매달 반복' : '1회'}</td>
+        <td style="text-align:right;"><button class="btn btn-sm btn-ghost" onclick="removeBusy(${b.id})">삭제</button></td>
+      </tr>
+    `).join('')}
+  `;
+}
+
+document.getElementById('addBusyBtn').onclick = async () => {
+  const team_id = document.getElementById('bTeam').value;
+  const title = document.getElementById('bTitle').value.trim();
+  const start_date = document.getElementById('bStart').value;
+  const end_date = document.getElementById('bEnd').value;
+  const repeat_monthly = document.getElementById('bRepeat').checked;
+  const note = document.getElementById('bNote').value.trim();
+  if (!team_id || !title || !start_date || !end_date) return toast('필수 항목을 입력해주세요.', 'error');
+  try {
+    await fetchJSON(`${API_WS}?action=upsert_busy`, { method: 'POST', body: { action: 'upsert_busy', team_id, title, start_date, end_date, repeat_monthly, note } });
+    document.getElementById('bTitle').value = '';
+    document.getElementById('bStart').value = '';
+    document.getElementById('bEnd').value = '';
+    document.getElementById('bNote').value = '';
+    document.getElementById('bRepeat').checked = false;
+    await loadBusy();
+    toast('바쁜 기간을 등록했어요.');
+  } catch (e) { toast(e.message, 'error'); }
+};
+
+async function removeBusy(id) {
+  await fetchJSON(`${API_WS}?action=delete_busy`, { method: 'POST', body: { action: 'delete_busy', id } });
+  await loadBusy();
+}
+
+// ---- 전체 게시글 ----
+async function loadPosts() {
+  const { posts } = await fetchJSON(`${API_WS}?action=admin_list_all_posts`);
+  const table = document.getElementById('postTable');
+  if (posts.length === 0) { table.innerHTML = '<tr><td class="empty">게시글이 없어요.</td></tr>'; return; }
+  table.innerHTML = `
+    <tr><th>팀</th><th>유형</th><th>제목</th><th>작성자</th><th>작성일</th></tr>
+    ${posts.map(p => `
+      <tr>
+        <td>${escapeHtml(p.team_name || '-')}</td>
+        <td>${p.type === 'task' ? '할일' : '업무일지'}</td>
+        <td>${escapeHtml(p.title)}</td>
+        <td>${escapeHtml(p.author_name)}</td>
+        <td>${fmtDateTime(p.created_at)}</td>
+      </tr>
+    `).join('')}
+  `;
+}
+</script>
+</body>
+</html>

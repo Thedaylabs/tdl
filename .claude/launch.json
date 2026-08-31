@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "admin",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "3000"],
+      "port": 3000
+    },
+    {
+      "name": "report-analysis",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "C:\\Users\\daybe\\AppData\\Local\\Temp\\claude\\C--Users-daybe---\\af76a128-5992-4f01-b6fa-e99e38ccbb72\\scratchpad\\static-server.ps1", "-Port", "5500", "-Root", "C:\\Users\\daybe\\나현"],
+      "port": 5500
+    },
+    {
+      "name": "workspace",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "C:\\Users\\daybe\\AppData\\Local\\Temp\\claude\\C--Users-daybe---\\35caad39-d326-4e98-a21d-2f3f251128ad\\scratchpad\\static-server.ps1", "-Port", "5501", "-Root", "C:\\Users\\daybe\\나현"],
+      "port": 5501
+    }
+  ]
+}

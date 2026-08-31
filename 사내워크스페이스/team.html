@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>팀 게시판 - 더데이랩스 워크스페이스</title>
+<link rel="stylesheet" href="/사내워크스페이스/shared.css">
+</head>
+<body>
+<div class="navbar" id="navbar"></div>
+<div class="container">
+  <h1 class="page-title" id="teamTitle">팀 게시판</h1>
+  <p class="page-sub" id="teamSub"></p>
+  <div id="busyBanner"></div>
+
+  <div class="tabs">
+    <div class="tab active" data-type="log">업무일지</div>
+    <div class="tab" data-type="task">할일</div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <button class="btn btn-sm btn-primary" id="newPostBtn">+ 새 글 작성</button>
+    <div id="postForm" style="display:none; margin-top:14px;">
+      <div class="form-row"><label>제목</label><input class="input" id="postTitle"></div>
+      <div class="form-row"><label>내용</label><textarea class="textarea" id="postContent"></textarea></div>
+      <div class="form-row" id="dueDateRow" style="display:none;"><label>기한</label><input class="input" type="date" id="postDue"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button class="btn" id="postCancel">취소</button>
+        <button class="btn btn-primary" id="postSubmit">등록</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card"><div id="postList"></div></div>
+</div>
+
+<script src="/사내워크스페이스/shared.js"></script>
+<script>
+let user, teamId, teams = [], busyPeriods = [], activeType = 'log';
+
+(async () => {
+  user = await requireAuth();
+  if (!user) return;
+  teamId = Number(new URLSearchParams(location.search).get('team'));
+  if (!teamId) { location.href = `${WS_BASE}/index.html`; return; }
+
+  const [teamsRes, busyRes] = await Promise.all([
+    fetchJSON(`${API_WS}?action=list_teams`),
+    fetchJSON(`${API_WS}?action=list_busy`)
+  ]);
+  teams = teamsRes.teams;
+  busyPeriods = busyRes.busy_periods;
+  renderNav(user, teamId === user.team_id ? 'myteam' : 'home', teams);
+
+  const team = teams.find(t => t.id === teamId);
+  if (!team) { toast('팀을 찾을 수 없어요.', 'error'); return; }
+  document.getElementById('teamTitle').textContent = `${team.name} 게시판`;
+  document.getElementById('teamSub').textContent = team.division_name || '';
+  renderBusyBanner(team);
+
+  document.getElementById('dueDateRow').style.display = activeType === 'task' ? 'block' : 'none';
+  await loadPosts();
+})();
+
+function renderBusyBanner(team) {
+  const busy = findBusyToday(busyPeriods, teamId);
+  const el = document.getElementById('busyBanner');
+  if (!busy) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="card" style="background:var(--busy-bg); border-color:var(--busy-border); margin-bottom:16px;">
+    🔥 <strong>${escapeHtml(team.name)}</strong>은(는) 지금 <strong>${escapeHtml(busy.title)}</strong> 기간이에요. 업무 요청 시 우선순위가 아닐 수 있어요.
+  </div>`;
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = async () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeType = tab.dataset.type;
+    document.getElementById('dueDateRow').style.display = activeType === 'task' ? 'block' : 'none';
+    document.getElementById('postForm').style.display = 'none';
+    await loadPosts();
+  };
+});
+
+async function loadPosts() {
+  const list = document.getElementById('postList');
+  try {
+    const { posts } = await fetchJSON(`${API_WS}?action=list_posts&team_id=${teamId}&type=${activeType}`);
+    if (posts.length === 0) { list.innerHTML = '<div class="empty">등록된 글이 없어요.</div>'; return; }
+    list.innerHTML = posts.map(p => renderPost(p)).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="empty">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderPost(p) {
+  const canManage = user.role === 'admin' || p.author_id === user.id || p.team_id === user.team_id;
+  const statusBadge = p.type === 'task'
+    ? `<span class="badge ${p.status === 'done' ? 'badge-done' : 'badge-open'}">${p.status === 'done' ? '완료' : '진행중'}</span>`
+    : '';
+  return `
+    <div class="post-item">
+      <div class="post-head">
+        <div class="post-title ${p.status === 'done' ? 'done' : ''}">${escapeHtml(p.title)}</div>
+        ${statusBadge}
+      </div>
+      ${p.content ? `<div class="post-content">${escapeHtml(p.content)}</div>` : ''}
+      <div class="post-meta">
+        <span>${escapeHtml(p.author_name)}</span>
+        <span>${fmtDateTime(p.created_at)}</span>
+        ${p.due_date ? `<span>기한 ${fmtDate(p.due_date)}</span>` : ''}
+      </div>
+      ${canManage ? `
+        <div class="post-actions">
+          ${p.type === 'task' ? `<button class="btn btn-sm" onclick="toggleStatus(${p.id}, '${p.status === 'done' ? 'open' : 'done'}')">${p.status === 'done' ? '다시 열기' : '완료 처리'}</button>` : ''}
+          <button class="btn btn-sm btn-ghost" onclick="deletePost(${p.id})">삭제</button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+document.getElementById('newPostBtn').onclick = () => {
+  document.getElementById('postForm').style.display = 'block';
+};
+document.getElementById('postCancel').onclick = () => {
+  document.getElementById('postForm').style.display = 'none';
+};
+
+document.getElementById('postSubmit').onclick = async () => {
+  const title = document.getElementById('postTitle').value.trim();
+  const content = document.getElementById('postContent').value.trim();
+  const due_date = document.getElementById('postDue').value;
+  if (!title) return toast('제목을 입력해주세요.', 'error');
+
+  if (activeType === 'task') {
+    const busy = findBusyToday(busyPeriods, teamId);
+    if (busy) {
+      const ok = await confirmModal({
+        title: '바쁜 팀이에요',
+        body: `이 팀은 지금 <strong>${escapeHtml(busy.title)}</strong> 기간이라 업무 요청을 등록해도 우선순위가 아닐 수 있어요.<br>그래도 등록하시겠어요?`,
+        confirmText: '등록할게요',
+        cancelText: '취소'
+      });
+      if (!ok) return;
+    }
+  }
+
+  try {
+    await fetchJSON(`${API_WS}?action=create_post`, {
+      method: 'POST',
+      body: { action: 'create_post', team_id: teamId, type: activeType, title, content, due_date: due_date || null }
+    });
+    document.getElementById('postTitle').value = '';
+    document.getElementById('postContent').value = '';
+    document.getElementById('postDue').value = '';
+    document.getElementById('postForm').style.display = 'none';
+    await loadPosts();
+    toast('등록했어요.');
+  } catch (e) { toast(e.message, 'error'); }
+};
+
+async function toggleStatus(id, status) {
+  await fetchJSON(`${API_WS}?action=update_post_status`, { method: 'POST', body: { action: 'update_post_status', id, status } });
+  await loadPosts();
+}
+
+async function deletePost(id) {
+  const ok = await confirmModal({ title: '삭제 확인', body: '이 글을 삭제할까요?', confirmText: '삭제', danger: true });
+  if (!ok) return;
+  await fetchJSON(`${API_WS}?action=delete_post`, { method: 'POST', body: { action: 'delete_post', id } });
+  await loadPosts();
+}
+</script>
+</body>
+</html>
