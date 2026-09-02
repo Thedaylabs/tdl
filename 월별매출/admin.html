@@ -1527,12 +1527,15 @@ function calcFees(row) {
   const schedule = getRateScheduleFor(branch, ym);
   if (schedule) {
     const VAT = 1.1;
-    const mgmtAmt = schedule.mgmtType === 'fixed'
+    // 건대입구점: 관리자 등록 고정 수수료율이 있어도 "월매출 3억 미만 경영수수료 면제" 특약은 유지
+    const mgmtExempt = branch === '건대입구점' && effTot < 3*E8;
+    const mgmtAmt = mgmtExempt ? 0 : (schedule.mgmtType === 'fixed'
       ? Math.round(schedule.mgmtVal * VAT)
-      : Math.round(effTot * schedule.mgmtVal / 100 * VAT);
+      : Math.round(effTot * schedule.mgmtVal / 100 * VAT));
     const mktBasisAmt = schedule.mktType === 'pct_domestic' ? dom : effTot;
     const mktAmt = Math.round(mktBasisAmt * schedule.mktVal / 100 * VAT);
-    return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:describeRateSchedule(schedule), overridden:false };
+    const formulaTxt = describeRateSchedule(schedule) + (mgmtExempt ? ' (월매출 3억 미만 경영수수료 면제 적용)' : '');
+    return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:formulaTxt, overridden:false };
   }
 
   const rule = FEE_RULES[branch];
