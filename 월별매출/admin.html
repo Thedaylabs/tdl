@@ -438,7 +438,7 @@
           <option>강남점</option><option>안양범계점</option><option>여의도점</option>
           <option>영등포점</option><option>대전둔산점</option><option>명동점</option>
           <option>분당점</option><option>인천구월점</option><option>전주점</option>
-          <option>부산서면점</option><option>명동2호점</option><option>수원점</option>
+          <option>부산서면점</option><option>명동시그니처데이뷰의원</option><option>수원점</option>
         </optgroup>
         <optgroup label="세라미크의원">
           <option>세라미크 강남점</option><option>세라미크 명동점</option>
@@ -491,7 +491,7 @@
           <option>강남점</option><option>안양범계점</option><option>여의도점</option>
           <option>영등포점</option><option>대전둔산점</option><option>명동점</option>
           <option>분당점</option><option>인천구월점</option><option>전주점</option>
-          <option>부산서면점</option><option>명동2호점</option><option>수원점</option>
+          <option>부산서면점</option><option>명동시그니처데이뷰의원</option><option>수원점</option>
         </optgroup>
         <optgroup label="세라미크의원">
           <option>세라미크 강남점</option><option>세라미크 명동점</option>
@@ -720,7 +720,7 @@
           <option>강남점</option><option>안양범계점</option><option>여의도점</option>
           <option>영등포점</option><option>대전둔산점</option><option>명동점</option>
           <option>분당점</option><option>인천구월점</option><option>전주점</option>
-          <option>부산서면점</option><option>명동2호점</option><option>수원점</option>
+          <option>부산서면점</option><option>명동시그니처데이뷰의원</option><option>수원점</option>
         </optgroup>
         <optgroup label="세라미크의원">
           <option>세라미크 강남점</option><option>세라미크 명동점</option>
@@ -772,7 +772,7 @@
           <option>강남점</option><option>안양범계점</option><option>여의도점</option>
           <option>영등포점</option><option>대전둔산점</option><option>명동점</option>
           <option>분당점</option><option>인천구월점</option><option>전주점</option>
-          <option>부산서면점</option><option>명동2호점</option><option>수원점</option>
+          <option>부산서면점</option><option>명동시그니처데이뷰의원</option><option>수원점</option>
         </optgroup>
         <optgroup label="세라미크의원">
           <option>세라미크 강남점</option><option>세라미크 명동점</option>
@@ -1021,7 +1021,7 @@ document.addEventListener('keydown',e=>{
 const SCRIPT_URL = '/api/sync';
 
 let BRANCHES_DAYB = ['강서발산점','건대입구점','광주상무점','강남점','안양범계점',
-  '여의도점','영등포점','대전둔산점','명동점','분당점','인천구월점','전주점','부산서면점','명동2호점','수원점'];
+  '여의도점','영등포점','대전둔산점','명동점','분당점','인천구월점','전주점','부산서면점','명동시그니처데이뷰의원','수원점'];
 let BRANCHES_CERA = ['세라미크 강남점', '세라미크 명동점'];
 let ALL_BRANCHES  = [...BRANCHES_DAYB, ...BRANCHES_CERA];
 
@@ -1039,7 +1039,7 @@ const BRANCH_CEO = {
   '강서발산점':'하성종', '건대입구점':'서명완', '광주상무점':'진보경', '강남점':'임정욱',
   '안양범계점':'양윤성', '여의도점':'권오민', '대전둔산점':'이삭', '명동점':'김영수',
   '분당점':'이충연', '인천구월점':'이택규', '전주점':'박만우', '부산서면점':'이다인',
-  '명동2호점':'김현지', '영등포점':'김장미', '수원점':'노성진',
+  '명동시그니처데이뷰의원':'김현지', '영등포점':'김장미', '수원점':'노성진',
   '세라미크 강남점':'이종진', '세라미크 명동점':'우동진',
 };
 
@@ -1436,7 +1436,7 @@ const FEE_RULES = {
   '부산서면점':    { formula:'경영 1.5억 이하 면제/1.5억~3억:2.75%/3억+:5.5% | 마케팅 국내매출 5%+VAT',
     mgmt:(t)=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);},
     mkt:(t,ym,dom)=>Math.round(dom*0.055) },
-  '명동2호점':     { formula:'경영 15%+VAT(~26.04)/10%+VAT(26.05~26.07)/구간누진(26.08~: 15억미만11%,15~20억13.75%,20억+16.5%, 모두 VAT포함) | 마케팅 국내5%+VAT(26.01~26.06)/없음(26.07~)',
+  '명동시그니처데이뷰의원':     { formula:'경영 15%+VAT(~26.04)/10%+VAT(26.05~26.07)/구간누진(26.08~: 15억미만11%,15~20억13.75%,20억+16.5%, 모두 VAT포함) | 마케팅 국내5%+VAT(26.01~26.06)/없음(26.07~)',
     mgmt:(t,ym)=>{
       if(ym>='2026-08'){
         if(t<15*E8)return Math.round(t*0.11);
@@ -1515,8 +1515,8 @@ function calcFees(row) {
   const spRaw = spFromRow || (branch === '강남점' ? (GANGNAM_SPECIAL_FALLBACK[ym] || 0) : 0);
   // 강남점은 26.06부터 특약사항 수수료 차감 없음
   const sp = (branch === '강남점' && ym >= '2026-06') ? 0 : spRaw;
-  // 분당점·명동2호점(26.06~)은 특약을 총매출에서 차감 후 수수료 계산
-  const isSpecialDeduct = branch === '분당점' || (branch === '명동2호점' && ym >= '2026-06');
+  // 분당점·명동시그니처데이뷰의원(26.06~)은 특약을 총매출에서 차감 후 수수료 계산
+  const isSpecialDeduct = branch === '분당점' || (branch === '명동시그니처데이뷰의원' && ym >= '2026-06');
   // 영등포점은 여신티켓을 총매출에 합산 후 수수료 계산
   const isSpecialAdd = branch === '영등포점';
   const effTot = isSpecialDeduct ? Math.max(0, tot - sp) : isSpecialAdd ? tot + sp : tot;
@@ -1900,7 +1900,7 @@ const BRANCH_SPECIAL = {
   ] },
   '명동점':    { type:'info',  note:'명동점은 마케팅 수수료 제외 지점입니다.' },
   '분당점':    { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'화장품 판매 제외',id:'ef_sp_cosmetic'}] },
-  '명동2호점': { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'소개_직원소개',id:'ef_sp_md2_intro_staff'},{label:'소개_원장님소개',id:'ef_sp_md2_intro_director'},{label:'직원',id:'ef_sp_md2_employee'},{label:'임직원할인(특가)',id:'ef_sp_md2_exec_discount'},{label:'SC임직원10%할인',id:'ef_sp_md2_sc_discount'},{label:'화장품 매출',id:'ef_sp_md2_cosmetic'}] },
+  '명동시그니처데이뷰의원': { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'소개_직원소개',id:'ef_sp_md2_intro_staff'},{label:'소개_원장님소개',id:'ef_sp_md2_intro_director'},{label:'직원',id:'ef_sp_md2_employee'},{label:'임직원할인(특가)',id:'ef_sp_md2_exec_discount'},{label:'SC임직원10%할인',id:'ef_sp_md2_sc_discount'},{label:'화장품 매출',id:'ef_sp_md2_cosmetic'}] },
   '부산서면점':{ type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'환불건 제외',id:'ef_sp_refund'}] },
   '영등포점':  { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요. (여신티켓 금액은 총 매출에 합산됩니다.)', items:[{label:'여신티켓',id:'ef_sp_ydp_ticket'}] }
 };
@@ -2403,7 +2403,7 @@ const DEFAULT_PIN_MAP = {
   '강서발산점':'0399','건대입구점':'7791','광주상무점':'7705','강남점':'2225',
   '안양범계점':'7122','여의도점':'5664','영등포점':'4842','대전둔산점':'9770',
   '명동점':'7771','분당점':'8026','인천구월점':'7960','전주점':'1004',
-  '부산서면점':'7890','명동2호점':'4090','수원점':'7117','세라미크 강남점':'3430',
+  '부산서면점':'7890','명동시그니처데이뷰의원':'4090','수원점':'7117','세라미크 강남점':'3430',
   '세라미크 명동점':'2264'
 };
 
@@ -2997,7 +2997,7 @@ function renderMgmtCheck() {
     (!b || r.branch === b)
   );
 
-  // 동일 지점+월로 중복 제출된 경우 가장 최근 제출 건만 표시 (예: 명동2호점 중복)
+  // 동일 지점+월로 중복 제출된 경우 가장 최근 제출 건만 표시 (예: 명동시그니처데이뷰의원 중복)
   rows = dedupLatestByBranchMonth(rows).kept;
 
   rows.sort((a,b)=>ALL_BRANCHES.indexOf(a.branch)-ALL_BRANCHES.indexOf(b.branch));

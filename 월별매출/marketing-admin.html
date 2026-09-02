@@ -235,7 +235,7 @@
 // ════════════════════════════════════════════════════════
 const SCRIPT_URL = '/api/sync';
 const BRANCHES_DAYB = ['강서발산점','건대입구점','광주상무점','강남점','안양범계점',
-  '여의도점','영등포점','대전둔산점','명동점','분당점','인천구월점','전주점','부산서면점','명동2호점','수원점'];
+  '여의도점','영등포점','대전둔산점','명동점','분당점','인천구월점','전주점','부산서면점','명동시그니처데이뷰의원','수원점'];
 const BRANCHES_CERA = ['세라미크 강남점', '세라미크 명동점'];
 const ALL_BRANCHES  = [...BRANCHES_DAYB, ...BRANCHES_CERA];
 function getBrand(branch) { return branch.startsWith('세라미크') ? '세라미크' : '데이뷰'; }
@@ -273,7 +273,7 @@ const FEE_RULES = {
     }},
   '부산서면점':    { formula:'국내매출 5%+VAT', mgmt:(t)=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);},
     mkt:(t,ym,dom)=>Math.round(dom*0.055) },
-  '명동2호점':     { formula:'국내5%+VAT(26.01~26.06)/없음(26.07~)', mgmt:(t,ym)=>{
+  '명동시그니처데이뷰의원':     { formula:'국내5%+VAT(26.01~26.06)/없음(26.07~)', mgmt:(t,ym)=>{
       if(ym>='2026-08'){ if(t<15*E8)return Math.round(t*0.11); if(t<20*E8)return Math.round(t*0.1375); return Math.round(t*0.165); }
       return ym>='2026-05'?Math.round(t*0.11):Math.round(t*0.165);
     }, mkt:(t,ym,dom)=>ym>='2026-07'?0:ym>='2026-01'?Math.round(dom*0.055):0 },
@@ -292,7 +292,7 @@ function calcFees(row) {
   const spFromRow = row.special ? Object.values(row.special).reduce((s,v)=>s+(v.amount||0),0) : 0;
   const spRaw = spFromRow || (branch === '강남점' ? (GANGNAM_SPECIAL_FALLBACK[ym] || 0) : 0);
   const sp = (branch === '강남점' && ym >= '2026-06') ? 0 : spRaw;
-  const isSpecialDeduct = branch === '분당점' || (branch === '명동2호점' && ym >= '2026-06');
+  const isSpecialDeduct = branch === '분당점' || (branch === '명동시그니처데이뷰의원' && ym >= '2026-06');
   const isSpecialAdd = branch === '영등포점';
   const effTot = isSpecialDeduct ? Math.max(0, tot - sp) : isSpecialAdd ? tot + sp : tot;
   const mgmtAmt = rule.mgmt(effTot, ym, dom);
