@@ -1540,6 +1540,56 @@ function calcFees(row) {
   return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:rule.formula, overridden:false };
 }
 
+// 동일 지점+월로 중복 제출된 건 중 최신(submittedAt 기준) 1건만 선택
+function findLatestRow(rows, branch, month) {
+  const matches = rows.filter(r => r.branch === branch && r.month === month);
+  if (!matches.length) return null;
+  return matches.reduce((a, b) => new Date(b.submittedAt||0) >= new Date(a.submittedAt||0) ? b : a);
+}
+
+// rows를 지점+월 기준으로 중복 제거(최신 1건만 유지) — { kept, removedIds } 반환
+function dedupLatestByBranchMonth(rows) {
+  const dedup = new Map();
+  rows.forEach(r => {
+    const key = r.branch + '|' + r.month;
+    const prev = dedup.get(key);
+    if (!prev || new Date(r.submittedAt||0) >= new Date(prev.submittedAt||0)) dedup.set(key, r);
+  });
+  const kept = [...dedup.values()];
+  const keptIds = new Set(kept.map(r => r.id));
+  const removedIds = rows.filter(r => !keptIds.has(r.id)).map(r => r.id);
+  return { kept, removedIds };
+}
+
+// 지점+월 중복 제출로 밀려난(구버전) 건들을 서버에서 삭제
+function pruneDuplicateReports(ids) {
+  if (!ids || !ids.length) return;
+  ids.forEach(id => {
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_sales', id })
+    }).catch(() => {});
+    _deletedIds.add(id);
+  });
+  _persistDeletedIds();
+  const stored = JSON.parse(localStorage.getItem('sales_data') || '[]');
+  const idSet = new Set(ids);
+  localStorage.setItem('sales_data', JSON.stringify(stored.filter(r => !idSet.has(r.id))));
+}
+
+// 경영컨설팅 수수료가 매출액과 무관하게 고정인 지점인지 판별
+// (RATE_HISTORY에 고정 요율 등록된 경우, 또는 FEE_RULES 공식이 매출 0일 때와 매우 클 때 항상 같은 값을 낼 경우)
+function isMgmtFeeFixed(branch, ym) {
+  const schedule = getRateScheduleFor(branch, ym);
+  if (schedule) return schedule.mgmtType === 'fixed';
+  const rule = FEE_RULES[branch];
+  if (!rule) return false;
+  const a = rule.mgmt(0, ym, 0, 0);
+  const b = rule.mgmt(999999999999, ym, 999999999999, 0);
+  return a === b && a > 0;
+}
+
 // ════════════════════════════════════════════════════════
 // 탭1: 전체 현황
 // ════════════════════════════════════════════════════════
@@ -1679,6 +1729,13 @@ function getReportsFiltered() {
 function renderReports() {
   const sortVal = document.getElementById('t2Sort').value;
   let rows = getReportsFiltered();
+
+  // 동일 지점+월 중복 제출 시 최신 1건만 표시 — 구버전 건은 확인 후 서버에서 삭제
+  const { kept, removedIds } = dedupLatestByBranchMonth(rows);
+  rows = kept;
+  if (removedIds.length && confirm(`동일 지점·월로 중복 제출된 데이터 ${removedIds.length}건이 발견됐습니다.\n최신 제출 건만 남기고 나머지를 삭제할까요?`)) {
+    pruneDuplicateReports(removedIds);
+  }
 
   if (sortVal==='desc') rows.sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0));
   else if (sortVal==='asc') rows.sort((a,b)=>new Date(a.submittedAt||0)-new Date(b.submittedAt||0));
@@ -2509,8 +2566,9 @@ function renderInvoiceTab() {
   let totalSales=0, totalMgmt=0, totalMkt=0;
 
   ALL_BRANCHES.forEach(branch => {
-    const row = all.find(r => r.branch === branch && r.month === month);
-    if (!row) {
+    const row = findLatestRow(all, branch, month);
+    const fixedNoData = !row && isMgmtFeeFixed(branch, month);
+    if (!row && !fixedNoData) {
       if (isBranchClosed(branch)) return; // 폐업 지점은 해당 월 데이터가 없으면 목록에서 제외
       html += `<tr style="border-bottom:1px solid #f3f4f6;">
         <td style="padding:8px 10px;font-weight:600;">${branch}</td>
@@ -2520,14 +2578,15 @@ function renderInvoiceTab() {
       </tr>`;
       return;
     }
-    const fees = calcFees(row);
-    const tot  = row.salesTotal || 0;
+    const effRow = row || { branch, month, salesTotal:0, salesDomestic:0, salesOverseas:0, special:{} };
+    const fees = calcFees(effRow);
+    const tot  = effRow.salesTotal || 0;
     totalSales += tot;
     totalMgmt  += fees.mgmt;
     totalMkt   += fees.mkt;
     html += `<tr style="border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background=''">
-      <td style="padding:8px 10px;font-weight:600;">${branch}</td>
-      <td style="padding:8px 10px;text-align:right;">${fmt(tot)}</td>
+      <td style="padding:8px 10px;font-weight:600;">${branch}${fixedNoData?' <span style="font-size:.68rem;color:#a78bfa;font-weight:500;">(고정수수료·매출자료 미등록)</span>':''}</td>
+      <td style="padding:8px 10px;text-align:right;">${fixedNoData?'-':fmt(tot)}</td>
       <td style="padding:8px 10px;text-align:right;color:#4f46e5;">${fmt(fees.mgmt)}</td>
       <td style="padding:8px 10px;text-align:right;color:#0891b2;">${fmt(fees.mkt)}</td>
       <td style="padding:8px 10px;text-align:right;font-weight:700;">${fmt(fees.mgmt + fees.mkt)}</td>
@@ -2604,7 +2663,7 @@ async function downloadAllInvoices() {
   if (!month) { alert('월을 선택하세요.'); return; }
 
   const all = JSON.parse(localStorage.getItem('sales_data') || '[]');
-  const branches = ALL_BRANCHES.filter(b => all.find(r => r.branch === b && r.month === month));
+  const branches = ALL_BRANCHES.filter(b => findLatestRow(all, b, month) || isMgmtFeeFixed(b, month));
   if (!branches.length) { alert('해당 월에 매출 데이터가 있는 지점이 없습니다.'); return; }
 
   const btn = document.querySelector('button[onclick="downloadAllInvoices()"]');
@@ -2694,14 +2753,15 @@ async function downloadAllInvoices() {
 
 function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt, mode) {
   const all = JSON.parse(localStorage.getItem('sales_data')||'[]');
-  const row = all.find(r => r.branch === branch && r.month === month);
-  if (!row) {
+  const row = findLatestRow(all, branch, month);
+  if (!row && !isMgmtFeeFixed(branch, month)) {
     const msg = `<div style="text-align:center;padding:60px;color:#e53e3e;font-size:1rem;">⚠️ ${branch} ${month} 매출 데이터가 없습니다.<br>먼저 매출 자료를 입력해주세요.</div>`;
     return isPreview ? msg : `<!DOCTYPE html><html><body>${msg}</body></html>`;
   }
+  const effRow = row || { branch, month, salesTotal:0, salesDomestic:0, salesOverseas:0, special:{} };
 
-  const fees = calcFees(row);
-  const tot  = row.salesTotal || 0;
+  const fees = calcFees(effRow);
+  const tot  = effRow.salesTotal || 0;
   const mgmt = fees.mgmt;
   const mkt  = fees.mkt;
   const [y, m] = month.split('-');
@@ -2924,13 +2984,7 @@ function renderMgmtCheck() {
   );
 
   // 동일 지점+월로 중복 제출된 경우 가장 최근 제출 건만 표시 (예: 명동2호점 중복)
-  const dedup = new Map();
-  rows.forEach(r => {
-    const key = r.branch + '|' + r.month;
-    const prev = dedup.get(key);
-    if (!prev || new Date(r.submittedAt||0) >= new Date(prev.submittedAt||0)) dedup.set(key, r);
-  });
-  rows = [...dedup.values()];
+  rows = dedupLatestByBranchMonth(rows).kept;
 
   rows.sort((a,b)=>ALL_BRANCHES.indexOf(a.branch)-ALL_BRANCHES.indexOf(b.branch));
 
