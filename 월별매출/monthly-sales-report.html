@@ -893,7 +893,7 @@ function collectSpecial(branch) {
   const result={};
   config.items.forEach(item=>{
     const el=document.getElementById(item.id), memoEl=document.getElementById(item.id+'_memo');
-    result[item.label]={ amount:el?(parseFloat(el.value)||0):0, memo:memoEl?memoEl.value.trim():'' };
+    result[item.label]={ amount:el?(parseFloat(el.value)||0):0, memo:memoEl?memoEl.value.trim():'', deduct: item.deduct !== false };
   });
   return result;
 }

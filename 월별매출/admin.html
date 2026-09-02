@@ -1509,7 +1509,9 @@ function calcFees(row) {
   const branch = row.branch || '';
   const ym  = row.month || '';
   const dom = row.salesDomestic != null ? row.salesDomestic : tot;
-  const spFromRow = row.special ? Object.values(row.special).reduce((s,v)=>s+(v.amount||0),0) : 0;
+  // deduct:false로 표시된 특약 항목(예: 강남점 직원시술/화장품매출/마운자로 등 참고용 항목)은
+  // 수수료 계산에서 제외 — 과거 데이터(deduct 필드 없음)는 기존과 동일하게 차감 대상으로 취급
+  const spFromRow = row.special ? Object.values(row.special).reduce((s,v)=>s+((v.deduct!==false)?(v.amount||0):0),0) : 0;
   const spRaw = spFromRow || (branch === '강남점' ? (GANGNAM_SPECIAL_FALLBACK[ym] || 0) : 0);
   // 강남점은 26.06부터 특약사항 수수료 차감 없음
   const sp = (branch === '강남점' && ym >= '2026-06') ? 0 : spRaw;
@@ -2466,7 +2468,7 @@ function togglePinView(inputId, btn) {
 
 function savePins() {
   const pins = {};
-  ALL_BRANCHES.forEach(branch => {
+  ALL_BRANCHES.filter(b => !isBranchClosed(b)).forEach(branch => {
     const safeId = branch.replace(/\s/g,'_');
     const val = (document.getElementById('pin_'+safeId)?.value || '').trim();
     if (val.length === 4) pins[branch] = val;
