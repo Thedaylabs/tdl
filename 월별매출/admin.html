@@ -1566,23 +1566,6 @@ function dedupLatestByBranchMonth(rows) {
   return { kept, removedIds };
 }
 
-// 지점+월 중복 제출로 밀려난(구버전) 건들을 서버에서 삭제
-function pruneDuplicateReports(ids) {
-  if (!ids || !ids.length) return;
-  ids.forEach(id => {
-    fetch('/api/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'delete_sales', id })
-    }).catch(() => {});
-    _deletedIds.add(id);
-  });
-  _persistDeletedIds();
-  const stored = JSON.parse(localStorage.getItem('sales_data') || '[]');
-  const idSet = new Set(ids);
-  localStorage.setItem('sales_data', JSON.stringify(stored.filter(r => !idSet.has(r.id))));
-}
-
 // 경영컨설팅 수수료가 매출액과 무관하게 고정인 지점인지 판별
 // (RATE_HISTORY에 고정 요율 등록된 경우, 또는 FEE_RULES 공식이 매출 0일 때와 매우 클 때 항상 같은 값을 낼 경우)
 function isMgmtFeeFixed(branch, ym) {
@@ -1735,12 +1718,9 @@ function renderReports() {
   const sortVal = document.getElementById('t2Sort').value;
   let rows = getReportsFiltered();
 
-  // 동일 지점+월 중복 제출 시 최신 1건만 표시 — 구버전 건은 확인 후 서버에서 삭제
-  const { kept, removedIds } = dedupLatestByBranchMonth(rows);
-  rows = kept;
-  if (removedIds.length && confirm(`동일 지점·월로 중복 제출된 데이터 ${removedIds.length}건이 발견됐습니다.\n최신 제출 건만 남기고 나머지를 삭제할까요?`)) {
-    pruneDuplicateReports(removedIds);
-  }
+  // 동일 지점+월 중복 제출 시 최신 1건만 표시 (표시 전용 — 자동 삭제하지 않음.
+  // 로컬 캐시가 서버와 어긋난 상태에서 자동삭제 시 정상 데이터가 지워질 위험이 있어 제거함)
+  rows = dedupLatestByBranchMonth(rows).kept;
 
   if (sortVal==='desc') rows.sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0));
   else if (sortVal==='asc') rows.sort((a,b)=>new Date(a.submittedAt||0)-new Date(b.submittedAt||0));
