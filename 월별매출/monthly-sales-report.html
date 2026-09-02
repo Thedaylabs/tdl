@@ -1273,9 +1273,9 @@ function renderHistory() {
             thumb.onclick=()=>openLb(imgFiles,imgIdx);
           } else {
             const ext=(f.name||'').split('.').pop().toUpperCase();
-            const href=fromDrive?`https://drive.google.com/uc?export=download&id=${f.fileId}`:f.data;
+            const href=fromDrive?`/api/download?fileId=${encodeURIComponent(f.fileId)}&name=${encodeURIComponent(f.name||'file')}`:f.data;
             thumb.innerHTML=`<div class="pdf-icon">📄<span>${ext}</span></div><div class="fname">${f.name}</div>`;
-            thumb.onclick=()=>{ const a=document.createElement('a'); a.href=href; a.download=f.name; a.target='_blank'; document.body.appendChild(a); a.click(); a.remove(); };
+            thumb.onclick=()=>{ const a=document.createElement('a'); a.href=href; a.download=f.name; document.body.appendChild(a); a.click(); a.remove(); };
           }
           thumbsEl.appendChild(thumb);
         });
@@ -1378,7 +1378,7 @@ function updateLb(){
 function lbDownload(){
   const f=lbImages[lbIdx];
   if(f.fileId){
-    window.open(`https://drive.google.com/uc?export=download&id=${f.fileId}`,'_blank');
+    const a=document.createElement('a'); a.href=`/api/download?fileId=${encodeURIComponent(f.fileId)}&name=${encodeURIComponent(f.name||'file')}`; a.download=f.name||'file'; a.click();
   } else {
     const a=document.createElement('a'); a.href=f.data||f.src; a.download=f.name; a.click();
   }
