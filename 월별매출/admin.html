@@ -1885,7 +1885,16 @@ function renderReports() {
 // 수정 모달
 // ════════════════════════════════════════════════════════
 const BRANCH_SPECIAL = {
-  '강남점':    { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'울쎄라 시술 제외',id:'ef_sp_ulthera'},{label:'리쥬란 시술 제외',id:'ef_sp_rejuran'}] },
+  '강남점':    { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[
+    {label:'울쎄라 시술 제외',id:'ef_sp_ulthera', deduct:false},
+    {label:'리쥬란 시술 제외',id:'ef_sp_rejuran', deduct:false},
+    {label:'직원 시술_지인',id:'ef_sp_staff_acquaintance', deduct:false},
+    {label:'직원 시술_직원',id:'ef_sp_staff_employee', deduct:false},
+    {label:'직원 시술_본사 직원',id:'ef_sp_staff_hq', deduct:false},
+    {label:'직원 시술_SC직원',id:'ef_sp_staff_sc', deduct:false},
+    {label:'화장품 매출',id:'ef_sp_cosmetic_sales', deduct:false},
+    {label:'마운자로',id:'ef_sp_mounjaro', deduct:false}
+  ] },
   '명동점':    { type:'info',  note:'명동점은 마케팅 수수료 제외 지점입니다.' },
   '분당점':    { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'화장품 판매 제외',id:'ef_sp_cosmetic'}] },
   '명동2호점': { type:'input', note:'아래 특약 항목의 해당 금액을 입력해 주세요.', items:[{label:'소개_직원소개',id:'ef_sp_md2_intro_staff'},{label:'소개_원장님소개',id:'ef_sp_md2_intro_director'},{label:'직원',id:'ef_sp_md2_employee'},{label:'임직원할인(특가)',id:'ef_sp_md2_exec_discount'},{label:'SC임직원10%할인',id:'ef_sp_md2_sc_discount'},{label:'화장품 매출',id:'ef_sp_md2_cosmetic'}] },
@@ -1985,7 +1994,7 @@ function efCollectSpecial(branch) {
   config.items.forEach(item => {
     const el = document.getElementById(item.id);
     const memoEl = document.getElementById(item.id + '_memo');
-    result[item.label] = { amount: parseInt((el ? el.value||'0' : '0').replace(/,/g,''), 10)||0, memo: memoEl ? memoEl.value.trim() : '' };
+    result[item.label] = { amount: parseInt((el ? el.value||'0' : '0').replace(/,/g,''), 10)||0, memo: memoEl ? memoEl.value.trim() : '', deduct: item.deduct !== false };
   });
   return result;
 }
