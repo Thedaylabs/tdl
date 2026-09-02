@@ -141,6 +141,9 @@
     .btn-edit-card:hover { background:#6d28d9; }
     .btn-del-card { background:#fff; color:#dc2626; border:1.5px solid #fca5a5; border-radius:8px; padding:5px 10px; font-size:.75rem; font-weight:600; cursor:pointer; font-family:inherit; margin-left:6px; }
     .btn-del-card:hover { background:#fef2f2; }
+    .rc-check-group { display:flex; gap:10px; align-items:center; }
+    .rc-check-group label { display:flex; align-items:center; gap:4px; font-size:.75rem; color:#666; cursor:pointer; user-select:none; }
+    .rc-check-group input[type="checkbox"] { width:14px; height:14px; cursor:pointer; accent-color:#7c3aed; }
 
     /* ── 수정 모달 ── */
     .edit-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:500; align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto; }
@@ -1714,6 +1717,20 @@ function getReportsFiltered() {
   );
 }
 
+// 매출 자료 카드의 1차/2차 확인 체크박스 — 2026-08 제출분부터 표시 (서버에 즉시 반영)
+function toggleReportCheck(rowId, field, checked) {
+  const all = getData();
+  const row = all.find(r => r.id === rowId);
+  if (!row) return;
+  row[field] = checked;
+  localStorage.setItem('sales_data', JSON.stringify(all));
+  fetch('/api/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'submit_sales', data: row })
+  }).catch(() => {});
+}
+
 function renderReports() {
   const sortVal = document.getElementById('t2Sort').value;
   let rows = getReportsFiltered();
@@ -1785,6 +1802,11 @@ function renderReports() {
       </div>
       <div class="rc-footer">
         <span>제출일시 : ${formatDate(row.submittedAt)}</span>
+        ${(row.month||'') >= '2026-08' ? `
+        <div class="rc-check-group">
+          <label><input type="checkbox" class="chk-verify" data-field="check1" ${row.check1?'checked':''}>1차</label>
+          <label><input type="checkbox" class="chk-verify" data-field="check2" ${row.check2?'checked':''}>2차</label>
+        </div>` : ''}
         <div style="display:flex;gap:0;align-items:center">
           <button class="btn-edit-card" data-rowid="${row.id}">수정</button>
           <button class="btn-del-card" data-delid="${row.id}">삭제</button>
@@ -1795,6 +1817,9 @@ function renderReports() {
     // 버튼 이벤트 (inline onclick 대신 — 따옴표 충돌 방지)
     card.querySelector('[data-rowid]').addEventListener('click', () => openEditModal(row));
     card.querySelector('[data-delid]').addEventListener('click', () => deleteReport(row.id));
+    card.querySelectorAll('.chk-verify').forEach(cb => {
+      cb.addEventListener('change', () => toggleReportCheck(row.id, cb.dataset.field, cb.checked));
+    });
 
     // 첨부파일 비동기 로드
     if(row.id){
