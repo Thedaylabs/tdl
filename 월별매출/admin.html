@@ -2578,6 +2578,7 @@ function renderInvoiceTab() {
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#888;">합계</th>
           <th style="padding:8px 6px;text-align:center;font-weight:600;color:#888;width:64px;">청구서</th>
           <th style="padding:8px 6px;text-align:center;font-weight:600;color:#888;width:72px;">전송완료</th>
+          ${month >= '2026-08' ? '<th style="padding:8px 6px;text-align:center;font-weight:600;color:#888;width:100px;">확인</th>' : ''}
         </tr>
       </thead>
       <tbody>`;
@@ -2594,6 +2595,7 @@ function renderInvoiceTab() {
         <td colspan="4" style="padding:8px 10px;color:#aaa;text-align:center;">데이터 없음</td>
         <td style="padding:8px 10px;text-align:center;">-</td>
         <td style="padding:8px 10px;text-align:center;">-</td>
+        ${month >= '2026-08' ? '<td style="padding:8px 10px;text-align:center;">-</td>' : ''}
       </tr>`;
       return;
     }
@@ -2616,6 +2618,12 @@ function renderInvoiceTab() {
       <td style="padding:8px 6px;text-align:center;">
         <input type="checkbox" ${getSentState(branch,month)?'checked':''} onchange="setSentState('${branch}','${month}',this.checked);this.closest('tr').style.background=this.checked?'#f0fdf4':'';" style="width:17px;height:17px;cursor:pointer;accent-color:#16a34a;" title="청구서 전송완료" />
       </td>
+      ${month >= '2026-08' ? `<td style="padding:8px 6px;text-align:center;white-space:nowrap;">
+        ${row && row.id ? `
+        <label style="margin-right:6px;font-size:.72rem;cursor:pointer;"><input type="checkbox" ${row.check1?'checked':''} onchange="toggleReportCheck('${row.id}','check1',this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:#7c3aed;vertical-align:middle;" title="1차 확인" />1차</label>
+        <label style="font-size:.72rem;cursor:pointer;"><input type="checkbox" ${row.check2?'checked':''} onchange="toggleReportCheck('${row.id}','check2',this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:#7c3aed;vertical-align:middle;" title="2차 확인" />2차</label>
+        ` : '-'}
+      </td>` : ''}
     </tr>`;
   });
 
@@ -2629,6 +2637,7 @@ function renderInvoiceTab() {
         <td style="padding:8px 10px;text-align:right;">${fmt(totalMgmt+totalMkt)}</td>
         <td></td>
         <td></td>
+        ${month >= '2026-08' ? '<td></td>' : ''}
       </tr>
     </tfoot>
   </table>`;
