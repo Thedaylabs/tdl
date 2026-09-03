@@ -1665,11 +1665,33 @@ function renderOverview() {
       const mid = row.id || (row.branch + '_' + row.submittedAt);
       const mc = mgmtMap[mid] || {};
       const isPaid = !!mc.paid, isInvoice = !!mc.invoice;
+      const extra = Array.isArray(mc.extra) ? mc.extra : [];
       dPaid += mgmtPaidTotal(mc);
+
+      const extraDateRows = extra.map((p,i) => `
+        <div style="display:flex;align-items:center;gap:3px;margin-top:3px;">
+          <input type="date" value="${normDate(p.date)}" onchange="onMgmtExtraChange('${mid}',${i},'date',this)" />
+          <button type="button" title="분할입금 삭제" onclick="removeMgmtPayment('${mid}',${i})" style="border:none;background:none;color:#dc2626;cursor:pointer;font-size:.85rem;padding:0 2px;line-height:1;">✕</button>
+        </div>`).join('');
+      const extraAmtRows = extra.map((p,i) => `
+        <div style="margin-top:3px;">
+          <input type="text" value="${Number(p.amt||0).toLocaleString('ko-KR')}"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'');this.value=this.value?Number(this.value).toLocaleString('ko-KR'):'';"
+            onchange="onMgmtExtraChange('${mid}',${i},'amt',this)"
+            style="width:92px;padding:3px 5px;border:1.5px solid #6ee7b7;border-radius:6px;font-size:.74rem;font-family:inherit;font-weight:600;text-align:right;" />
+        </div>`).join('');
+
       mgmtCells = `
         <td style="text-align:center"><input type="checkbox" ${isPaid?'checked':''} onchange="onMgmtChange('${mid}','paid',this)" /></td>
-        <td><input type="date" value="${normDate(mc.paidDate)}" onchange="onMgmtChange('${mid}','paidDate',this)" ${!isPaid?'disabled':''} style="${!isPaid?'opacity:.4':''}"/></td>
-        <td>${isPaid ? `<input type="text" value="${Number(mc.paidAmt !== undefined ? mc.paidAmt : f.mgmt).toLocaleString('ko-KR')}" oninput="this.value=this.value.replace(/[^0-9]/g,'');this.value=this.value?Number(this.value).toLocaleString('ko-KR'):'';" onchange="onMgmtChange('${mid}','paidAmt',this)" style="width:92px;padding:3px 5px;border:1.5px solid #6ee7b7;border-radius:6px;font-size:.74rem;font-family:inherit;font-weight:600;text-align:right;" />` : ''}</td>
+        <td>
+          <input type="date" value="${normDate(mc.paidDate)}" onchange="onMgmtChange('${mid}','paidDate',this)" ${!isPaid?'disabled':''} style="${!isPaid?'opacity:.4':''}"/>
+          ${extraDateRows}
+          ${isPaid?`<button type="button" onclick="addMgmtPayment('${mid}')" style="margin-top:4px;font-size:.7rem;color:#059669;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:2px 6px;cursor:pointer;font-family:inherit;">+ 분할입금</button>`:''}
+        </td>
+        <td>
+          ${isPaid ? `<input type="text" value="${Number(mc.paidAmt !== undefined ? mc.paidAmt : f.mgmt).toLocaleString('ko-KR')}" oninput="this.value=this.value.replace(/[^0-9]/g,'');this.value=this.value?Number(this.value).toLocaleString('ko-KR'):'';" onchange="onMgmtChange('${mid}','paidAmt',this)" style="width:92px;padding:3px 5px;border:1.5px solid #6ee7b7;border-radius:6px;font-size:.74rem;font-family:inherit;font-weight:600;text-align:right;" />` : ''}
+          ${extraAmtRows}
+        </td>
         <td style="text-align:center"><input type="checkbox" ${isInvoice?'checked':''} onchange="onMgmtChange('${mid}','invoice',this)" /></td>
         <td><input type="date" value="${normDate(mc.invoiceDate)}" onchange="onMgmtChange('${mid}','invoiceDate',this)" ${!isInvoice?'disabled':''} style="${!isInvoice?'opacity:.4':''}"/></td>`;
     }
@@ -3294,7 +3316,11 @@ function onMgmtChange(id, field, el) {
   saveMgmtData(d);
   serverPost({ action: 'update_mgmt', id, data: d[id] });
   renderMgmtCheck();
-  // 전체현황 탭이 "전체현황+경영팀 확인" 모드로 열려 있으면 같이 갱신
+  refreshCombinedOverview();
+}
+
+// 전체현황 탭이 "전체현황+경영팀 확인" 모드로 열려 있으면 같이 갱신
+function refreshCombinedOverview() {
   if (document.getElementById('t1ViewMode') && document.getElementById('t1ViewMode').value === 'combined') renderOverview();
 }
 
@@ -3307,6 +3333,7 @@ function addMgmtPayment(id) {
   saveMgmtData(d);
   serverPost({ action: 'update_mgmt', id, data: d[id] });
   renderMgmtCheck();
+  refreshCombinedOverview();
 }
 
 function removeMgmtPayment(id, idx) {
@@ -3316,6 +3343,7 @@ function removeMgmtPayment(id, idx) {
   saveMgmtData(d);
   serverPost({ action: 'update_mgmt', id, data: d[id] });
   renderMgmtCheck();
+  refreshCombinedOverview();
 }
 
 function onMgmtExtraChange(id, idx, field, el) {
@@ -3331,6 +3359,7 @@ function onMgmtExtraChange(id, idx, field, el) {
   saveMgmtData(d);
   serverPost({ action: 'update_mgmt', id, data: d[id] });
   renderMgmtCheck();
+  refreshCombinedOverview();
 }
 
 // "저장" 버튼: 지금 이 화면(경영확인 전체)을 통째로 서버에 찍어서,
