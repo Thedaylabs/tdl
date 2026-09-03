@@ -1044,8 +1044,10 @@ function getBrand(branch) {
 }
 
 // 매출 자료 / 수수료 청구서 탭 표시용 — 세라미크 지점을 제외한 모든 지점명 앞에 "데이뷰의원" 표기
+// (단, 지점명 자체에 이미 "데이뷰의원"이 들어있는 경우는 중복 표기하지 않음 — 예: 명동시그니처데이뷰의원)
 function displayBranchName(branch) {
   if (!branch) return branch;
+  if (branch.includes('데이뷰의원')) return branch;
   return getBrand(branch) === '세라미크' ? branch : '데이뷰의원 ' + branch;
 }
 
