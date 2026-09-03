@@ -259,11 +259,11 @@
     #contractAlertBar { display:none; position:sticky; top:0; z-index:500; background:#fef2f2; border-bottom:2px solid #fca5a5; color:#991b1b; font-size:.82rem; font-weight:600; padding:8px 16px; text-align:center; }
     #contractAlertBar.show { display:block; }
     .fee-table { width:100%; border-collapse:collapse; table-layout:fixed; min-width:580px; }
-    .contract-table { min-width:1310px; }
+    .contract-table { min-width:1380px; }
     .fee-table th { background:#f8f5ff; padding:9px 12px; font-size:.78rem; color:#7c3aed; font-weight:700; text-align:left; border-bottom:2px solid #ede9fe; white-space:nowrap; }
     .fee-table td { padding:8px 10px; border-bottom:1px solid #f0f2f5; font-size:.84rem; vertical-align:middle; }
     .fee-table tr:last-child td { border-bottom:none; }
-    .fee-table .bname { font-weight:700; white-space:normal; word-break:break-all; line-height:1.3; }
+    .fee-table .bname { font-weight:700; white-space:normal; word-break:keep-all; line-height:1.3; }
     .fee-table input[type=number], .fee-table select { padding:6px 8px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:.82rem; font-family:inherit; background:#fafafa; width:100%; }
     .fee-table input:focus, .fee-table select:focus { outline:none; border-color:#7c3aed; }
     .fee-note { font-size:.72rem; color:#aaa; }
@@ -535,7 +535,7 @@
           <div class="table-scroll-wrap">
           <table class="fee-table contract-table">
             <thead><tr>
-              <th style="width:120px">지점명</th>
+              <th style="width:190px">지점명</th>
               <th style="width:80px">대표원장님</th>
               <th style="width:100px">사업자번호</th>
               <th style="width:150px">이메일</th>
@@ -552,7 +552,7 @@
           <div class="table-scroll-wrap">
           <table class="fee-table contract-table">
             <thead><tr>
-              <th style="width:120px">지점명</th>
+              <th style="width:190px">지점명</th>
               <th style="width:80px">대표원장님</th>
               <th style="width:100px">사업자번호</th>
               <th style="width:150px">이메일</th>
@@ -834,7 +834,7 @@
       <button class="btn-purple" onclick="renderInvoiceTab()">🔍 전체 조회</button>
       <button class="btn-outline" onclick="downloadAllInvoices()" style="margin-left:6px;">⬇️ 전체 다운로드</button>
     </div>
-    <div id="invoiceListArea" style="max-width:1100px;margin:0 auto;padding:0 0 24px;"></div>
+    <div id="invoiceListArea" style="max-width:1400px;margin:0 auto;padding:0 0 24px;"></div>
     <div id="invoicePreviewArea" style="max-width:900px;margin:0 auto;padding-bottom:40px;"></div>
   </div>
 
@@ -2737,7 +2737,7 @@ function renderInvoiceTab() {
     <table style="width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px;table-layout:fixed;">
       <thead>
         <tr style="background:#f3f4f6;border-bottom:2px solid #e5e7eb;color:#111;">
-          <th style="padding:8px 10px;text-align:left;font-weight:600;color:#888;width:120px;">지점명</th>
+          <th style="padding:8px 10px;text-align:left;font-weight:600;color:#888;width:190px;">지점명</th>
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#888;">총 매출</th>
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#4f46e5;">경영컨설팅</th>
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#0891b2;">마케팅</th>
@@ -2760,7 +2760,7 @@ function renderInvoiceTab() {
     if (!row && !fixedNoData) {
       if (isBranchClosed(branch)) return; // 폐업 지점은 해당 월 데이터가 없으면 목록에서 제외
       html += `<tr style="border-bottom:1px solid #f3f4f6;">
-        <td style="padding:8px 10px;font-weight:600;white-space:normal;word-break:break-all;">${branch}</td>
+        <td style="padding:8px 10px;font-weight:600;white-space:normal;word-break:keep-all;">${branch}</td>
         <td colspan="4" style="padding:8px 10px;color:#aaa;text-align:center;">데이터 없음</td>
         <td style="padding:8px 10px;text-align:center;">-</td>
         <td style="padding:8px 10px;text-align:center;">-</td>
@@ -2780,7 +2780,7 @@ function renderInvoiceTab() {
     totalFeeExempt += fees.feeExemptTotal || 0;
     totalFinal += fees.finalSales || 0;
     html += `<tr style="border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background=''">
-      <td style="padding:8px 10px;font-weight:600;white-space:normal;word-break:break-all;">${branch}${fixedNoData?' <span style="font-size:.68rem;color:#a78bfa;font-weight:500;">(고정수수료·매출자료 미등록)</span>':''}</td>
+      <td style="padding:8px 10px;font-weight:600;white-space:normal;word-break:keep-all;">${branch}${fixedNoData?' <span style="font-size:.68rem;color:#a78bfa;font-weight:500;">(고정수수료·매출자료 미등록)</span>':''}</td>
       <td style="padding:8px 10px;text-align:right;">${fixedNoData?'-':fmt(tot)}</td>
       <td style="padding:8px 10px;text-align:right;color:#4f46e5;">${fmt(fees.mgmt)}</td>
       <td style="padding:8px 10px;text-align:right;color:#0891b2;">${fmt(fees.mkt)}</td>
