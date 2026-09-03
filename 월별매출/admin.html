@@ -165,6 +165,13 @@
     .ef-srow:last-child { margin-bottom:0; }
     .ef-slabel { font-size:.82rem; font-weight:600; color:#374151; background:#fff; border-radius:7px; padding:8px 10px; border:1.5px solid #e5e7eb; }
     .ef-stotal { margin-top:8px; font-size:.83rem; font-weight:700; color:#b45309; text-align:right; }
+    .ef-feeexempt { background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:14px 16px; margin-bottom:16px; }
+    .ef-feeexempt .note { font-size:.78rem; color:#b91c1c; margin-bottom:10px; }
+    .ef-fe-row { display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:center; margin-bottom:8px; }
+    .ef-fe-remove { background:#fff; color:#dc2626; border:1.5px solid #fca5a5; border-radius:8px; padding:8px 10px; font-size:.8rem; cursor:pointer; font-family:inherit; }
+    .ef-fe-add { background:#fff; color:#b91c1c; border:1.5px dashed #fca5a5; border-radius:8px; padding:8px 12px; font-size:.8rem; cursor:pointer; font-family:inherit; width:100%; margin-top:2px; }
+    .ef-fe-total { margin-top:8px; font-size:.83rem; font-weight:700; color:#b91c1c; text-align:right; }
+    .ef-fe-final { margin-top:10px; padding-top:10px; border-top:1px solid #fecaca; display:flex; justify-content:space-between; align-items:center; font-size:.87rem; font-weight:700; color:#4f46e5; }
     .ef-files-existing { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; min-height:20px; }
     .ef-file-item { position:relative; width:70px; height:70px; border-radius:8px; border:1.5px solid #e5e7eb; overflow:hidden; background:#f8fafc; cursor:pointer; }
     .ef-file-item img { width:100%; height:100%; object-fit:cover; }
@@ -468,6 +475,9 @@
               <th>경영수수료</th>
               <th>마케팅수수료</th>
               <th>총수수료</th>
+              <th>수수료 제외 매출</th>
+              <th>최종 매출</th>
+              <th>적용 요율</th>
               <th class="left">특약사항</th>
             </tr>
           </thead>
@@ -809,6 +819,9 @@
                 <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;">경영 수수료</th>
                 <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;">마케팅 수수료</th>
                 <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;">총 수수료</th>
+                <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;">수수료 제외 매출</th>
+                <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;">최종 매출</th>
+                <th style="padding:8px 10px;text-align:right;color:#888;font-weight:600;">적용 요율</th>
               </tr>
             </thead>
             <tbody id="t8TableBody"></tbody>
@@ -877,6 +890,7 @@
       </div>
     </div>
 
+    <div id="ef_feeExemptWrap"></div>
     <div id="ef_specialWrap"></div>
 
     <div class="ef-group">
@@ -1525,27 +1539,37 @@ function calcFees(row) {
   const effTot = isSpecialDeduct ? Math.max(0, tot - sp) : isSpecialAdd ? tot + sp : tot;
   const effSp  = (isSpecialDeduct || isSpecialAdd) ? 0 : sp;
 
+  // 수수료 제외 매출 — 특약사항과는 별개로 지점에서 자유롭게 입력하는 항목.
+  // 기존 특약 차감(effTot) 위에 추가로 한 번 더 차감해 "최종 매출"을 구하고,
+  // 이 최종 매출을 기준으로 수수료율을 적용한다. (국내매출 기준 마케팅수수료는 영향 없음)
+  const feeExemptTotal = Array.isArray(row.feeExempt) ? row.feeExempt.reduce((s,v)=>s+(v.amount||0),0) : 0;
+  const finalSales = Math.max(0, effTot - feeExemptTotal);
+  const rate = (amt) => finalSales > 0 ? Math.round(amt / finalSales * 10000) / 100 : 0;
+
   // 관리자 페이지에서 등록한 수수료율(효력발생일 지정)이 있으면 우선 적용 —
   // 없으면 기존에 코드로 짜여있는 계약서 기준 공식(FEE_RULES)으로 폴백
   const schedule = getRateScheduleFor(branch, ym);
   if (schedule) {
     const VAT = 1.1;
     // 건대입구점: 관리자 등록 고정 수수료율이 있어도 "월매출 3억 미만 경영수수료 면제" 특약은 유지
-    const mgmtExempt = branch === '건대입구점' && effTot < 3*E8;
+    const mgmtExempt = branch === '건대입구점' && finalSales < 3*E8;
     const mgmtAmt = mgmtExempt ? 0 : (schedule.mgmtType === 'fixed'
       ? Math.round(schedule.mgmtVal * VAT)
-      : Math.round(effTot * schedule.mgmtVal / 100 * VAT));
-    const mktBasisAmt = schedule.mktType === 'pct_domestic' ? dom : effTot;
+      : Math.round(finalSales * schedule.mgmtVal / 100 * VAT));
+    const mktBasisAmt = schedule.mktType === 'pct_domestic' ? dom : finalSales;
     const mktAmt = Math.round(mktBasisAmt * schedule.mktVal / 100 * VAT);
     const formulaTxt = describeRateSchedule(schedule) + (mgmtExempt ? ' (월매출 3억 미만 경영수수료 면제 적용)' : '');
-    return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:formulaTxt, overridden:false };
+    return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:formulaTxt, overridden:false,
+      feeExemptTotal, finalSales, mgmtRatePct:rate(mgmtAmt), mktRatePct:rate(mktAmt) };
   }
 
   const rule = FEE_RULES[branch];
-  if (!rule) return { mgmt:0, mkt:0, total:0, formula:'-', overridden:false };
-  const mgmtAmt = rule.mgmt(effTot, ym, dom, effSp);
-  const mktAmt  = rule.mkt(effTot, ym, dom, effSp);
-  return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:rule.formula, overridden:false };
+  if (!rule) return { mgmt:0, mkt:0, total:0, formula:'-', overridden:false,
+    feeExemptTotal, finalSales, mgmtRatePct:0, mktRatePct:0 };
+  const mgmtAmt = rule.mgmt(finalSales, ym, dom, effSp);
+  const mktAmt  = rule.mkt(finalSales, ym, dom, effSp);
+  return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:rule.formula, overridden:false,
+    feeExemptTotal, finalSales, mgmtRatePct:rate(mgmtAmt), mktRatePct:rate(mktAmt) };
 }
 
 // 동일 지점+월로 중복 제출된 건 중 최신(submittedAt 기준) 1건만 선택
@@ -1608,20 +1632,21 @@ function renderOverview() {
   tbody.innerHTML = '';
 
   if (rows.length===0) {
-    tbody.innerHTML='<tr class="empty-row"><td colspan="11">데이터가 없습니다.</td></tr>';
+    tbody.innerHTML='<tr class="empty-row"><td colspan="14">데이터가 없습니다.</td></tr>';
     tfoot.innerHTML=''; return;
   }
 
-  let dDom=0,dOvs=0,dTot=0,dMgmt=0,dMkt=0,dFee=0;
+  let dDom=0,dOvs=0,dTot=0,dMgmt=0,dMkt=0,dFee=0,dFeeExempt=0,dFinal=0;
   rows.forEach(row=>{
     const f=calcFees(row);
     const brand=getBrand(row.branch);
     const [y,m]=(row.month||'').split('-');
     const mLabel=y&&m?`${y}년 ${m}월`:(row.month||'-');
     dDom+=row.salesDomestic||0; dOvs+=row.salesOverseas||0; dTot+=row.salesTotal||0;
-    dMgmt+=f.mgmt; dMkt+=f.mkt; dFee+=f.total;
+    dMgmt+=f.mgmt; dMkt+=f.mkt; dFee+=f.total; dFeeExempt+=f.feeExemptTotal||0; dFinal+=f.finalSales||0;
     const formulaTitle = (f.formula||'').replace(/'/g,'&apos;');
     const overrideBadge = f.overridden ? '<span style="font-size:.65rem;background:#fef3c7;color:#d97706;border-radius:4px;padding:1px 5px;margin-left:4px;">수동</span>' : '';
+    const rateText = `경영 ${f.mgmtRatePct.toFixed(2)}% / 마케팅 ${f.mktRatePct.toFixed(2)}%`;
     const tr=document.createElement('tr');
     tr.innerHTML=`
       <td class="left">${mLabel}</td>
@@ -1634,13 +1659,17 @@ function renderOverview() {
       <td class="money" title="${formulaTitle}">${numFmt(f.mgmt)}${overrideBadge}</td>
       <td class="money" title="${formulaTitle}">${numFmt(f.mkt)}${overrideBadge}</td>
       <td class="fee-total" title="${formulaTitle}">${numFmt(f.total)}${overrideBadge}</td>
+      <td class="money" style="color:#dc2626">${numFmt(f.feeExemptTotal)}</td>
+      <td class="money" style="font-weight:700;color:#4f46e5">${numFmt(f.finalSales)}</td>
+      <td class="money" style="white-space:nowrap;font-size:.76rem;color:#555" title="${formulaTitle}">${rateText}</td>
       <td class="left special-cell" title="${buildSpecialText(row)||''}">${buildSpecialText(row)||'-'}</td>`;
     tbody.appendChild(tr);
   });
   tfoot.innerHTML=`<tr class="tfoot-row">
     <td class="left" colspan="4">합계 (${rows.length}건)</td>
     <td>${numFmt(dDom)}</td><td>${numFmt(dOvs)}</td><td>${numFmt(dTot)}</td>
-    <td>${numFmt(dMgmt)}</td><td>${numFmt(dMkt)}</td><td>${numFmt(dFee)}</td><td></td>
+    <td>${numFmt(dMgmt)}</td><td>${numFmt(dMkt)}</td><td>${numFmt(dFee)}</td>
+    <td>${numFmt(dFeeExempt)}</td><td>${numFmt(dFinal)}</td><td></td><td></td>
   </tr>`;
 }
 
@@ -1771,6 +1800,17 @@ function renderReports() {
 
     const memoHtml=row.memo?`<div class="rc-memo"><div class="mlbl">💬 메모</div>${row.memo}</div>`:'';
 
+    // 수수료 제외 매출 HTML
+    let feeExemptHtml='';
+    if (Array.isArray(row.feeExempt) && row.feeExempt.length>0) {
+      let feRows='';
+      row.feeExempt.forEach(item=>{
+        feRows+=`<div class="srow"><span>${item.label||'(항목명 없음)'}</span><span>${numFmt(item.amount)}원</span></div>`;
+      });
+      feeExemptHtml=`<div class="rc-special" style="background:#fef2f2;border-color:#fecaca">
+        <div class="slbl" style="color:#b91c1c">🧾 수수료 제외 매출 — 합계 ${numFmt(fees.feeExemptTotal)}원</div>${feRows}</div>`;
+    }
+
     const card=document.createElement('div');
     card.className='report-card'+(isCera(row.branch)?' cera':'');
     card.innerHTML=`
@@ -1790,7 +1830,11 @@ function renderReports() {
           <div class="rc-box"><div class="lbl">경영수수료</div><div class="val">${numFmt(fees.mgmt)}원</div></div>
           <div class="rc-box"><div class="lbl">마케팅수수료</div><div class="val">${numFmt(fees.mkt)}원</div></div>
           <div class="rc-box accent"><div class="lbl">총 수수료</div><div class="val">${numFmt(fees.total)}원</div></div>
+          <div class="rc-box" style="background:#fef2f2"><div class="lbl" style="color:#b91c1c">수수료 제외 매출</div><div class="val" style="color:#b91c1c">${numFmt(fees.feeExemptTotal)}원</div></div>
+          <div class="rc-box accent"><div class="lbl">최종 매출</div><div class="val">${numFmt(fees.finalSales)}원</div></div>
+          <div class="rc-box"><div class="lbl">적용 요율</div><div class="val" style="font-size:.82rem">경영 ${fees.mgmtRatePct.toFixed(2)}% / 마케팅 ${fees.mktRatePct.toFixed(2)}%</div></div>
         </div>
+        ${feeExemptHtml}
         ${specialHtml}
         ${memoHtml}
         <div class="rc-files" id="files_${row.id||''}">
@@ -1930,7 +1974,8 @@ function openEditModal(row) {
   document.getElementById('ef_newPreviews').innerHTML = '';
   document.getElementById('ef_fileInput').value = '';
 
-  // 특약
+  // 수수료 제외 매출 / 특약
+  efRenderFeeExempt(editRow.feeExempt || []);
   efRenderSpecial(editRow.branch, editRow.special || {});
 
   // 기존 첨부파일
@@ -1943,7 +1988,7 @@ function openEditModal(row) {
 function closeEditModal() {
   document.getElementById('editOverlay').classList.remove('show');
   document.body.style.overflow = '';
-  editRow = null; efNewFiles = []; efKeptFileIds = [];
+  editRow = null; efNewFiles = []; efKeptFileIds = []; efFeeExemptItems = [];
 }
 
 function efFmt(input) {
@@ -1956,6 +2001,52 @@ function efRaw(id) {
 function efCalcTotal() {
   const t = efRaw('ef_domestic') + efRaw('ef_overseas');
   document.getElementById('ef_total').value = t ? t.toLocaleString('ko-KR') : '';
+  efCalcFeeExemptTotal();
+}
+
+// 수수료 제외 매출 — 특약사항과 별개로 지점에서 자유롭게 추가/수정하는 항목
+let efFeeExemptItems = [];
+
+function efRenderFeeExempt(existing) {
+  efFeeExemptItems = Array.isArray(existing) ? JSON.parse(JSON.stringify(existing)) : [];
+  efDrawFeeExempt();
+}
+
+function efDrawFeeExempt() {
+  const wrap = document.getElementById('ef_feeExemptWrap');
+  const rowsHtml = efFeeExemptItems.map((item, idx) => `
+    <div class="ef-fe-row">
+      <input class="ef-input" type="text" placeholder="항목명 (예: 환불 매출)" value="${(item.label||'').replace(/"/g,'&quot;')}" oninput="efFeeExemptItems[${idx}].label=this.value" />
+      <input class="ef-input" type="text" inputmode="numeric" placeholder="금액 (원)" value="${item.amount?Number(item.amount).toLocaleString('ko-KR'):''}" oninput="efFmt(this);efFeeExemptItems[${idx}].amount=parseInt((this.value||'0').replace(/,/g,''),10)||0;efCalcFeeExemptTotal();" />
+      <button type="button" class="ef-fe-remove" onclick="efRemoveFeeExemptRow(${idx})">✕ 삭제</button>
+    </div>`).join('');
+  wrap.innerHTML = `<div class="ef-feeexempt">
+    <div class="note">🧾 경영/마케팅 수수료 계산에서 제외할 매출이 있다면 항목을 추가해 입력해 주세요.</div>
+    ${rowsHtml}
+    <button type="button" class="ef-fe-add" onclick="efAddFeeExemptRow()">+ 항목 추가</button>
+    <div class="ef-fe-total">수수료 제외 매출 합계: <span id="ef_feTotal">0 원</span></div>
+    <div class="ef-fe-final"><span>최종 매출 (총매출 − 수수료 제외 매출)</span><span id="ef_finalSales">0 원</span></div>
+  </div>`;
+  efCalcFeeExemptTotal();
+}
+
+function efAddFeeExemptRow() {
+  efFeeExemptItems.push({ label:'', amount:0 });
+  efDrawFeeExempt();
+}
+function efRemoveFeeExemptRow(idx) {
+  efFeeExemptItems.splice(idx,1);
+  efDrawFeeExempt();
+}
+function efCalcFeeExemptTotal() {
+  const feTotal = efFeeExemptItems.reduce((s,i)=>s+(i.amount||0),0);
+  const totalEl = document.getElementById('ef_feTotal');
+  if (totalEl) totalEl.textContent = feTotal.toLocaleString('ko-KR') + ' 원';
+  const finalEl = document.getElementById('ef_finalSales');
+  if (finalEl) finalEl.textContent = Math.max(0, efRaw('ef_total') - feTotal).toLocaleString('ko-KR') + ' 원';
+}
+function efCollectFeeExempt() {
+  return efFeeExemptItems.filter(i => (i.label && i.label.trim()) || i.amount);
 }
 
 function efRenderSpecial(branch, existingSpecial) {
@@ -2070,6 +2161,7 @@ async function saveEditModal() {
     const total    = domestic + overseas;
     const memo     = document.getElementById('ef_memo').value.trim();
     const special  = efCollectSpecial(branch) || editRow.special || {};
+    const feeExempt = efCollectFeeExempt();
 
     // 새 파일 Drive 업로드
     const toUpload = efNewFiles.filter(f => f);
@@ -2096,7 +2188,7 @@ async function saveEditModal() {
     const allFileIds = [...efKeptFileIds, ...newFileIds];
     const updated = Object.assign({}, editRow, {
       month, manager, salesDomestic: domestic, salesOverseas: overseas, salesTotal: total,
-      memo, special, fileIds: allFileIds, fileCount: allFileIds.length || editRow.fileCount
+      memo, special, feeExempt, fileIds: allFileIds, fileCount: allFileIds.length || editRow.fileCount
     });
 
     const resp = await fetch('/api/sync', {
@@ -2576,6 +2668,9 @@ function renderInvoiceTab() {
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#4f46e5;">경영컨설팅</th>
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#0891b2;">마케팅</th>
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#888;">합계</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:600;color:#dc2626;">수수료 제외 매출</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:600;color:#4f46e5;">최종 매출</th>
+          <th style="padding:8px 10px;text-align:center;font-weight:600;color:#888;">적용 요율</th>
           <th style="padding:8px 6px;text-align:center;font-weight:600;color:#888;width:64px;">청구서</th>
           <th style="padding:8px 6px;text-align:center;font-weight:600;color:#888;width:72px;">전송완료</th>
           ${month >= '2026-08' ? '<th style="padding:8px 6px;text-align:center;font-weight:600;color:#888;width:100px;">확인</th>' : ''}
@@ -2583,7 +2678,7 @@ function renderInvoiceTab() {
       </thead>
       <tbody>`;
 
-  let totalSales=0, totalMgmt=0, totalMkt=0;
+  let totalSales=0, totalMgmt=0, totalMkt=0, totalFeeExempt=0, totalFinal=0;
 
   ALL_BRANCHES.forEach(branch => {
     const row = findLatestRow(all, branch, month);
@@ -2593,6 +2688,9 @@ function renderInvoiceTab() {
       html += `<tr style="border-bottom:1px solid #f3f4f6;">
         <td style="padding:8px 10px;font-weight:600;">${branch}</td>
         <td colspan="4" style="padding:8px 10px;color:#aaa;text-align:center;">데이터 없음</td>
+        <td style="padding:8px 10px;text-align:center;">-</td>
+        <td style="padding:8px 10px;text-align:center;">-</td>
+        <td style="padding:8px 10px;text-align:center;">-</td>
         <td style="padding:8px 10px;text-align:center;">-</td>
         <td style="padding:8px 10px;text-align:center;">-</td>
         ${month >= '2026-08' ? '<td style="padding:8px 10px;text-align:center;">-</td>' : ''}
@@ -2605,12 +2703,17 @@ function renderInvoiceTab() {
     totalSales += tot;
     totalMgmt  += fees.mgmt;
     totalMkt   += fees.mkt;
+    totalFeeExempt += fees.feeExemptTotal || 0;
+    totalFinal += fees.finalSales || 0;
     html += `<tr style="border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background=''">
       <td style="padding:8px 10px;font-weight:600;">${branch}${fixedNoData?' <span style="font-size:.68rem;color:#a78bfa;font-weight:500;">(고정수수료·매출자료 미등록)</span>':''}</td>
       <td style="padding:8px 10px;text-align:right;">${fixedNoData?'-':fmt(tot)}</td>
       <td style="padding:8px 10px;text-align:right;color:#4f46e5;">${fmt(fees.mgmt)}</td>
       <td style="padding:8px 10px;text-align:right;color:#0891b2;">${fmt(fees.mkt)}</td>
       <td style="padding:8px 10px;text-align:right;font-weight:700;">${fmt(fees.mgmt + fees.mkt)}</td>
+      <td style="padding:8px 10px;text-align:right;color:#dc2626;">${fmt(fees.feeExemptTotal)}</td>
+      <td style="padding:8px 10px;text-align:right;font-weight:700;color:#4f46e5;">${fmt(fees.finalSales)}</td>
+      <td style="padding:8px 10px;text-align:center;font-size:.74rem;color:#555;white-space:nowrap;">경영 ${fees.mgmtRatePct.toFixed(2)}%<br>마케팅 ${fees.mktRatePct.toFixed(2)}%</td>
       <td style="padding:8px 6px;text-align:center;white-space:nowrap;">
         <button class="btn-purple" style="padding:2px 5px;font-size:.72rem;" onclick="previewInvoice('${branch}','${month}')">👁️</button>
         <button class="btn-outline" style="padding:2px 5px;font-size:.72rem;" onclick="printInvoice('${branch}','${month}')">🖨️</button>
@@ -2635,6 +2738,9 @@ function renderInvoiceTab() {
         <td style="padding:8px 10px;text-align:right;color:#4f46e5;">${fmt(totalMgmt)}</td>
         <td style="padding:8px 10px;text-align:right;color:#0891b2;">${fmt(totalMkt)}</td>
         <td style="padding:8px 10px;text-align:right;">${fmt(totalMgmt+totalMkt)}</td>
+        <td style="padding:8px 10px;text-align:right;color:#dc2626;">${fmt(totalFeeExempt)}</td>
+        <td style="padding:8px 10px;text-align:right;color:#4f46e5;">${fmt(totalFinal)}</td>
+        <td></td>
         <td></td>
         <td></td>
         ${month >= '2026-08' ? '<td></td>' : ''}
@@ -3247,7 +3353,7 @@ function renderTrend() {
 
   const rows = months.map(m => allData.find(r => r.branch === branch && r.month === `${t8Year}-${m}`) || null);
   const sales  = rows.map(r => r ? (r.salesTotal || 0) : null);
-  const fees   = rows.map(r => { if (!r) return { mgmt:0, mkt:0, total:0 }; const f = calcFees(r); return f; });
+  const fees   = rows.map((r,i) => { if (!r) return { mgmt:0, mkt:0, total:0, feeExemptTotal:0, finalSales:0, mgmtRatePct:0, mktRatePct:0 }; const f = calcFees(r); return f; });
   const mgmts  = fees.map(f => f.mgmt);
   const mkts   = fees.map(f => f.mkt);
 
@@ -3343,7 +3449,10 @@ function renderTrend() {
       <td style="padding:9px 10px;text-align:right;font-weight:700;color:${pColor};">${pStr}</td>
       <td style="padding:9px 10px;text-align:right;color:#5b21b6;">${numFmt(mgmts[ri])}원</td>
       <td style="padding:9px 10px;text-align:right;color:#0891b2;">${numFmt(mkts[ri])}원</td>
-      <td style="padding:9px 10px;text-align:right;font-weight:700;">${numFmt(mgmts[ri]+mkts[ri])}원</td>`;
+      <td style="padding:9px 10px;text-align:right;font-weight:700;">${numFmt(mgmts[ri]+mkts[ri])}원</td>
+      <td style="padding:9px 10px;text-align:right;color:#dc2626;">${numFmt(fees[ri].feeExemptTotal)}원</td>
+      <td style="padding:9px 10px;text-align:right;font-weight:700;color:#4f46e5;">${numFmt(fees[ri].finalSales)}원</td>
+      <td style="padding:9px 10px;text-align:right;color:#555;font-size:.76rem;white-space:nowrap;">경영 ${fees[ri].mgmtRatePct.toFixed(2)}% / 마케팅 ${fees[ri].mktRatePct.toFixed(2)}%</td>`;
     tbody.appendChild(tr);
   });
 }

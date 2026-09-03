@@ -202,6 +202,19 @@
     .special-total span { font-weight: 700; color: #b45309; font-size: 0.97rem; }
     .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; font-size: 0.84rem; color: #1d4ed8; }
 
+    /* 수수료 제외 매출 */
+    .fe-note { font-size: 0.81rem; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; }
+    .fe-rows { display: flex; flex-direction: column; gap: 10px; }
+    .fe-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center; }
+    @media (max-width: 560px) { .fe-row { grid-template-columns: 1fr; } }
+    .fe-row input { padding: 9px 12px; font-size: 0.87rem; }
+    .fe-remove { background: #fff; color: #dc2626; border: 1.5px solid #fca5a5; border-radius: 8px; padding: 9px 12px; font-size: 0.82rem; cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .fe-add { background: #fff; color: #b91c1c; border: 1.5px dashed #fca5a5; border-radius: 10px; padding: 10px; font-size: 0.85rem; cursor: pointer; font-family: inherit; width: 100%; margin-top: 12px; }
+    .fe-total { margin-top: 12px; background: #fef2f2; border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 0.87rem; }
+    .fe-total span { font-weight: 700; color: #b91c1c; font-size: 0.97rem; }
+    .fe-final { margin-top: 12px; background: #ede9fe; border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 0.87rem; }
+    .fe-final span { font-weight: 700; color: #4f46e5; font-size: 1rem; }
+
     /* 제출 버튼 */
     .submit-wrap { max-width: 720px; margin: 0 auto; text-align: center; }
     .btn-submit {
@@ -509,6 +522,15 @@
         </div>
       </div>
 
+      <div class="card">
+        <h2>🧾 수수료 제외 매출 <span class="badge badge-opt">선택</span></h2>
+        <div class="fe-note">📌 특약사항과는 별개로, 경영/마케팅 수수료 계산에서 제외할 매출이 있다면 항목을 자유롭게 추가해 입력해 주세요.</div>
+        <div class="fe-rows" id="feeExemptRows"></div>
+        <button type="button" class="fe-add" onclick="addFeeExemptRow()">+ 항목 추가</button>
+        <div class="fe-total"><div>수수료 제외 매출 합계</div><span id="feeExemptTotalDisplay">0 원</span></div>
+        <div class="fe-final"><div>최종 매출 (총매출 − 수수료 제외 매출)</div><span id="finalSalesDisplay">0 원</span></div>
+      </div>
+
       <div class="special-card" id="specialCard">
         <h2>📝 특약사항 <span class="badge badge-opt">지점 해당</span></h2>
         <div id="specialContent"></div>
@@ -589,6 +611,7 @@
         <label id="editLabelTotal">총 매출 (자동계산)</label>
         <input type="text" id="editTotal" readonly style="background:#f0fdf4;color:#059669;font-weight:700" />
       </div>
+      <div id="editFeeExemptWrap"></div>
       <div id="editSpecialWrap"></div>
       <div class="edit-field">
         <label>메모</label>
@@ -667,6 +690,43 @@ let BRANCH_SPECIAL = {};
 let currentBranch = '';
 let historyData   = [];
 
+// ── 수수료 제외 매출 (특약사항과 별개, 지점에서 자유롭게 항목 추가) ─────────
+let feeExemptItems = [];
+
+function renderFeeExemptRows() {
+  const wrap = document.getElementById('feeExemptRows');
+  wrap.innerHTML = feeExemptItems.map((item, idx) => `
+    <div class="fe-row">
+      <input type="text" placeholder="항목명 (예: 환불 매출)" value="${(item.label||'').replace(/"/g,'&quot;')}" oninput="feeExemptItems[${idx}].label=this.value" />
+      <input type="text" placeholder="금액 (원)" inputmode="numeric" value="${item.amount?Number(item.amount).toLocaleString('ko-KR'):''}" oninput="fmtAmount(this);feeExemptItems[${idx}].amount=parseInt((this.value||'0').replace(/,/g,''),10)||0;calcFeeExemptTotal();" />
+      <button type="button" class="fe-remove" onclick="removeFeeExemptRow(${idx})">✕ 삭제</button>
+    </div>`).join('');
+}
+function addFeeExemptRow() {
+  feeExemptItems.push({ label:'', amount:0 });
+  renderFeeExemptRows();
+}
+function removeFeeExemptRow(idx) {
+  feeExemptItems.splice(idx,1);
+  renderFeeExemptRows();
+  calcFeeExemptTotal();
+}
+function calcFeeExemptTotal() {
+  const feTotal = feeExemptItems.reduce((s,i)=>s+(i.amount||0),0);
+  const totalEl = document.getElementById('feeExemptTotalDisplay');
+  if (totalEl) totalEl.textContent = feTotal.toLocaleString('ko-KR') + ' 원';
+  const finalEl = document.getElementById('finalSalesDisplay');
+  if (finalEl) finalEl.textContent = Math.max(0, getRawNum('salesTot') - feTotal).toLocaleString('ko-KR') + ' 원';
+}
+function collectFeeExempt() {
+  return feeExemptItems.filter(i => (i.label && i.label.trim()) || i.amount);
+}
+function resetFeeExempt() {
+  feeExemptItems = [];
+  renderFeeExemptRows();
+  calcFeeExemptTotal();
+}
+
 // ── 탭 전환 ────────────────────────────────────────────────
 function switchTab(n) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -685,6 +745,7 @@ function showBranchScreen(branch) {
   document.getElementById('headerBranchName').textContent = branch;
   document.getElementById('branchDisplay').textContent    = branch;
   renderSpecial(branch);
+  resetFeeExempt();
   setupSalesForm(branch);
   const now = new Date();
   // 6일~다음달 5일이면 이전 달 보고
@@ -760,6 +821,7 @@ function doLogout() {
   ['p1','p2','p3'].forEach(id => document.getElementById(id).innerHTML='');
   document.getElementById('specialCard').classList.remove('visible');
   document.getElementById('specialContent').innerHTML='';
+  resetFeeExempt();
   document.getElementById('historyArea').innerHTML=`
     <div class="history-empty"><div class="empty-ico">📭</div><p>아직 제출한 보고서가 없습니다.</p></div>`;
   switchTab(1);
@@ -841,6 +903,7 @@ function calcTotal() {
     const t=d+o+extra;
     document.getElementById('salesTot').value=t?t.toLocaleString('ko-KR'):'';
   }
+  calcFeeExemptTotal();
 }
 function setupSalesForm(branch) {
   const isMD = branch === '명동점';
@@ -1120,7 +1183,7 @@ document.getElementById('mainForm').addEventListener('submit', async function(e)
     id: submissionId,
     month, branch:currentBranch, manager,
     salesDomestic:getRawNum('salesDom'), salesOverseas:getRawNum('salesOvs'), salesTotal:getRawNum('salesTot'),
-    special:collectSpecial(currentBranch), memo:document.getElementById('memo').value.trim(),
+    special:collectSpecial(currentBranch), feeExempt:collectFeeExempt(), memo:document.getElementById('memo').value.trim(),
     submittedAt:new Date().toISOString(),
     fileCount: allFiles.length,
     fileIds: uploadedFileIds
@@ -1139,6 +1202,7 @@ document.getElementById('mainForm').addEventListener('submit', async function(e)
   }).catch(() => {});
 
   btn.classList.remove('loading');
+  resetFeeExempt();
   const [y,m]=month.split('-');
   document.getElementById('doneMsg').innerHTML=`<strong>${currentBranch}</strong> ${y}년 ${m}월 보고서가<br>성공적으로 제출되었습니다.`;
   document.getElementById('doneModal').classList.add('show');
@@ -1218,6 +1282,21 @@ function renderHistory() {
       specialHtml=`<div class="hi-special"><div class="lbl">📝 특약사항 — 합계 ${numFmt(spTotal)}원</div>${items}</div>`;
     }
 
+    // 수수료 제외 매출
+    let feeExemptHtml='';
+    if(Array.isArray(row.feeExempt) && row.feeExempt.length>0){
+      let feTotal=0;
+      const feItems=row.feeExempt.map(item=>{
+        feTotal+=item.amount||0;
+        return `<div class="row"><span>${item.label||'(항목명 없음)'}</span><span>${numFmt(item.amount)}원</span></div>`;
+      }).join('');
+      const finalSales=Math.max(0,(row.salesTotal||0)-feTotal);
+      feeExemptHtml=`<div class="hi-special" style="background:#fef2f2;border-color:#fecaca">
+        <div class="lbl" style="color:#b91c1c">🧾 수수료 제외 매출 — 합계 ${numFmt(feTotal)}원</div>${feItems}
+        <div class="row" style="margin-top:6px;padding-top:6px;border-top:1px solid #fecaca;font-weight:700;color:#4f46e5"><span>최종 매출</span><span>${numFmt(finalSales)}원</span></div>
+      </div>`;
+    }
+
     const memoHtml=row.memo?`<div class="hi-memo"><div class="lbl">💬 메모</div>${row.memo}</div>`:'';
 
     const card=document.createElement('div');
@@ -1236,6 +1315,7 @@ function renderHistory() {
           <div class="hi-box"><div class="lbl">해외 매출</div><div class="val">${numFmt(row.salesOverseas)}원</div></div>
           <div class="hi-box accent"><div class="lbl">총 매출</div><div class="val">${numFmt(row.salesTotal)}원</div></div>
         </div>
+        ${feeExemptHtml}
         ${specialHtml}
         ${memoHtml}
         <div class="hi-files">
@@ -1433,6 +1513,7 @@ function editCalcTotal() {
     const t = editRaw('editDom') + editRaw('editOvs') + extra;
     document.getElementById('editTotal').value = t ? t.toLocaleString('ko-KR') : '';
   }
+  editCalcFeeExemptTotal();
 }
 function setupEditSalesForm(branch) {
   const isMD = branch === '명동점';
@@ -1452,6 +1533,43 @@ function setupEditSalesForm(branch) {
     document.getElementById('editLabelOvs').textContent = '해외 매출 (원)';
     document.getElementById('editLabelTotal').textContent = '총 매출 (자동계산)';
   }
+}
+
+// 수수료 제외 매출 (수정 모달)
+let editFeeExemptItems = [];
+function editRenderFeeExempt(existing) {
+  editFeeExemptItems = Array.isArray(existing) ? JSON.parse(JSON.stringify(existing)) : [];
+  editDrawFeeExempt();
+}
+function editDrawFeeExempt() {
+  const wrap = document.getElementById('editFeeExemptWrap');
+  const rowsHtml = editFeeExemptItems.map((item, idx) => `
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px">
+      <input type="text" placeholder="항목명 (예: 환불 매출)" value="${(item.label||'').replace(/"/g,'&quot;')}" style="padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.88rem;font-family:inherit;background:#fafafa" oninput="editFeeExemptItems[${idx}].label=this.value" />
+      <input type="text" inputmode="numeric" placeholder="금액 (원)" value="${item.amount?Number(item.amount).toLocaleString('ko-KR'):''}" style="padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.88rem;font-family:inherit;background:#fafafa" oninput="editFmt(this);editFeeExemptItems[${idx}].amount=parseInt((this.value||'0').replace(/,/g,''),10)||0;editCalcFeeExemptTotal();" />
+      <button type="button" onclick="editRemoveFeeExemptRow(${idx})" style="background:#fff;color:#dc2626;border:1.5px solid #fca5a5;border-radius:8px;padding:8px 10px;font-size:.8rem;cursor:pointer;font-family:inherit">✕ 삭제</button>
+    </div>`).join('');
+  wrap.innerHTML = `<div class="edit-field"><label>수수료 제외 매출</label>
+    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 14px">
+      <div style="font-size:.78rem;color:#b91c1c;margin-bottom:10px">📌 특약사항과는 별개로, 수수료 계산에서 제외할 매출이 있다면 입력해 주세요.</div>
+      ${rowsHtml}
+      <button type="button" onclick="editAddFeeExemptRow()" style="background:#fff;color:#b91c1c;border:1.5px dashed #fca5a5;border-radius:8px;padding:8px;font-size:.82rem;cursor:pointer;font-family:inherit;width:100%;margin-top:2px">+ 항목 추가</button>
+      <div style="margin-top:8px;font-size:.83rem;font-weight:700;color:#b91c1c;text-align:right">수수료 제외 매출 합계: <span id="editFeTotal">0 원</span></div>
+      <div style="margin-top:6px;padding-top:6px;border-top:1px solid #fecaca;display:flex;justify-content:space-between;font-size:.85rem;font-weight:700;color:#4f46e5"><span>최종 매출</span><span id="editFinalSales">0 원</span></div>
+    </div></div>`;
+  editCalcFeeExemptTotal();
+}
+function editAddFeeExemptRow() { editFeeExemptItems.push({label:'',amount:0}); editDrawFeeExempt(); }
+function editRemoveFeeExemptRow(idx) { editFeeExemptItems.splice(idx,1); editDrawFeeExempt(); }
+function editCalcFeeExemptTotal() {
+  const feTotal = editFeeExemptItems.reduce((s,i)=>s+(i.amount||0),0);
+  const totalEl = document.getElementById('editFeTotal');
+  if (totalEl) totalEl.textContent = feTotal.toLocaleString('ko-KR') + ' 원';
+  const finalEl = document.getElementById('editFinalSales');
+  if (finalEl) finalEl.textContent = Math.max(0, editRaw('editTotal') - feTotal).toLocaleString('ko-KR') + ' 원';
+}
+function editCollectFeeExempt() {
+  return editFeeExemptItems.filter(i => (i.label && i.label.trim()) || i.amount);
 }
 
 function editRenderSpecial(branch, existingSpecial) {
@@ -1507,6 +1625,7 @@ function openEditModal(rowId) {
   document.getElementById('editOvs').value   = (row.salesOverseas||0).toLocaleString('ko-KR');
   document.getElementById('editTotal').value = (row.salesTotal||0).toLocaleString('ko-KR');
   document.getElementById('editMemo').value  = row.memo || '';
+  editRenderFeeExempt(row.feeExempt || []);
   editRenderSpecial(editBranch, row.special || {});
   document.getElementById('editOverlay').classList.add('show');
 }
@@ -1535,6 +1654,7 @@ function saveEdit() {
   all[idx].salesOverseas = ovs;
   all[idx].salesTotal    = dom + ovs;
   all[idx].memo          = memo;
+  all[idx].feeExempt     = editCollectFeeExempt();
   if (special) all[idx].special = special;
   localStorage.setItem('sales_data', JSON.stringify(all));
 
