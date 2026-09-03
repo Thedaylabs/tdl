@@ -71,7 +71,7 @@
     .sum-card .sub { font-size:.75rem; color:#aaa; margin-top:3px; }
 
     /* ── 탭1: 현황 테이블 ── */
-    .table-wrap { max-width:1280px; margin:0 auto; background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); overflow:hidden; }
+    .table-wrap { max-width:1800px; margin:0 auto; background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); overflow:hidden; }
     .table-scroll { overflow-x:auto; }
     table { width:100%; border-collapse:collapse; min-width:980px; }
     thead tr { background:#7c3aed; }
@@ -454,33 +454,20 @@
           <option>세라미크 강남점</option><option>세라미크 명동점</option>
         </optgroup>
       </select>
+      <select id="t1ViewMode" onchange="renderOverview()">
+        <option value="basic">전체 현황</option>
+        <option value="combined">전체현황+경영팀 확인</option>
+      </select>
       <button class="btn-outline" onclick="exportCSV('overview')">📥 CSV 다운로드</button>
     </div>
-    <div style="max-width:1280px;margin:0 auto 12px;">
+    <div style="max-width:1800px;margin:0 auto 12px;">
       <span style="display:inline-flex;align-items:center;gap:6px;background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:6px 14px;font-size:.79rem;color:#854d0e;font-weight:600;">💡 수수료는 모두 부가세(VAT 10%) 포함 금액입니다.</span>
     </div>
     <div class="summary-grid" id="summaryGrid"></div>
     <div class="table-wrap">
       <div class="table-scroll">
         <table>
-          <thead>
-            <tr>
-              <th class="left">보고기간</th>
-              <th class="left">브랜드</th>
-              <th class="left">지점명</th>
-              <th class="left">담당자</th>
-              <th>국내매출</th>
-              <th>해외매출</th>
-              <th>총매출</th>
-              <th>경영수수료</th>
-              <th>마케팅수수료</th>
-              <th>총수수료</th>
-              <th>수수료 제외 매출</th>
-              <th>최종 매출</th>
-              <th>적용 요율</th>
-              <th class="left">특약사항</th>
-            </tr>
-          </thead>
+          <thead id="overviewHead"></thead>
           <tbody id="overviewBody"></tbody>
           <tfoot id="overviewFoot"></tfoot>
         </table>
@@ -1618,6 +1605,9 @@ function renderOverview() {
   const rows = getOverviewFiltered();
   rows.sort((a,b)=>ALL_BRANCHES.indexOf(a.branch)-ALL_BRANCHES.indexOf(b.branch));
 
+  const combined = document.getElementById('t1ViewMode').value === 'combined';
+  const mgmtMap = combined ? getMgmtData() : {};
+
   // 요약 카드
   let sTot=0,sFee=0,sMgmt=0,sMkt=0;
   rows.forEach(r=>{ const f=calcFees(r); sTot+=r.salesTotal||0; sMgmt+=f.mgmt; sMkt+=f.mkt; sFee+=f.total; });
@@ -1627,16 +1617,38 @@ function renderOverview() {
     <div class="sum-card c-green"><div class="lbl">경영 수수료</div><div class="val">${numFmtShort(sMgmt)}원</div><div class="sub">${numFmt(sMgmt)}원</div></div>
     <div class="sum-card c-orange"><div class="lbl">마케팅 수수료</div><div class="val">${numFmtShort(sMkt)}원</div><div class="sub">${numFmt(sMkt)}원</div></div>`;
 
+  const thead = document.getElementById('overviewHead');
   const tbody = document.getElementById('overviewBody');
   const tfoot = document.getElementById('overviewFoot');
+
+  const mgmtHdrCells = combined ? `<th>입금확인</th><th>입금일</th><th>입금액</th><th>계산서발행</th><th>계산서일자</th>` : '';
+  thead.innerHTML = `<tr>
+    <th class="left">보고기간</th>
+    <th class="left">브랜드</th>
+    <th class="left">지점명</th>
+    <th class="left">담당자</th>
+    <th>국내매출</th>
+    <th>해외매출</th>
+    <th>총매출</th>
+    <th>수수료 제외 매출</th>
+    <th>최종 매출</th>
+    <th>경영수수료</th>
+    <th>마케팅수수료</th>
+    <th>총수수료</th>
+    ${mgmtHdrCells}
+    <th>적용 요율</th>
+    <th class="left">특약사항</th>
+  </tr>`;
+
   tbody.innerHTML = '';
 
+  const colCount = 14 + (combined ? 5 : 0);
   if (rows.length===0) {
-    tbody.innerHTML='<tr class="empty-row"><td colspan="14">데이터가 없습니다.</td></tr>';
+    tbody.innerHTML=`<tr class="empty-row"><td colspan="${colCount}">데이터가 없습니다.</td></tr>`;
     tfoot.innerHTML=''; return;
   }
 
-  let dDom=0,dOvs=0,dTot=0,dMgmt=0,dMkt=0,dFee=0,dFeeExempt=0,dFinal=0;
+  let dDom=0,dOvs=0,dTot=0,dMgmt=0,dMkt=0,dFee=0,dFeeExempt=0,dFinal=0,dPaid=0;
   rows.forEach(row=>{
     const f=calcFees(row);
     const brand=getBrand(row.branch);
@@ -1647,6 +1659,21 @@ function renderOverview() {
     const formulaTitle = (f.formula||'').replace(/'/g,'&apos;');
     const overrideBadge = f.overridden ? '<span style="font-size:.65rem;background:#fef3c7;color:#d97706;border-radius:4px;padding:1px 5px;margin-left:4px;">수동</span>' : '';
     const rateText = `경영 ${f.mgmtRatePct.toFixed(2)}% / 마케팅 ${f.mktRatePct.toFixed(2)}%`;
+
+    let mgmtCells = '';
+    if (combined) {
+      const mid = row.id || (row.branch + '_' + row.submittedAt);
+      const mc = mgmtMap[mid] || {};
+      const isPaid = !!mc.paid, isInvoice = !!mc.invoice;
+      dPaid += mgmtPaidTotal(mc);
+      mgmtCells = `
+        <td style="text-align:center"><input type="checkbox" ${isPaid?'checked':''} onchange="onMgmtChange('${mid}','paid',this)" /></td>
+        <td><input type="date" value="${normDate(mc.paidDate)}" onchange="onMgmtChange('${mid}','paidDate',this)" ${!isPaid?'disabled':''} style="${!isPaid?'opacity:.4':''}"/></td>
+        <td>${isPaid ? `<input type="text" value="${Number(mc.paidAmt !== undefined ? mc.paidAmt : f.mgmt).toLocaleString('ko-KR')}" oninput="this.value=this.value.replace(/[^0-9]/g,'');this.value=this.value?Number(this.value).toLocaleString('ko-KR'):'';" onchange="onMgmtChange('${mid}','paidAmt',this)" style="width:92px;padding:3px 5px;border:1.5px solid #6ee7b7;border-radius:6px;font-size:.74rem;font-family:inherit;font-weight:600;text-align:right;" />` : ''}</td>
+        <td style="text-align:center"><input type="checkbox" ${isInvoice?'checked':''} onchange="onMgmtChange('${mid}','invoice',this)" /></td>
+        <td><input type="date" value="${normDate(mc.invoiceDate)}" onchange="onMgmtChange('${mid}','invoiceDate',this)" ${!isInvoice?'disabled':''} style="${!isInvoice?'opacity:.4':''}"/></td>`;
+    }
+
     const tr=document.createElement('tr');
     tr.innerHTML=`
       <td class="left">${mLabel}</td>
@@ -1656,20 +1683,25 @@ function renderOverview() {
       <td class="money">${numFmt(row.salesDomestic)}</td>
       <td class="money">${numFmt(row.salesOverseas)}</td>
       <td class="money">${numFmt(row.salesTotal)}</td>
+      <td class="money" style="color:#dc2626">${numFmt(f.feeExemptTotal)}</td>
+      <td class="money" style="font-weight:700;color:#4f46e5">${numFmt(f.finalSales)}</td>
       <td class="money" title="${formulaTitle}">${numFmt(f.mgmt)}${overrideBadge}</td>
       <td class="money" title="${formulaTitle}">${numFmt(f.mkt)}${overrideBadge}</td>
       <td class="fee-total" title="${formulaTitle}">${numFmt(f.total)}${overrideBadge}</td>
-      <td class="money" style="color:#dc2626">${numFmt(f.feeExemptTotal)}</td>
-      <td class="money" style="font-weight:700;color:#4f46e5">${numFmt(f.finalSales)}</td>
+      ${mgmtCells}
       <td class="money" style="white-space:nowrap;font-size:.76rem;color:#555" title="${formulaTitle}">${rateText}</td>
       <td class="left special-cell" title="${buildSpecialText(row)||''}">${buildSpecialText(row)||'-'}</td>`;
     tbody.appendChild(tr);
   });
+
+  const mgmtFootCells = combined ? `<td></td><td></td><td style="color:#059669">${numFmt(dPaid)}</td><td></td><td></td>` : '';
   tfoot.innerHTML=`<tr class="tfoot-row">
     <td class="left" colspan="4">합계 (${rows.length}건)</td>
     <td>${numFmt(dDom)}</td><td>${numFmt(dOvs)}</td><td>${numFmt(dTot)}</td>
+    <td>${numFmt(dFeeExempt)}</td><td>${numFmt(dFinal)}</td>
     <td>${numFmt(dMgmt)}</td><td>${numFmt(dMkt)}</td><td>${numFmt(dFee)}</td>
-    <td>${numFmt(dFeeExempt)}</td><td>${numFmt(dFinal)}</td><td></td><td></td>
+    ${mgmtFootCells}
+    <td></td><td></td>
   </tr>`;
 }
 
@@ -1827,12 +1859,12 @@ function renderReports() {
           <div class="rc-box"><div class="lbl">국내 매출</div><div class="val">${numFmt(row.salesDomestic)}원</div></div>
           <div class="rc-box"><div class="lbl">해외 매출</div><div class="val">${numFmt(row.salesOverseas)}원</div></div>
           <div class="rc-box accent"><div class="lbl">총 매출</div><div class="val">${numFmt(row.salesTotal)}원</div></div>
-          <div class="rc-box"><div class="lbl">경영수수료</div><div class="val">${numFmt(fees.mgmt)}원</div></div>
-          <div class="rc-box"><div class="lbl">마케팅수수료</div><div class="val">${numFmt(fees.mkt)}원</div></div>
-          <div class="rc-box accent"><div class="lbl">총 수수료</div><div class="val">${numFmt(fees.total)}원</div></div>
           <div class="rc-box" style="background:#fef2f2"><div class="lbl" style="color:#b91c1c">수수료 제외 매출</div><div class="val" style="color:#b91c1c">${numFmt(fees.feeExemptTotal)}원</div></div>
           <div class="rc-box accent"><div class="lbl">최종 매출</div><div class="val">${numFmt(fees.finalSales)}원</div></div>
           <div class="rc-box"><div class="lbl">적용 요율</div><div class="val" style="font-size:.82rem">경영 ${fees.mgmtRatePct.toFixed(2)}% / 마케팅 ${fees.mktRatePct.toFixed(2)}%</div></div>
+          <div class="rc-box"><div class="lbl">경영수수료</div><div class="val">${numFmt(fees.mgmt)}원</div></div>
+          <div class="rc-box"><div class="lbl">마케팅수수료</div><div class="val">${numFmt(fees.mkt)}원</div></div>
+          <div class="rc-box accent"><div class="lbl">총 수수료</div><div class="val">${numFmt(fees.total)}원</div></div>
         </div>
         ${feeExemptHtml}
         ${specialHtml}
@@ -2600,17 +2632,28 @@ function updateDataCount() {
 function exportCSV(scope) {
   const rows = scope==='all' ? getData() : getOverviewFiltered();
   if (!rows.length) { alert('내보낼 데이터가 없습니다.'); return; }
-  const hdr=['보고기간','브랜드','지점명','담당자','국내매출','해외매출','총매출','경영수수료','마케팅수수료','총수수료','특약사항','제출일시'];
+  const combined = scope!=='all' && document.getElementById('t1ViewMode') && document.getElementById('t1ViewMode').value === 'combined';
+  const mgmtMap = combined ? getMgmtData() : {};
+  const hdr=['보고기간','브랜드','지점명','담당자','국내매출','해외매출','총매출','수수료 제외 매출','최종 매출','경영수수료','마케팅수수료','총수수료'];
+  if (combined) hdr.push('입금확인','입금일','입금액','계산서발행','계산서일자');
+  hdr.push('적용요율(경영)','적용요율(마케팅)','특약사항','제출일시');
   const lines=[hdr.join(',')];
   rows.forEach(row=>{
     const f=calcFees(row);
-    lines.push([row.month,getBrand(row.branch),row.branch,row.manager,
+    const cols=[row.month,getBrand(row.branch),row.branch,row.manager,
       row.salesDomestic||0,row.salesOverseas||0,row.salesTotal||0,
-      f.mgmt,f.mkt,f.total,'"'+buildSpecialText(row)+'"',formatDate(row.submittedAt)].join(','));
+      f.feeExemptTotal||0,f.finalSales||0,f.mgmt,f.mkt,f.total];
+    if (combined) {
+      const mid = row.id || (row.branch + '_' + row.submittedAt);
+      const mc = mgmtMap[mid] || {};
+      cols.push(mc.paid?'Y':'N', mc.paidDate||'', mc.paid?(mc.paidAmt!==undefined?mc.paidAmt:f.mgmt):0, mc.invoice?'Y':'N', mc.invoiceDate||'');
+    }
+    cols.push(f.mgmtRatePct.toFixed(2)+'%', f.mktRatePct.toFixed(2)+'%', '"'+buildSpecialText(row)+'"', formatDate(row.submittedAt));
+    lines.push(cols.join(','));
   });
   const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download=`매출현황_${scope==='all'?'전체':document.getElementById('t1Month').value||'all'}.csv`;
+  a.download=`매출현황_${scope==='all'?'전체':document.getElementById('t1Month').value||'all'}${combined?'_경영팀확인포함':''}.csv`;
   a.click();
 }
 
@@ -3251,6 +3294,8 @@ function onMgmtChange(id, field, el) {
   saveMgmtData(d);
   serverPost({ action: 'update_mgmt', id, data: d[id] });
   renderMgmtCheck();
+  // 전체현황 탭이 "전체현황+경영팀 확인" 모드로 열려 있으면 같이 갱신
+  if (document.getElementById('t1ViewMode') && document.getElementById('t1ViewMode').value === 'combined') renderOverview();
 }
 
 // 분할입금: 추가/삭제/수정
