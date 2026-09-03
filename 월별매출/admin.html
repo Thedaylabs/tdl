@@ -2795,10 +2795,10 @@ function renderInvoiceTab() {
       <td style="padding:8px 6px;text-align:center;">
         <input type="checkbox" ${getSentState(branch,month)?'checked':''} onchange="setSentState('${branch}','${month}',this.checked);this.closest('tr').style.background=this.checked?'#f0fdf4':'';" style="width:17px;height:17px;cursor:pointer;accent-color:#16a34a;" title="청구서 전송완료" />
       </td>
-      ${month >= '2026-08' ? `<td style="padding:8px 6px;text-align:center;white-space:nowrap;">
+      ${month >= '2026-08' ? `<td style="padding:6px 6px;text-align:center;">
         ${row && row.id ? `
-        <label style="margin-right:6px;font-size:.72rem;cursor:pointer;"><input type="checkbox" ${row.check1?'checked':''} onchange="toggleReportCheck('${row.id}','check1',this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:#7c3aed;vertical-align:middle;" title="1차 확인" />1차</label>
-        <label style="font-size:.72rem;cursor:pointer;"><input type="checkbox" ${row.check2?'checked':''} onchange="toggleReportCheck('${row.id}','check2',this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:#7c3aed;vertical-align:middle;" title="2차 확인" />2차</label>
+        <label style="display:flex;align-items:center;justify-content:center;gap:3px;font-size:.72rem;cursor:pointer;white-space:nowrap;"><input type="checkbox" ${row.check1?'checked':''} onchange="toggleReportCheck('${row.id}','check1',this.checked)" style="width:15px;height:15px;flex-shrink:0;cursor:pointer;accent-color:#7c3aed;" title="1차 확인" />1차</label>
+        <label style="display:flex;align-items:center;justify-content:center;gap:3px;font-size:.72rem;cursor:pointer;white-space:nowrap;margin-top:3px;"><input type="checkbox" ${row.check2?'checked':''} onchange="toggleReportCheck('${row.id}','check2',this.checked)" style="width:15px;height:15px;flex-shrink:0;cursor:pointer;accent-color:#7c3aed;" title="2차 확인" />2차</label>
         ` : '-'}
       </td>` : ''}
     </tr>`;
