@@ -834,7 +834,7 @@
       <button class="btn-purple" onclick="renderInvoiceTab()">🔍 전체 조회</button>
       <button class="btn-outline" onclick="downloadAllInvoices()" style="margin-left:6px;">⬇️ 전체 다운로드</button>
     </div>
-    <div id="invoiceListArea" style="max-width:1400px;margin:0 auto;padding:0 0 24px;"></div>
+    <div id="invoiceListArea" style="max-width:1470px;margin:0 auto;padding:0 0 24px;"></div>
     <div id="invoicePreviewArea" style="max-width:900px;margin:0 auto;padding-bottom:40px;"></div>
   </div>
 
@@ -1041,6 +1041,12 @@ const CUSTOM_BRAND_MAP = {};
 function getBrand(branch) {
   if (CUSTOM_BRAND_MAP[branch]) return CUSTOM_BRAND_MAP[branch];
   return branch.startsWith('세라미크') ? '세라미크' : '데이뷰';
+}
+
+// 매출 자료 / 수수료 청구서 탭 표시용 — 세라미크 지점을 제외한 모든 지점명 앞에 "데이뷰의원" 표기
+function displayBranchName(branch) {
+  if (!branch) return branch;
+  return getBrand(branch) === '세라미크' ? branch : '데이뷰의원 ' + branch;
 }
 
 // 지점별 대표원장 (고정값)
@@ -1510,9 +1516,6 @@ function retryFindFiles(btn, submissionId){
     })
     .catch(()=>{ thumbsEl.innerHTML='<div class="file-none">재검색 실패</div>'; });
 }
-function getSentState(branch,month){ const d=JSON.parse(localStorage.getItem('invoice_sent')||'{}'); return !!d[branch+'__'+month]; }
-function setSentState(branch,month,val){ const d=JSON.parse(localStorage.getItem('invoice_sent')||'{}'); d[branch+'__'+month]=val; localStorage.setItem('invoice_sent',JSON.stringify(d)); }
-
 function calcFees(row) {
   const tot = row.salesTotal || 0;
   const branch = row.branch || '';
@@ -1882,7 +1885,7 @@ function renderReports() {
           <div class="rc-month">${mLabel}</div>
           <span class="brand-tag ${isCera(row.branch)?'brand-cera':'brand-dayb'}">${getBrand(row.branch)}</span>
         </div>
-        <div class="rc-branch ${isCera(row.branch)?'cera':''}">${row.branch||'-'}</div>
+        <div class="rc-branch ${isCera(row.branch)?'cera':''}">${displayBranchName(row.branch)||'-'}</div>
         <div class="rc-manager">담당자 : ${row.manager||'-'}</div>
       </div>
       <div class="rc-body">
@@ -2737,7 +2740,7 @@ function renderInvoiceTab() {
     <table style="width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px;table-layout:fixed;">
       <thead>
         <tr style="background:#f3f4f6;border-bottom:2px solid #e5e7eb;color:#111;">
-          <th style="padding:8px 10px;text-align:left;font-weight:600;color:#888;width:190px;">지점명</th>
+          <th style="padding:8px 10px;text-align:left;font-weight:600;color:#888;width:260px;">지점명</th>
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#888;">총 매출</th>
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#4f46e5;">경영컨설팅</th>
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#0891b2;">마케팅</th>
@@ -2760,7 +2763,7 @@ function renderInvoiceTab() {
     if (!row && !fixedNoData) {
       if (isBranchClosed(branch)) return; // 폐업 지점은 해당 월 데이터가 없으면 목록에서 제외
       html += `<tr style="border-bottom:1px solid #f3f4f6;">
-        <td style="padding:8px 10px;font-weight:600;white-space:normal;word-break:keep-all;">${branch}</td>
+        <td style="padding:8px 10px;font-weight:600;white-space:normal;word-break:keep-all;">${displayBranchName(branch)}</td>
         <td colspan="4" style="padding:8px 10px;color:#aaa;text-align:center;">데이터 없음</td>
         <td style="padding:8px 10px;text-align:center;">-</td>
         <td style="padding:8px 10px;text-align:center;">-</td>
@@ -2780,7 +2783,7 @@ function renderInvoiceTab() {
     totalFeeExempt += fees.feeExemptTotal || 0;
     totalFinal += fees.finalSales || 0;
     html += `<tr style="border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background=''">
-      <td style="padding:8px 10px;font-weight:600;white-space:normal;word-break:keep-all;">${branch}${fixedNoData?' <span style="font-size:.68rem;color:#a78bfa;font-weight:500;">(고정수수료·매출자료 미등록)</span>':''}</td>
+      <td style="padding:8px 10px;font-weight:600;white-space:normal;word-break:keep-all;">${displayBranchName(branch)}${fixedNoData?' <span style="font-size:.68rem;color:#a78bfa;font-weight:500;">(고정수수료·매출자료 미등록)</span>':''}</td>
       <td style="padding:8px 10px;text-align:right;">${fixedNoData?'-':fmt(tot)}</td>
       <td style="padding:8px 10px;text-align:right;color:#4f46e5;">${fmt(fees.mgmt)}</td>
       <td style="padding:8px 10px;text-align:right;color:#0891b2;">${fmt(fees.mkt)}</td>
@@ -2793,7 +2796,7 @@ function renderInvoiceTab() {
         <button class="btn-outline" style="padding:2px 5px;font-size:.72rem;" onclick="printInvoice('${branch}','${month}')">🖨️</button>
       </td>
       <td style="padding:8px 6px;text-align:center;">
-        <input type="checkbox" ${getSentState(branch,month)?'checked':''} onchange="setSentState('${branch}','${month}',this.checked);this.closest('tr').style.background=this.checked?'#f0fdf4':'';" style="width:17px;height:17px;cursor:pointer;accent-color:#16a34a;" title="청구서 전송완료" />
+        ${row && row.id ? `<input type="checkbox" ${row.invoiceSent?'checked':''} onchange="toggleReportCheck('${row.id}','invoiceSent',this.checked);this.closest('tr').style.background=this.checked?'#f0fdf4':'';" style="width:17px;height:17px;cursor:pointer;accent-color:#16a34a;" title="청구서 전송완료" />` : '-'}
       </td>
       ${month >= '2026-08' ? `<td style="padding:6px 6px;text-align:center;">
         ${row && row.id ? `
