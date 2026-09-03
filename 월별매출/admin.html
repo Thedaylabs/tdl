@@ -1534,9 +1534,13 @@ function calcFees(row) {
   // 수수료 제외 매출 — 특약사항과는 별개로 지점에서 자유롭게 입력하는 항목.
   // 기존 특약 차감(effTot) 위에 추가로 한 번 더 차감해 "최종 매출"을 구하고,
   // 이 최종 매출을 기준으로 수수료율을 적용한다. (국내매출 기준 마케팅수수료는 영향 없음)
-  const feeExemptTotal = Array.isArray(row.feeExempt) ? row.feeExempt.reduce((s,v)=>s+(v.amount||0),0) : 0;
-  const finalSales = Math.max(0, effTot - feeExemptTotal);
+  const rawFeeExempt = Array.isArray(row.feeExempt) ? row.feeExempt.reduce((s,v)=>s+(v.amount||0),0) : 0;
+  const finalSales = Math.max(0, effTot - rawFeeExempt);
   const rate = (amt) => finalSales > 0 ? Math.round(amt / finalSales * 10000) / 100 : 0;
+  // 화면에 보여줄 "수수료 제외 매출" — 강남점을 제외하고, 분당점/명동시그니처데이뷰의원처럼
+  // 특약사항 금액이 이미 매출에서 차감되고 있는 지점은 그 차감액(sp)도 합산해서 표시한다.
+  // (실제 최종 매출 계산식은 그대로 — 표시값만 사용자가 보기 쉽게 합쳐서 보여줌)
+  const feeExemptTotal = isSpecialDeduct ? rawFeeExempt + sp : rawFeeExempt;
 
   // 관리자 페이지에서 등록한 수수료율(효력발생일 지정)이 있으면 우선 적용 —
   // 없으면 기존에 코드로 짜여있는 계약서 기준 공식(FEE_RULES)으로 폴백
