@@ -3105,6 +3105,14 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt, mode) {
             <td>${fw(amount)}</td>
             <td>${fw(amount)}</td>
           </tr>
+          ${fees.feeExemptTotal > 0 ? `
+          <tr>
+            <td class="ctr">2</td>
+            <td class="lft">수수료 제외 매출</td>
+            <td>-${fw(fees.feeExemptTotal)}</td>
+            <td>-</td>
+            <td>-</td>
+          </tr>` : ''}
         </tbody>
         <tfoot>
           <tr class="sum-row">
