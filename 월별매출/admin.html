@@ -3224,7 +3224,7 @@ function renderMgmtCheck() {
     return;
   }
 
-  let totalMgmtFee = 0, totalPaid = 0;
+  let totalMgmtFee = 0, totalPaid = 0, totalInvoiced = 0;
 
   rows.forEach(row => {
     const id    = row.id || (row.branch + '_' + row.submittedAt);
@@ -3239,6 +3239,7 @@ function renderMgmtCheck() {
 
     totalMgmtFee += fees.mgmt;
     totalPaid    += mgmtPaidTotal(mc);
+    if (isInvoice) totalInvoiced += fees.mgmt;
 
     const tr = document.createElement('tr');
     if (isPaid)    tr.classList.add('paid-yes');
@@ -3309,6 +3310,11 @@ function renderMgmtCheck() {
       <td style="padding:9px 8px;text-align:right;color:#059669;">${numFmt(totalPaid)}</td>
       <td colspan="2"></td>
       <td class="left" style="padding:9px 8px;color:#dc2626;">미수금 ${numFmt(totalUnpaid)}</td>
+    </tr>
+    <tr style="background:#eff6ff;font-weight:700;border-top:1px solid #bfdbfe;">
+      <td class="left" colspan="10" style="padding:9px 8px;">세금계산서 발행 완료 합계 (경영수수료 기준)</td>
+      <td style="padding:9px 8px;text-align:right;color:#2563eb;">${numFmt(totalInvoiced)}</td>
+      <td colspan="2"></td>
     </tr>`;
 }
 
