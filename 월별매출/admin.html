@@ -682,9 +682,10 @@
       <div style="font-size:1rem;font-weight:700;color:#7c3aed;padding:28px 0 10px;border-bottom:2px solid #ede9fe;margin-bottom:20px;max-width:900px;margin-left:auto;margin-right:auto;">🗑️ 지점 삭제 (폐업 처리)</div>
       <div class="settings-wrap" style="padding:0;"><div class="settings-card">
         <p>지점을 폐업 처리하면 PIN 관리·계약 연장·수수료율 변경 목록에서 제외됩니다. <b>과거 매출·수수료 기록은 삭제되지 않고 그대로 남으며</b>, 📑 지점 계약 표에는 "폐업" 표시와 함께 계속 보입니다. 언제든 다시 재활성화할 수 있습니다.</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
           <div><label class="nb-label">지점 선택</label><select id="delBranch" class="nb-input" onchange="loadDeleteForm()"></select></div>
           <div><label class="nb-label">현재 상태</label><div id="delStatusDisplay" class="nb-input" style="display:flex;align-items:center;background:#f8f5ff;"></div></div>
+          <div><label class="nb-label" id="delContractEndLabel">계약 종료일</label><input type="date" id="delContractEndDate" class="nb-input" /></div>
         </div>
         <button class="btn-danger" style="margin-top:14px;" id="delToggleBtn" onclick="toggleBranchStatus()">🗑️ 폐업 처리</button>
         <span class="save-notice" id="delNotice">✅ 처리되었습니다!</span>
@@ -2312,9 +2313,18 @@ function initFeeTable() {
   renderBranchContractTable();
 }
 
+// 이미 완전히 폐업 처리되어 지점 선택 목록(BRANCHES_DAYB/CERA)에서 빠진 지점도
+// 계약 이력 확인용으로 지점 계약 표에는 계속 표시한다 (PIN·매출입력 등 다른 목록엔 미포함)
+function getClosedOnlyBranches(brand, knownList) {
+  return Object.values(BRANCH_CONFIG)
+    .filter(cfg => cfg.status === 'closed' && cfg.brand === brand && !knownList.includes(cfg.branch))
+    .sort((a,b) => (a.contractEnd||'').localeCompare(b.contractEnd||''))
+    .map(cfg => cfg.branch);
+}
+
 function renderBranchContractTable() {
-  renderContractSection('contractBodyDayb', BRANCHES_DAYB);
-  renderContractSection('contractBodyCera', BRANCHES_CERA);
+  renderContractSection('contractBodyDayb', [...BRANCHES_DAYB, ...getClosedOnlyBranches('데이뷰', BRANCHES_DAYB)]);
+  renderContractSection('contractBodyCera', [...BRANCHES_CERA, ...getClosedOnlyBranches('세라미크', BRANCHES_CERA)]);
 }
 
 function renderContractSection(tbodyId, branches) {
@@ -2509,6 +2519,19 @@ function loadDeleteForm() {
   const btn = document.getElementById('delToggleBtn');
   btn.textContent = closed ? '🔄 재활성화' : '🗑️ 폐업 처리';
   btn.className = closed ? 'btn-save' : 'btn-danger';
+
+  const dateEl = document.getElementById('delContractEndDate');
+  const labelEl = document.getElementById('delContractEndLabel');
+  const cfg = BRANCH_CONFIG[branch] || {};
+  if (closed) {
+    labelEl.textContent = '실제 계약 종료일';
+    dateEl.value = cfg.contractEnd || '';
+    dateEl.disabled = true;
+  } else {
+    labelEl.textContent = '계약 종료일 (폐업 처리 시 적용)';
+    dateEl.disabled = false;
+    dateEl.value = new Date().toISOString().slice(0,10);
+  }
 }
 
 async function toggleBranchStatus() {
@@ -2516,13 +2539,21 @@ async function toggleBranchStatus() {
   if (!branch) return;
   const closed = isBranchClosed(branch);
   const newStatus = closed ? 'active' : 'closed';
+
+  let closeDate = '';
+  if (!closed) {
+    closeDate = document.getElementById('delContractEndDate').value;
+    if (!closeDate) { alert('계약 종료일을 입력해 주세요.'); return; }
+  }
+
   const msg = closed
     ? `${branch} 지점을 다시 활성화하시겠습니까?`
-    : `${branch} 지점을 폐업 처리하시겠습니까?\n\n과거 매출·수수료 기록은 삭제되지 않고 그대로 남습니다.\nPIN 관리·계약 연장·수수료율 변경 목록에서만 제외됩니다.`;
+    : `${branch} 지점을 ${closeDate}자로 폐업 처리하시겠습니까?\n\n과거 매출·수수료 기록은 삭제되지 않고 그대로 남습니다.\nPIN 관리·계약 연장·수수료율 변경 목록에서만 제외됩니다.`;
   if (!confirm(msg)) return;
 
   const existing = BRANCH_CONFIG[branch] || { branch, brand: getBrand(branch), ceo: BRANCH_CEO[branch] || '' };
   const branchData = { ...existing, branch, status: newStatus };
+  if (!closed) branchData.contractEnd = closeDate;
   await serverPost({ action:'save_branch_config', data:branchData });
   BRANCH_CONFIG[branch] = branchData;
   localStorage.setItem('branch_config', JSON.stringify(BRANCH_CONFIG));
