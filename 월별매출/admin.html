@@ -1530,10 +1530,8 @@ function calcFees(row) {
   const spRaw = spFromRow || (branch === '강남점' ? (GANGNAM_SPECIAL_FALLBACK[ym] || 0) : 0);
   // 강남점은 26.06부터 특약사항 수수료 차감 없음
   const sp = (branch === '강남점' && ym >= '2026-06') ? 0 : spRaw;
-  // 명동시그니처데이뷰의원(26.06~)은 특약을 총매출에서 차감 후 수수료 계산
-  // 분당점은 지점에서 이미 화장품 매출 제외한 금액을 총매출로 제출하고 있어,
-  // 특약사항(화장품 판매 제외)은 참고용 기록만 하고 총매출에서 별도로 차감하지 않음(중복차감 방지)
-  const isSpecialDeduct = branch === '명동시그니처데이뷰의원' && ym >= '2026-06';
+  // 분당점·명동시그니처데이뷰의원(26.06~)은 특약을 총매출에서 차감 후 수수료 계산
+  const isSpecialDeduct = branch === '분당점' || (branch === '명동시그니처데이뷰의원' && ym >= '2026-06');
   // 영등포점은 여신티켓을 총매출에 합산 후 수수료 계산
   const isSpecialAdd = branch === '영등포점';
   const effTot = isSpecialDeduct ? Math.max(0, tot - sp) : isSpecialAdd ? tot + sp : tot;
