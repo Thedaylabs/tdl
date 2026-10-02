@@ -473,7 +473,7 @@
           <div class="upload-wrap" id="ua1">
             <input type="file" id="f1" accept="image/*" multiple onchange="addFiles(this,'p1')" />
             <div class="ico">🖼️</div>
-            <p><strong>클릭 또는 드래그</strong>하여 업로드</p>
+            <p><strong>클릭, 드래그 또는 붙여넣기(Ctrl+V)</strong>하여 업로드</p>
             <p>JPG · PNG · HEIC 가능</p>
           </div>
           <div class="preview-grid" id="p1"></div>
@@ -483,7 +483,7 @@
           <div class="upload-wrap" id="ua2">
             <input type="file" id="f2" accept="image/*" multiple onchange="addFiles(this,'p2')" />
             <div class="ico">🖼️</div>
-            <p><strong>클릭 또는 드래그</strong>하여 업로드</p>
+            <p><strong>클릭, 드래그 또는 붙여넣기(Ctrl+V)</strong>하여 업로드</p>
             <p>JPG · PNG · HEIC 가능</p>
           </div>
           <div class="preview-grid" id="p2"></div>
@@ -493,7 +493,7 @@
           <div class="upload-wrap" id="ua3">
             <input type="file" id="f3" accept="image/*,.pdf,.xlsx,.xls" multiple onchange="addFiles(this,'p3')" />
             <div class="ico">📄</div>
-            <p><strong>클릭 또는 드래그</strong>하여 업로드</p>
+            <p><strong>클릭, 드래그 또는 붙여넣기(Ctrl+V)</strong>하여 업로드</p>
             <p>이미지 · PDF · Excel 가능</p>
           </div>
           <div class="preview-grid" id="p3"></div>
@@ -942,11 +942,32 @@ function addFiles(input,pid) {
   });
   input.value='';
 }
+let hoveredZone=null;
 document.querySelectorAll('.upload-wrap').forEach((area,i)=>{
   const pid='p'+(i+1);
   area.addEventListener('dragover',e=>{ e.preventDefault(); area.classList.add('over'); });
   area.addEventListener('dragleave',()=>area.classList.remove('over'));
   area.addEventListener('drop',e=>{ e.preventDefault(); area.classList.remove('over'); addFiles({files:e.dataTransfer.files,value:''},pid); });
+  area.addEventListener('mouseenter',()=>{ hoveredZone=pid; });
+  area.addEventListener('mouseleave',()=>{ if(hoveredZone===pid) hoveredZone=null; });
+});
+// 클립보드에 복사된 이미지(캡쳐 등)를 붙여넣기(Ctrl+V)로 바로 첨부 — 마지막으로 마우스 올려둔 업로드 영역에 추가, 없으면 첫 번째 영역
+document.addEventListener('paste', e=>{
+  const items=(e.clipboardData && e.clipboardData.items)||[];
+  const imgFiles=[];
+  for(const it of items){
+    if(it.kind==='file' && it.type.startsWith('image/')){
+      const raw=it.getAsFile();
+      if(raw){
+        const ext=(it.type.split('/')[1]||'png').replace('jpeg','jpg');
+        const name=`붙여넣기_${new Date().toISOString().replace(/[:.]/g,'-')}.${ext}`;
+        imgFiles.push(new File([raw], name, {type:it.type}));
+      }
+    }
+  }
+  if(!imgFiles.length) return;
+  e.preventDefault();
+  addFiles({files:imgFiles,value:''}, hoveredZone||'p1');
 });
 
 // ── 특약 수집 ───────────────────────────────────────────────
