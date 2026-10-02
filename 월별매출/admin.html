@@ -2796,7 +2796,7 @@ function renderInvoiceTab() {
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#dc2626;">수수료 제외 매출</th>
           <th style="padding:8px 10px;text-align:right;font-weight:600;color:#4f46e5;">최종 매출</th>
           <th style="padding:8px 10px;text-align:center;font-weight:600;color:#888;">적용 요율</th>
-          <th style="padding:8px 6px;text-align:center;font-weight:600;color:#d97706;width:64px;">1회성 조정</th>
+          <th style="padding:8px 6px;text-align:center;font-weight:600;color:#d97706;width:64px;">1회성 추가</th>
           <th style="padding:8px 6px;text-align:center;font-weight:600;color:#888;width:64px;">청구서</th>
           <th style="padding:8px 6px;text-align:center;font-weight:600;color:#888;width:72px;">전송완료</th>
           ${month >= '2026-08' ? '<th style="padding:8px 6px;text-align:center;font-weight:600;color:#888;width:100px;">확인</th>' : ''}
@@ -2842,7 +2842,7 @@ function renderInvoiceTab() {
       <td style="padding:8px 10px;text-align:right;font-weight:700;color:#4f46e5;">${fmt(fees.finalSales)}</td>
       <td style="padding:8px 10px;text-align:center;font-size:.74rem;color:#555;white-space:nowrap;">경영 ${fees.mgmtRatePct.toFixed(2)}%<br>마케팅 ${fees.mktRatePct.toFixed(2)}%</td>
       <td style="padding:8px 6px;text-align:center;white-space:nowrap;">
-        ${row && row.id ? `<button class="btn-outline" style="padding:2px 6px;font-size:.72rem;${(fees.adjMgmt||fees.adjMkt)?'border-color:#d97706;color:#d97706;font-weight:700;':''}" title="${(fees.adjMgmt||fees.adjMkt)?('조정: 경영 '+fees.adjMgmt.toLocaleString('ko-KR')+' / 마케팅 '+fees.adjMkt.toLocaleString('ko-KR')+(fees.adjReason?' ('+fees.adjReason.replace(/"/g,'&quot;')+')':'')):'1회성 조정 입력'}" onclick="openInvoiceAdj('${row.id}')">${(fees.adjMgmt||fees.adjMkt)?'조정됨':'✏️'}</button>` : '-'}
+        ${row && row.id ? `<button class="btn-outline" style="padding:2px 6px;font-size:.72rem;${(fees.adjMgmt||fees.adjMkt)?'border-color:#d97706;color:#d97706;font-weight:700;':''}" title="${(fees.adjMgmt||fees.adjMkt)?('추가: '+(fees.adjReason?fees.adjReason.replace(/"/g,'&quot;')+' ':'')+'(경영 '+fees.adjMgmt.toLocaleString('ko-KR')+' / 마케팅 '+fees.adjMkt.toLocaleString('ko-KR')+')'):'청구서에 1회성 항목 추가'}" onclick="openInvoiceAdj('${row.id}')">${(fees.adjMgmt||fees.adjMkt)?'추가됨':'➕'}</button>` : '-'}
       </td>
       <td style="padding:8px 6px;text-align:center;white-space:nowrap;">
         <button class="btn-purple" style="padding:2px 5px;font-size:.72rem;" onclick="previewInvoice('${branch}','${month}')">👁️</button>
@@ -2888,7 +2888,7 @@ function renderInvoiceTab() {
   document.getElementById('invoicePreviewArea').innerHTML = '';
 }
 
-// ── 청구서 1회성 조정 (해당 월 매출 행에 invoiceAdj 저장 → 서버 동기화) ──
+// ── 청구서 1회성 추가 항목 (해당 월 매출 행에 invoiceAdj={mgmt,mkt,reason(항목명)} 저장 → 서버 동기화) ──
 function openInvoiceAdj(rowId) {
   const row = getData().find(r => r.id === rowId);
   if (!row) return;
@@ -2901,16 +2901,16 @@ function openInvoiceAdj(rowId) {
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
   ov.innerHTML = `
     <div style="background:#fff;border-radius:16px;width:100%;max-width:440px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.2);">
-      <h3 style="font-size:1.05rem;margin-bottom:4px;">청구서 1회성 조정</h3>
-      <div style="font-size:.8rem;color:#777;margin-bottom:16px;">${displayBranchName(row.branch)} · ${row.month} (VAT 포함 금액 기준, 차감은 -금액 입력)</div>
-      <label class="nb-label">경영컨설팅 조정액 <span style="color:#999;font-weight:400;">(계산값 ${fmt(f.mgmt)}원)</span></label>
+      <h3 style="font-size:1.05rem;margin-bottom:4px;">청구서 1회성 항목 추가</h3>
+      <div style="font-size:.8rem;color:#777;margin-bottom:16px;">${displayBranchName(row.branch)} · ${row.month} (청구서의 다음 줄에 항목으로 추가됩니다 · VAT 포함 금액, 차감은 -금액)</div>
+      <label class="nb-label">경영컨설팅 청구서에 추가할 금액 <span style="color:#999;font-weight:400;">(계산값 ${fmt(f.mgmt)}원)</span></label>
       <input type="text" id="invAdjMgmt" class="nb-input" inputmode="text" placeholder="예: -5945296" value="${adj.mgmt||''}" style="margin-bottom:12px;" />
-      <label class="nb-label">마케팅 조정액 <span style="color:#999;font-weight:400;">(계산값 ${fmt(f.mkt)}원)</span></label>
+      <label class="nb-label">마케팅 청구서에 추가할 금액 <span style="color:#999;font-weight:400;">(계산값 ${fmt(f.mkt)}원)</span></label>
       <input type="text" id="invAdjMkt" class="nb-input" inputmode="text" placeholder="예: 100000" value="${adj.mkt||''}" style="margin-bottom:12px;" />
-      <label class="nb-label">조정 사유 <span style="color:#999;font-weight:400;">(청구서에 표시됨)</span></label>
+      <label class="nb-label">항목명 <span style="color:#999;font-weight:400;">(청구서 항목란에 표시됨)</span></label>
       <input type="text" id="invAdjReason" class="nb-input" placeholder="예: 8,9월 수수료 과입금 차감" value="${(adj.reason||'').replace(/"/g,'&quot;')}" style="margin-bottom:18px;" />
       <div style="display:flex;gap:8px;justify-content:flex-end;">
-        ${(adj.mgmt||adj.mkt)?`<button class="btn-outline" style="margin-right:auto;color:#dc2626;border-color:#fca5a5;" onclick="saveInvoiceAdj('${rowId}',true)">조정 해제</button>`:''}
+        ${(adj.mgmt||adj.mkt)?`<button class="btn-outline" style="margin-right:auto;color:#dc2626;border-color:#fca5a5;" onclick="saveInvoiceAdj('${rowId}',true)">추가 항목 삭제</button>`:''}
         <button class="btn-outline" onclick="document.getElementById('invAdjOverlay').remove()">취소</button>
         <button class="btn-purple" onclick="saveInvoiceAdj('${rowId}',false)">저장</button>
       </div>
@@ -3176,7 +3176,7 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt, mode) {
     const base = amount - adj;
     const hasEx = fees.feeExemptTotal > 0;
     const adjNo = hasEx ? 3 : 2;
-    const adjLabel = '1회성 조정' + (fees.adjReason ? ` (${fees.adjReason})` : '');
+    const adjLabel = fees.adjReason || '추가 항목';
     const adjAmt = (adj < 0 ? '-' : '') + fw(Math.abs(adj));
     return `<div class="inv-page">
       <div class="inv-title">${typeLabel}　수 수 료 청 구 서</div>
