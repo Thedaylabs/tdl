@@ -240,65 +240,166 @@ const BRANCHES_CERA = ['세라미크 강남점', '세라미크 명동점'];
 const ALL_BRANCHES  = [...BRANCHES_DAYB, ...BRANCHES_CERA];
 function getBrand(branch) { return branch.startsWith('세라미크') ? '세라미크' : '데이뷰'; }
 
+// 지점 수수료율 변경 이력 — 매출 관리자 페이지(admin.html)에서 등록한 값을 서버 동기화로 받아 우선 적용
+let RATE_HISTORY = JSON.parse(localStorage.getItem('rate_history') || '[]');
+// 지점의 특정 월(ym)에 적용되는 가장 최근 수수료 이력을 찾는다
+function getRateScheduleFor(branch, ym) {
+  const entries = RATE_HISTORY.filter(e => e.branch === branch && e.effectiveFrom && e.effectiveFrom <= ym);
+  if (!entries.length) return null;
+  entries.sort((a,b) => a.effectiveFrom < b.effectiveFrom ? 1 : -1);
+  return entries[0];
+}
+
+function describeRateSchedule(s) {
+  const mgmtTxt = s.mgmtType === 'fixed' ? numFmt(Math.round(s.mgmtVal*1.1)) + '원 고정' : (s.mgmtVal + '%(총매출)');
+  const mktBasis = s.mktType === 'pct_domestic' ? '국내매출' : '총매출';
+  return `경영 ${mgmtTxt}+VAT | 마케팅 ${mktBasis} ${s.mktVal}%+VAT (${s.effectiveFrom}~)`;
+}
+
 const E8 = 100000000;
+
+// 강남점 특약사항 — 월별 고정 차감액 (row.special에 미입력된 과거 데이터 보완용)
 const GANGNAM_SPECIAL_FALLBACK = {
-  '2025-09': 60648390, '2025-10': 59801742, '2025-11': 97815415, '2025-12': 95605587,
-  '2026-01': 91341657, '2026-02': 25228269, '2026-03': 58202595, '2026-04': 71403057, '2026-05': 62413956,
+  '2025-09': 60648390,
+  '2025-10': 59801742,
+  '2025-11': 97815415,
+  '2025-12': 95605587,
+  '2026-01': 91341657,
+  '2026-02': 25228269,
+  '2026-03': 58202595,
+  '2026-04': 71403057,
+  '2026-05': 62413956,
 };
 const FEE_RULES = {
-  '강서발산점':    { formula:'국내 3%+VAT',  mgmt:(t)=>11000000, mkt:(t,ym,dom)=>Math.round(t*0.033) },
-  '건대입구점':    { formula:'국내 4%+VAT',  mgmt:(t)=>t<3*E8?0:11000000, mkt:(t,ym,dom)=>Math.round(dom*0.044) },
-  '광주상무점':    { formula:'3억이하:4%/초과분:3%+VAT', mgmt:(t)=>t<3*E8?0:11000000,
+  // (t=총매출, ym=연월, dom=국내매출)
+  '강서발산점':    { formula:'경영 고정 1,000만+VAT | 마케팅 3%+VAT',
+    mgmt:(t)=>11000000,
+    mkt:(t,ym,dom)=>Math.round(t*0.033) },
+  '건대입구점':    { formula:'경영 3억 미만 면제/이상 1,000만+VAT | 마케팅 국내4%+VAT',
+    mgmt:(t)=>t<3*E8?0:11000000,
+    mkt:(t,ym,dom)=>Math.round(dom*0.044) },
+  '광주상무점':    { formula:'경영 3억 미만 면제/이상 1,000만+VAT(~2026.08)·500만+VAT(2026.09~, 계약연장) | 마케팅 3억이하:4%/초과분:3%+VAT',
+    mgmt:(t,ym)=>t<3*E8?0:(ym>='2026-09'?5500000:11000000),
     mkt:(t)=>t>3*E8?Math.round(((3*E8*0.04)+(t-3*E8)*0.03)*1.1):Math.round(t*0.044) },
-  '강남점':        { formula:'마케팅 수수료 없음', mgmt:()=>0, mkt:()=>0 },
-  '안양범계점':    { formula:'3억이하:4%/초과분:3%+VAT', mgmt:(t)=>t<E8?0:11000000,
+  '강남점':        { formula:'경영 ~26.05: 3억미만면제/3억~5억5.5%/5억~10억7.7%/10억~15억9.35%/15억+9.9% | 26.06~: 4.5%(부가세포함) 최대9천만원(부가세포함) | 마케팅없음',
+    mgmt:(t,ym,dom,sp)=>{let b;if(ym>='2026-06'){b=Math.min(Math.round(t*0.045),90000000);}else{if(t<3*E8)b=0;else if(t<5*E8)b=Math.round(t*0.055);else if(t<10*E8)b=Math.round(t*0.077);else if(t<15*E8)b=Math.round(t*0.0935);else b=Math.round(t*0.099);}return Math.max(0,b-(sp||0));},
+    mkt:()=>0 },
+  '안양범계점':    { formula:'경영 1억 미만 면제/이상 1,000만+VAT | 마케팅 3억이하:4%/초과분:3%+VAT',
+    mgmt:(t)=>t<E8?0:11000000,
     mkt:(t)=>t>3*E8?Math.round(((3*E8*0.04)+(t-3*E8)*0.03)*1.1):Math.round(t*0.044) },
-  '여의도점':      { formula:'3억이하:4%/초과분:3%+VAT', mgmt:(t)=>t<3*E8?0:Math.round(t*0.0385),
+  '여의도점':      { formula:'경영 3억 미만 면제/이상 3.5%+VAT | 마케팅 3억이하:4%/초과분:3%+VAT',
+    mgmt:(t)=>t<3*E8?0:Math.round(t*0.0385),
     mkt:(t)=>t>3*E8?Math.round(((3*E8*0.04)+(t-3*E8)*0.03)*1.1):Math.round(t*0.044) },
-  '영등포점':      { formula:'~26.03: 3%+VAT | 26.04~: 6%+VAT', mgmt:(t,ym)=>ym>='2026-04'?(t<3*E8?Math.round(t*0.011):Math.round(t*0.066)):Math.round(t*0.033),
+  '영등포점':      { formula:'~26.03: 경영·마케팅 3%+VAT | 26.04~: 경영1%(3억미만)/6%(이상)+VAT, 마케팅6%+VAT',
+    mgmt:(t,ym)=>ym>='2026-04'?(t<3*E8?Math.round(t*0.011):Math.round(t*0.066)):Math.round(t*0.033),
     mkt:(t,ym)=>ym>='2026-04'?Math.round(t*0.066):Math.round(t*0.033) },
-  '대전둔산점':    { formula:'4%+VAT', mgmt:(t)=>11000000, mkt:(t,ym,dom)=>Math.round(t*0.044) },
-  '명동점':        { formula:'국내4%+VAT(25.11~없음)', mgmt:(t)=>{if(t<3*E8)return 0;if(t<4*E8)return 11000000;return Math.round(t*0.11);},
+  '대전둔산점':    { formula:'경영 고정 1,000만+VAT | 마케팅 4%+VAT',
+    mgmt:(t)=>11000000,
+    mkt:(t,ym,dom)=>Math.round(t*0.044) },
+  '명동점':        { formula:'경영 3억미만:면제/3억~4억:1,000만/4억+:10%+VAT | 마케팅 국내4%+VAT(25.11~없음)',
+    mgmt:(t)=>{if(t<3*E8)return 0;if(t<4*E8)return 11000000;return Math.round(t*0.11);},
     mkt:(t,ym,dom)=>ym>='2025-11'?0:Math.round(dom*0.044) },
-  '분당점':        { formula:'4%+VAT ※화장품 결제건 제외', mgmt:(t)=>Math.round(t*0.044), mkt:(t,ym,dom)=>Math.round(t*0.044) },
-  '인천구월점':    { formula:'4%+VAT', mgmt:(t)=>t<2.5*E8?0:Math.round(t*0.044), mkt:(t,ym,dom)=>Math.round(t*0.044) },
-  '전주점':        { formula:'~26.02: 2.75%/5.5% | 26.03~: 2.2%/4.4%', mgmt:(t,ym)=>{
+  '분당점':        { formula:'경영 4%+VAT | 마케팅 4%+VAT ※화장품 결제건 제외',
+    mgmt:(t)=>Math.round(t*0.044),
+    mkt:(t,ym,dom)=>Math.round(t*0.044) },
+  '인천구월점':    { formula:'경영 2억5천 미만 면제/이상 4%+VAT | 마케팅 4%+VAT',
+    mgmt:(t)=>t<2.5*E8?0:Math.round(t*0.044),
+    mkt:(t,ym,dom)=>Math.round(t*0.044) },
+  '전주점':        { formula:'1억이하 면제 | ~26.02: 1억~2억2.75%/2억+5.5% | 26.03~: 1억~2억2.2%/2억+4.4%',
+    mgmt:(t,ym)=>{
       if(t<=E8) return 0;
       if(ym>='2026-03') return t<2*E8?Math.round(t*0.022):Math.round(t*0.044);
       return t<2*E8?Math.round(t*0.0275):Math.round(t*0.055);
-    }, mkt:(t,ym)=>{
+    },
+    mkt:(t,ym)=>{
       if(t<=E8) return 0;
       if(ym>='2026-03') return t<2*E8?Math.round(t*0.022):Math.round(t*0.044);
       return t<2*E8?Math.round(t*0.0275):Math.round(t*0.055);
     }},
-  '부산서면점':    { formula:'국내매출 5%+VAT', mgmt:(t)=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);},
+  '부산서면점':    { formula:'경영 1.5억 이하 면제/1.5억~3억:2.75%/3억+:5.5% | 마케팅 국내매출 5%+VAT',
+    mgmt:(t)=>{if(t<=1.5*E8)return 0;if(t<3*E8)return Math.round(t*0.0275);return Math.round(t*0.055);},
     mkt:(t,ym,dom)=>Math.round(dom*0.055) },
-  '명동시그니처데이뷰의원':     { formula:'국내5%+VAT(26.01~26.06)/없음(26.07~)', mgmt:(t,ym)=>{
-      if(ym>='2026-08'){ if(t<15*E8)return Math.round(t*0.11); if(t<20*E8)return Math.round(t*0.1375); return Math.round(t*0.165); }
+  '명동시그니처데이뷰의원':     { formula:'경영 15%+VAT(~26.04)/10%+VAT(26.05~26.07)/구간누진(26.08~: 15억미만11%,15~20억13.75%,20억+16.5%, 모두 VAT포함) | 마케팅 국내5%+VAT(26.01~26.06)/없음(26.07~)',
+    mgmt:(t,ym)=>{
+      if(ym>='2026-08'){
+        if(t<15*E8)return Math.round(t*0.11);
+        if(t<20*E8)return Math.round(t*0.1375);
+        return Math.round(t*0.165);
+      }
       return ym>='2026-05'?Math.round(t*0.11):Math.round(t*0.165);
-    }, mkt:(t,ym,dom)=>ym>='2026-07'?0:ym>='2026-01'?Math.round(dom*0.055):0 },
-  '수원점':        { formula:'3%+VAT', mgmt:(t)=>Math.round(t*0.033), mkt:(t)=>Math.round(t*0.033) },
-  '세라미크 강남점':{ formula:'10%+VAT', mgmt:(t)=>Math.round(t*0.055), mkt:(t)=>Math.round(t*0.11) },
-  '세라미크 명동점':{ formula:'국내매출 5%+VAT', mgmt:(t)=>Math.round(t*0.055), mkt:(t,ym,dom)=>Math.round(dom*0.055) },
+    },
+    mkt:(t,ym,dom)=>ym>='2026-07'?0:ym>='2026-01'?Math.round(dom*0.055):0 },
+  '수원점':        { formula:'경영·마케팅 3%+VAT (구 영등포점 동일조건)',
+    mgmt:(t)=>Math.round(t*0.033),
+    mkt:(t)=>Math.round(t*0.033) },
+  '세라미크 강남점':{ formula:'경영 5%+VAT | 마케팅 10%+VAT',
+    mgmt:(t)=>Math.round(t*0.055),
+    mkt:(t)=>Math.round(t*0.11) },
+  '세라미크 명동점':{ formula:'경영 월매출 5%+VAT | 마케팅 국내매출 5%+VAT (2025.10.25~2027.10.24, 2년씩 자동연장)',
+    mgmt:(t)=>Math.round(t*0.055),
+    mkt:(t,ym,dom)=>Math.round(dom*0.055) },
 };
 
-function calcFees(row) {
+function calcFeesBase(row) {
   const tot = row.salesTotal || 0;
   const branch = row.branch || '';
-  const rule = FEE_RULES[branch];
-  if (!rule) return { mgmt:0, mkt:0, total:0, formula:'-' };
   const ym  = row.month || '';
   const dom = row.salesDomestic != null ? row.salesDomestic : tot;
-  const spFromRow = row.special ? Object.values(row.special).reduce((s,v)=>s+(v.amount||0),0) : 0;
+  // deduct:false로 표시된 특약 항목(예: 강남점 직원시술/화장품매출/마운자로 등 참고용 항목)은
+  // 수수료 계산에서 제외 — 과거 데이터(deduct 필드 없음)는 기존과 동일하게 차감 대상으로 취급
+  const spFromRow = row.special ? Object.values(row.special).reduce((s,v)=>s+((v.deduct!==false)?(v.amount||0):0),0) : 0;
   const spRaw = spFromRow || (branch === '강남점' ? (GANGNAM_SPECIAL_FALLBACK[ym] || 0) : 0);
+  // 강남점은 26.06부터 특약사항 수수료 차감 없음
   const sp = (branch === '강남점' && ym >= '2026-06') ? 0 : spRaw;
-  const isSpecialDeduct = branch === '분당점' || (branch === '명동시그니처데이뷰의원' && ym >= '2026-06');
+  // 명동시그니처데이뷰의원(26.06~)은 특약을 총매출에서 차감 후 수수료 계산
+  // 분당점은 26.07~26.09분은 지점에서 이미 화장품 매출 제외한 금액을 총매출로 제출해
+  // 특약사항(화장품 판매 제외)을 총매출에서 별도로 차감하지 않음(중복차감 방지).
+  // 26.06분과 26.10분부터는 총매출에서 특약 차감 후 계산.
+  const isSpecialDeduct = (branch === '분당점' && (ym === '2026-06' || ym >= '2026-10')) || (branch === '명동시그니처데이뷰의원' && ym >= '2026-06');
+  // 영등포점은 여신티켓을 총매출에 합산 후 수수료 계산
   const isSpecialAdd = branch === '영등포점';
   const effTot = isSpecialDeduct ? Math.max(0, tot - sp) : isSpecialAdd ? tot + sp : tot;
-  const mgmtAmt = rule.mgmt(effTot, ym, dom);
-  const mktAmt  = rule.mkt(effTot, ym, dom);
-  return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:rule.formula };
+  const effSp  = (isSpecialDeduct || isSpecialAdd) ? 0 : sp;
+
+  // 수수료 제외 매출 — 특약사항과는 별개로 지점에서 자유롭게 입력하는 항목.
+  // 기존 특약 차감(effTot) 위에 추가로 한 번 더 차감해 "최종 매출"을 구하고,
+  // 이 최종 매출을 기준으로 수수료율을 적용한다. (국내매출 기준 마케팅수수료는 영향 없음)
+  const rawFeeExempt = Array.isArray(row.feeExempt) ? row.feeExempt.reduce((s,v)=>s+(v.amount||0),0) : 0;
+  const finalSales = Math.max(0, effTot - rawFeeExempt);
+  const rate = (amt) => finalSales > 0 ? Math.round(amt / finalSales * 10000) / 100 : 0;
+  // 화면에 보여줄 "수수료 제외 매출" — 강남점을 제외하고, 분당점/명동시그니처데이뷰의원처럼
+  // 특약사항 금액이 이미 매출에서 차감되고 있는 지점은 그 차감액(sp)도 합산해서 표시한다.
+  // (실제 최종 매출 계산식은 그대로 — 표시값만 사용자가 보기 쉽게 합쳐서 보여줌)
+  const feeExemptTotal = isSpecialDeduct ? rawFeeExempt + sp : rawFeeExempt;
+
+  // 관리자 페이지에서 등록한 수수료율(효력발생일 지정)이 있으면 우선 적용 —
+  // 없으면 기존에 코드로 짜여있는 계약서 기준 공식(FEE_RULES)으로 폴백
+  const schedule = getRateScheduleFor(branch, ym);
+  if (schedule) {
+    const VAT = 1.1;
+    // 건대입구점: 관리자 등록 고정 수수료율이 있어도 "월매출 3억 미만 경영수수료 면제" 특약은 유지
+    const mgmtExempt = branch === '건대입구점' && finalSales < 3*E8;
+    const mgmtAmt = mgmtExempt ? 0 : (schedule.mgmtType === 'fixed'
+      ? Math.round(schedule.mgmtVal * VAT)
+      : Math.round(finalSales * schedule.mgmtVal / 100 * VAT));
+    const mktBasisAmt = schedule.mktType === 'pct_domestic' ? dom : finalSales;
+    const mktAmt = Math.round(mktBasisAmt * schedule.mktVal / 100 * VAT);
+    const formulaTxt = describeRateSchedule(schedule) + (mgmtExempt ? ' (월매출 3억 미만 경영수수료 면제 적용)' : '');
+    return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:formulaTxt, overridden:false,
+      feeExemptTotal, finalSales, mgmtRatePct:rate(mgmtAmt), mktRatePct:rate(mktAmt) };
+  }
+
+  const rule = FEE_RULES[branch];
+  if (!rule) return { mgmt:0, mkt:0, total:0, formula:'-', overridden:false,
+    feeExemptTotal, finalSales, mgmtRatePct:0, mktRatePct:0 };
+  const mgmtAmt = rule.mgmt(finalSales, ym, dom, effSp);
+  const mktAmt  = rule.mkt(finalSales, ym, dom, effSp);
+  return { mgmt:mgmtAmt, mkt:mktAmt, total:mgmtAmt+mktAmt, formula:rule.formula, overridden:false,
+    feeExemptTotal, finalSales, mgmtRatePct:rate(mgmtAmt), mktRatePct:rate(mktAmt) };
 }
+
+// 마케팅 청구서는 1회성 조정(invoiceAdj) 행이 없으므로 기본 계산 결과를 그대로 사용
+function calcFees(row) { return calcFeesBase(row); }
 
 function numFmt(n) { return Number(n||0).toLocaleString('ko-KR'); }
 
@@ -342,6 +443,8 @@ function syncFromServer(callback) {
       const gasDeletedIds = new Set(data.deleted_ids || []);
       const serverRows = (data.sales_data || []).filter(r => !_deletedIds.has(r.id) && !gasDeletedIds.has(r.id));
       localStorage.setItem('sales_data', JSON.stringify(serverRows));
+      RATE_HISTORY = data.rate_history || [];
+      localStorage.setItem('rate_history', JSON.stringify(RATE_HISTORY));
       if (indicator) { indicator.textContent = '✅ 동기화 완료'; setTimeout(()=>{ indicator.textContent=''; }, 3000); }
     })
     .catch(err => {
