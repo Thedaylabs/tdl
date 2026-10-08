@@ -1519,9 +1519,10 @@ function retryFindFiles(btn, submissionId){
     })
     .catch(()=>{ thumbsEl.innerHTML='<div class="file-none">재검색 실패</div>'; });
 }
-// 1회성 조정(청구서 탭에서 입력한 row.invoiceAdj = {mgmt, mkt, reason}, VAT포함 ±금액)을 계산 결과에 더해 반환
-function calcFees(row) {
-  const f = calcFeesBase(row);
+// 청구서 전용: 청구서 탭에서 입력한 1회성 추가 항목(row.invoiceAdj = {mgmt, mkt, reason}, VAT포함 ±금액)을 더한 결과.
+// 다른 탭(매출자료/전체현황/경영확인 등)은 calcFees(조정 미반영)를 그대로 사용
+function calcFeesInv(row) {
+  const f = calcFees(row);
   const adj = row && row.invoiceAdj;
   const am = adj ? (Number(adj.mgmt) || 0) : 0;
   const ak = adj ? (Number(adj.mkt) || 0) : 0;
@@ -1531,7 +1532,7 @@ function calcFees(row) {
     adjMgmt: am, adjMkt: ak, adjReason: (adj.reason || '').trim(), baseMgmt: f.mgmt, baseMkt: f.mkt
   });
 }
-function calcFeesBase(row) {
+function calcFees(row) {
   const tot = row.salesTotal || 0;
   const branch = row.branch || '';
   const ym  = row.month || '';
@@ -2825,7 +2826,7 @@ function renderInvoiceTab() {
       return;
     }
     const effRow = row || { branch, month, salesTotal:0, salesDomestic:0, salesOverseas:0, special:{} };
-    const fees = calcFees(effRow);
+    const fees = calcFeesInv(effRow);
     const tot  = effRow.salesTotal || 0;
     totalSales += tot;
     totalMgmt  += fees.mgmt;
@@ -2892,7 +2893,7 @@ function renderInvoiceTab() {
 function openInvoiceAdj(rowId) {
   const row = getData().find(r => r.id === rowId);
   if (!row) return;
-  const f = calcFeesBase(row);
+  const f = calcFees(row);
   const adj = row.invoiceAdj || {};
   const fmt = n => Number(n||0).toLocaleString('ko-KR');
   const old = document.getElementById('invAdjOverlay'); if (old) old.remove();
@@ -3078,7 +3079,7 @@ function buildInvoiceHTML(branch, month, isPreview, stampMgmt, stampMkt, mode) {
   }
   const effRow = row || { branch, month, salesTotal:0, salesDomestic:0, salesOverseas:0, special:{} };
 
-  const fees = calcFees(effRow);
+  const fees = calcFeesInv(effRow);
   const tot  = effRow.salesTotal || 0;
   const mgmt = fees.mgmt;
   const mkt  = fees.mkt;
