@@ -59,13 +59,14 @@ export default async function handler(req, res) {
         ov: Math.round(r.salesOverseas || 0),
         ex: Math.round(f.feeExemptTotal || 0),
         mgmt: Math.round(f.mgmt || 0),
+        rate: f.finalSales > 0 ? Math.round(f.mgmt / f.finalSales * 1e6) / 1e6 : 0,
       };
     });
     const ord = b => { const i = ORDER.indexOf(b); return i < 0 ? 999 : i; };
     rows.sort((a, b) => a.month.localeCompare(b.month) || ord(a.branch) - ord(b.branch) || a.branch.localeCompare(b.branch));
 
-    const csv = ['지점,년월,정산 총매출,정산 국내매출,정산 해외매출,수수료 제외 매출,"경영수수료(청구, VAT포함)"']
-      .concat(rows.map(r => [r.branch, r.month + '-01', r.tot, r.dom, r.ov, r.ex, r.mgmt].join(',')))
+    const csv = ['지점,년월,정산 총매출,정산 국내매출,정산 해외매출,수수료 제외 매출,"경영수수료(청구, VAT포함)",경영 수수료율']
+      .concat(rows.map(r => [r.branch, r.month + '-01', r.tot, r.dom, r.ov, r.ex, r.mgmt, r.rate].join(',')))
       .join('\r\n');
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
