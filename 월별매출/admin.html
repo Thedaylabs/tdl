@@ -1084,6 +1084,7 @@ function isBranchClosed(branch) {
   return !!(cfg && cfg.status === 'closed');
 }
 
+// [FEE-CALC-A-START] api/export.js(엑셀 연동)가 A/B 구간을 그대로 가져다 쓰므로 이 표시는 지우지 마세요
 // 지점의 특정 월(ym)에 적용되는 가장 최근 수수료 이력을 찾는다
 function getRateScheduleFor(branch, ym) {
   const entries = RATE_HISTORY.filter(e => e.branch === branch && e.effectiveFrom && e.effectiveFrom <= ym);
@@ -1097,6 +1098,7 @@ function describeRateSchedule(s) {
   const mktBasis = s.mktType === 'pct_domestic' ? '국내매출' : '총매출';
   return `경영 ${mgmtTxt}+VAT | 마케팅 ${mktBasis} ${s.mktVal}%+VAT (${s.effectiveFrom}~)`;
 }
+// [FEE-CALC-A-END]
 
 
 // ════════════════════════════════════════════════════════
@@ -1391,6 +1393,7 @@ function switchTab(n) {
 // ════════════════════════════════════════════════════════
 // 수수료 계산 규칙 (계약서 기준, 부가세 10% 포함)
 // ════════════════════════════════════════════════════════
+// [FEE-CALC-B-START] (api/export.js 엑셀 연동용 — 표시 지우지 마세요)
 const E8 = 100000000;
 
 // 강남점 특약사항 — 월별 고정 차감액 (row.special에 미입력된 과거 데이터 보완용)
@@ -1590,6 +1593,7 @@ function calcFees(row) {
     feeExemptTotal, finalSales, mgmtRatePct:rate(mgmtAmt), mktRatePct:rate(mktAmt) };
 }
 
+// [FEE-CALC-B-END]
 // 동일 지점+월로 중복 제출된 건 중 최신(submittedAt 기준) 1건만 선택
 function findLatestRow(rows, branch, month) {
   const matches = rows.filter(r => r.branch === branch && r.month === month);

@@ -3,10 +3,12 @@
   "cleanUrls": false,
   "trailingSlash": false,
   "functions": {
-    "api/sync.js": { "maxDuration": 60 }
+    "api/sync.js": { "maxDuration": 60 },
+    "api/export.js": { "maxDuration": 60 }
   },
   "routes": [
     { "src": "/api/sync", "dest": "/api/sync.js" },
+    { "src": "/api/export", "dest": "/api/export.js" },
     { "src": "/api/auth", "dest": "/api/auth.js" },
     { "src": "/api/workspace", "dest": "/api/workspace.js" },
     { "src": "/workspace", "dest": "/사내워크스페이스/index.html" },
