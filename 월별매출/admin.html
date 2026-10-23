@@ -1476,6 +1476,16 @@ const FEE_RULES = {
   '세라미크 명동점':{ formula:'경영 월매출 5%+VAT | 마케팅 국내매출 5%+VAT (2025.10.25~2027.10.24, 2년씩 자동연장)',
     mgmt:(t)=>Math.round(t*0.055),
     mkt:(t,ym,dom)=>Math.round(dom*0.055) },
+  // ── 폐업(계약종료) 지점: 과거 월 청구서 조회용 (엑셀 원본데이터 기준 금액과 일치하도록 설정) ──
+  '의정부점':      { formula:'경영 월매출 7%(최소 2,000만원)+VAT, 2025.12은 일할(11/31) | 마케팅 2%+VAT (~2025.12.11 계약종료)',
+    mgmt:(t,ym)=>ym==='2025-12'?Math.round(20000000*11/31*1.1):Math.max(Math.round(t*0.077),22000000),
+    mkt:(t)=>Math.round(t*0.022) },
+  '마포홍대점':    { formula:'경영 고정 500만원+VAT | 마케팅 국내매출 2%+VAT (~2026.04.01 계약종료)',
+    mgmt:()=>5500000,
+    mkt:(t,ym,dom)=>Math.round(dom*0.022) },
+  '세라미크 신사점':{ formula:'경영 월매출 5%+VAT | 마케팅 국내매출 5%+VAT (2025.12은 면제, ~2026.02.28 계약종료)',
+    mgmt:(t,ym)=>ym==='2025-12'?0:Math.round(t*0.055),
+    mkt:(t,ym,dom)=>ym==='2025-12'?0:Math.round(dom*0.055) },
 };
 
 // ════════════════════════════════════════════════════════
@@ -1618,6 +1628,7 @@ function dedupLatestByBranchMonth(rows) {
 // 경영컨설팅 수수료가 매출액과 무관하게 고정인 지점인지 판별
 // (RATE_HISTORY에 고정 요율 등록된 경우, 또는 FEE_RULES 공식이 매출 0일 때와 매우 클 때 항상 같은 값을 낼 경우)
 function isMgmtFeeFixed(branch, ym) {
+  if (isBranchClosed(branch) && !wasUnderContract(branch, ym)) return false;
   const schedule = getRateScheduleFor(branch, ym);
   if (schedule) return schedule.mgmtType === 'fixed';
   const rule = FEE_RULES[branch];
