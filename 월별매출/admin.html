@@ -2781,6 +2781,24 @@ function clearData() {
 // ════════════════════════════════════════════════════════
 // 탭7: 수수료 청구서
 // ════════════════════════════════════════════════════════
+// 청구서 탭 지점 목록: 현재 운영 지점 + 지금은 폐업(계약종료)한 지점도 포함 (과거 월 조회 시 당시 계약 상태였던 지점이 빠지지 않도록)
+// "영등포점/노성진" 같은 이력 전용 항목(이름에 / 포함)은 제외 — 매출 행은 "영등포점"으로 저장됨
+function getInvoiceBranches() {
+  const extra = b => b.filter(n => !n.includes('/'));
+  return [
+    ...BRANCHES_DAYB, ...extra(getClosedOnlyBranches('데이뷰', BRANCHES_DAYB)),
+    ...BRANCHES_CERA, ...extra(getClosedOnlyBranches('세라미크', BRANCHES_CERA)),
+  ];
+}
+// 폐업 지점이 해당 월(YYYY-MM)에 계약기간 안이었는지 (계약종료일의 월까지 포함)
+function wasUnderContract(branch, ym) {
+  const cfg = BRANCH_CONFIG[branch];
+  if (!cfg || !cfg.contractEnd) return false;
+  const endM = String(cfg.contractEnd).slice(0, 7);
+  const startM = cfg.contractStart ? String(cfg.contractStart).slice(0, 7) : '';
+  return endM >= ym && (!startM || startM <= ym);
+}
+
 function renderInvoiceTab() {
   const month = document.getElementById('t7Month').value;
   if (!month) { alert('월을 선택하세요.'); return; }
@@ -2811,14 +2829,15 @@ function renderInvoiceTab() {
 
   let totalSales=0, totalMgmt=0, totalMkt=0, totalFeeExempt=0, totalFinal=0;
 
-  ALL_BRANCHES.forEach(branch => {
+  getInvoiceBranches().forEach(branch => {
     const row = findLatestRow(all, branch, month);
     const fixedNoData = !row && isMgmtFeeFixed(branch, month);
     if (!row && !fixedNoData) {
-      if (isBranchClosed(branch)) return; // 폐업 지점은 해당 월 데이터가 없으면 목록에서 제외
+      // 폐업 지점은 해당 월이 계약기간 안이었던 경우에만 목록에 남김 (그 시점엔 계약 상태였으므로)
+      if (isBranchClosed(branch) && !wasUnderContract(branch, month)) return;
       html += `<tr style="border-bottom:1px solid #f3f4f6;">
         <td style="padding:8px 10px;font-weight:600;white-space:normal;word-break:keep-all;">${displayBranchName(branch)}</td>
-        <td colspan="4" style="padding:8px 10px;color:#aaa;text-align:center;">데이터 없음</td>
+        <td colspan="4" style="padding:8px 10px;color:#aaa;text-align:center;">데이터 없음${isBranchClosed(branch) ? ` <span style="font-size:.7rem;color:#bbb;">(${(BRANCH_CONFIG[branch]||{}).contractEnd||''} 계약종료 · 해당 월 자료 미등록)</span>` : ''}</td>
         <td style="padding:8px 10px;text-align:center;">-</td>
         <td style="padding:8px 10px;text-align:center;">-</td>
         <td style="padding:8px 10px;text-align:center;">-</td>
@@ -2986,7 +3005,7 @@ async function downloadAllInvoices() {
   if (!month) { alert('월을 선택하세요.'); return; }
 
   const all = JSON.parse(localStorage.getItem('sales_data') || '[]');
-  const branches = ALL_BRANCHES.filter(b => findLatestRow(all, b, month) || isMgmtFeeFixed(b, month));
+  const branches = getInvoiceBranches().filter(b => findLatestRow(all, b, month) || isMgmtFeeFixed(b, month));
   if (!branches.length) { alert('해당 월에 매출 데이터가 있는 지점이 없습니다.'); return; }
 
   const btn = document.querySelector('button[onclick="downloadAllInvoices()"]');
