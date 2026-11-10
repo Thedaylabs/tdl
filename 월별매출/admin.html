@@ -3474,7 +3474,19 @@ function renderMgmtCheck() {
     </tr>`;
 }
 
+// 날짜 칸에 직접 타이핑하면 연/월/일을 치는 도중(예: 연도 "0002")에도 change가 발생하고,
+// 그때마다 화면을 다시 그려 입력칸이 새로 만들어지며 입력이 끊겼음 →
+// 완성된 날짜(20xx-xx-xx)만 저장하고, 날짜 변경은 화면을 다시 그리지 않으며 서버 전송은 잠깐 모아서 한 번만 보냄
+function isCompleteDate(v) { return !v || /^20\d\d-\d\d-\d\d$/.test(v); }
+const _mgmtPostTimers = {};
+function debouncedMgmtPost(id) {
+  clearTimeout(_mgmtPostTimers[id]);
+  _mgmtPostTimers[id] = setTimeout(() => serverPost({ action: 'update_mgmt', id, data: getMgmtData()[id] }), 500);
+}
+
 function onMgmtChange(id, field, el) {
+  const isDate = field === 'paidDate' || field === 'invoiceDate';
+  if (isDate && !isCompleteDate(el.value)) return;
   const d = getMgmtData();
   if (!d[id]) d[id] = {};
   const today = new Date().toISOString().slice(0,10);
@@ -3498,6 +3510,7 @@ function onMgmtChange(id, field, el) {
     d[id][field] = el.value;
   }
   saveMgmtData(d);
+  if (isDate) { debouncedMgmtPost(id); return; }
   serverPost({ action: 'update_mgmt', id, data: d[id] });
   renderMgmtCheck();
   refreshCombinedOverview();
@@ -3531,6 +3544,8 @@ function removeMgmtPayment(id, idx) {
 }
 
 function onMgmtExtraChange(id, idx, field, el) {
+  const isDate = field === 'date';
+  if (isDate && !isCompleteDate(el.value)) return;
   const d = getMgmtData();
   if (!d[id]) d[id] = {};
   if (!Array.isArray(d[id].extra)) d[id].extra = [];
@@ -3541,6 +3556,7 @@ function onMgmtExtraChange(id, idx, field, el) {
     d[id].extra[idx][field] = el.value;
   }
   saveMgmtData(d);
+  if (isDate) { debouncedMgmtPost(id); return; }
   serverPost({ action: 'update_mgmt', id, data: d[id] });
   renderMgmtCheck();
   refreshCombinedOverview();
